@@ -1,0 +1,17 @@
+# Coq generated files
+*.vo
+*.vio
+*.aux
+*.glob
+*.v.d
+*.vok
+*.vos
+
+# Other miscellaneous files to ignore
+*.log
+*.cache/
+__coqdoc__/
+
+# Ignore hidden files and directories (except .gitignore itself)
+.*[a-zA-Z_0-9]*
+!/.gitignore
