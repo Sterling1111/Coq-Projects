@@ -1034,4 +1034,4 @@ Theorem peirce_imp_double_negation_elimination :
 Proof.
   unfold peirce. unfold double_negation_elimination. unfold not.
   intros H1 P H2. apply H1 with (Q := False). intros H3. destruct H2. apply H3.
-Qed.cd
+Qed.

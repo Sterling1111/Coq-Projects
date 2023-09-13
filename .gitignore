@@ -13,6 +13,7 @@
 __coqdoc__/
 Makefile
 Makefile.conf
+Makefile.d
 
 # Ignore hidden files and directories (except .gitignore itself)
 .*[a-zA-Z_0-9]*
