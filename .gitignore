@@ -11,6 +11,8 @@
 *.log
 *.cache/
 __coqdoc__/
+Makefile
+Makefile.conf
 
 # Ignore hidden files and directories (except .gitignore itself)
 .*[a-zA-Z_0-9]*
