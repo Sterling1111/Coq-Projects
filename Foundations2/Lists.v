@@ -292,6 +292,39 @@ Proof. simpl. reflexivity. Qed.
 Example test_included2: included [1;2;2] [2;1;4;1] = false.
 Proof. simpl. reflexivity. Qed.
 
+Theorem add_inc_count : forall (s : bag) (v : nat),
+  length (add v s) = 1 + length s.
+Proof.
+  intros s v. destruct s as [| h t] eqn: Es.
+  - simpl. reflexivity.
+  - simpl. reflexivity. 
+Qed.
+
+Theorem nil_app : forall l : natlist,
+  [] ++ l = l.
+Proof.
+  simpl. reflexivity.
+Qed.
+
+Theorem tl_length_pred : forall l : natlist,
+  pred (length l) = length (tl l).
+Proof.
+  intro l. destruct l as [| h t] eqn:El.
+  - simpl. reflexivity.
+  - simpl. reflexivity.
+Qed.
+
+Theorem app_assoc : forall l1 l2 l3 : natlist,
+  (l1 ++ l2) ++ l3 = l1 ++ (l2 ++ l3).
+Proof.
+  intros l1 l2 l3. induction l1 as [| n l' IH].
+  - simpl. reflexivity.
+  - simpl. rewrite -> IH.
+   reflexivity.
+Qed.
+
+
+
 Theorem bob : forall l : natlist,
 l ++ [] = l.
 Proof.
