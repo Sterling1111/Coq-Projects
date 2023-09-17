@@ -133,17 +133,68 @@ Compute b(4).
 
 Open Scope Z_scope.
 
-Lemma lemmma : forall (n : nat), (2 * n + 1)%nat = (2 * n - 1 + 2)%nat.
+Lemma lemmma : forall (n : nat), (n > 0)%nat -> (2 * n + 1)%nat = (2 * n - 1 + 2)%nat.
 Proof.
-  intro n. induction n as [| k IH].
-  - simpl.
+  intros n H. induction n as [| k IH].
+  - simpl. exfalso. apply (gt_irrefl) in H. apply H.
+  - lia.
+Qed.
+
+Search (_ - 0).
+
+Require Import ZArith.
+
+
+Lemma example : forall k : nat, (-1) ^ Z.of_nat (k * k + 1 + (2 * k + 1)) = -1.
+Proof.
+  intros k.
+  rewrite <- Z.pow_add_r.
+  rewrite Z.pow_1_r by omega.
+  rewrite Z.pow_add_r by (apply Nat2Z.is_nonneg; omega).
+  rewrite Z.pow_1_r by omega.
+  simpl.
+  reflexivity.
+Qed.
+
+
+Lemma minus_one_pow_odd : forall n : nat, (-1) ^ Z.of_nat (n * n + 1) = -1.
+Proof.
+  intros n. induction n as [| k IH].
+  - simpl. reflexivity.
+  - assert (H: (S k * S k + 1)%nat = ((k * k + 1) + (2 * k + 1))%nat).
+    { lia. } rewrite -> H. rewrite  (Z.pow_add_r (-1) (Z.of_nat k * Z.of_nat k + 1) (2 * Z.of_nat k + 1)).
+Qed.
+
+Lemma minus_one_pow_odd : forall n : nat, (-1) ^ Z.of_nat (n * n + 1) = -1.
+Proof.
+  intro n.
+  assert (H_odd: Z.odd (Z.of_nat (n * n + 1)) = true).
+  {
+    rewrite Nat2Z.inj_add.
+    rewrite Nat2Z.inj_mul.
+    apply Z.odd_spec.
+    exists (Z.of_nat n * Z.of_nat n).
+    rewrite -> Z.double.
+    reflexivity.
+  }
+
+  apply Z.pow_1_l.
+  rewrite Z.odd_spec in H_odd.
+  destruct H_odd as [k Hk].
+  rewrite Hk.
+  apply Z.add_1_r.
 Qed.
 
 
 Lemma lemma2 : forall (n : nat), 
-  fib(2*n+1)*fib(2*n-1) - fib(2*n)^2 < 0.
+  (n > 0)%nat -> fib(2*n+1)*fib(2*n-1) - fib(2*n)^2 < 0.
 Proof.
-  intro n.
+  intros n H. rewrite -> lemmma. replace (F (2 * n)) with (F (2 * n - 1 + 1)).
+  rewrite -> lemma1. induction n.
+  - simpl. exfalso. apply (gt_irrefl) in H. apply H.
+  - simpl. rewrite plus_0_r. assert (H2: (n + S n - 0)%nat = (2 * n + 1)%nat).
+    { lia. } rewrite -> H2. 
+
 Abort.
 
 
