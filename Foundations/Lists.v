@@ -1,4 +1,8 @@
 From Foundations Require Export Induction.
+
+Compute odd 3.
+
+
 Module NatList.
 
 Inductive natprod : Type :=
