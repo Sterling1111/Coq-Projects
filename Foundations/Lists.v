@@ -177,6 +177,7 @@ Definition countoddmembers (l : natlist) : nat :=
          | h2 :: t2 => length (h2 :: t2)
          end
   end.
+
   
 Example test_countoddmembers1: countoddmembers [1;0;3;1;4;5] = 4.
 Proof. simpl. reflexivity. Qed.
