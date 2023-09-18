@@ -1,4 +1,4 @@
-Require Import ZArith Lia QArith.
+Require Import Peano ZArith Lia QArith Reals.
 Open Scope Z_scope.
 
 Fixpoint fibonacci (n : nat) : Z :=
@@ -33,7 +33,7 @@ Qed.
 Lemma fib_suc_suc'' : forall n : nat, (n > 0)%nat -> F(n+1) = F(n) + F(n-1).
 Proof.
   intros n H1. destruct n as [| n'] eqn:En.
-  - simpl. exfalso. apply (gt_irrefl) in H1. apply H1.
+  - simpl. exfalso. apply (Nat.lt_irrefl) in H1. apply H1.
   - assert (H2: S n' = (n' + 1)%nat).
     { lia. } rewrite -> H2. rewrite <- Nat.add_assoc. simpl.
     assert (H3: (n' + 1 - 1)%nat = n').
@@ -41,39 +41,58 @@ Proof.
     apply fib_suc_suc'.
 Qed.
 
-Lemma fibonacci_positive: forall n : nat, fibonacci n > 0.
+
+Open Scope nat_scope.
+
+Definition strong_induction_T (P : nat -> Prop) : Prop :=
+  P 0 ->
+  (forall n, (forall k, k <= n -> P k) -> P (S n)) ->
+  forall n, P n.
+
+Lemma strong_induction: forall P, strong_induction_T P.
 Proof.
+  unfold strong_induction_T.
+  intros P Hbase Hstep.
   intros n.
-  induction n as [| n' IHn'].
-  - simpl. omega.
-  - destruct n' as [| n''].
-    + simpl. omega.
-    + simpl. 
-      assert (fibonacci n' > 0) by (apply IHn').
-      assert (fibonacci (S n'') > 0) by (apply IHn').
-      omega.
+  assert (forall k, k <= n -> P k).
+  {
+    induction n.
+    - intros k Hkn. inversion Hkn. apply Hbase.
+    - intros k Hkn. inversion Hkn.
+      + apply Hstep. intros k0 Hk0n. apply IHn. lia.
+      + apply IHn. lia.
+  }
+  apply H. lia.
+Qed.
+
+Open Scope Z_scope.
+
+Lemma fibonacci_positive_strong : forall n, fibonacci n > 0.
+Proof.
+  apply strong_induction.
+  - simpl. lia.
+  - intros n IH. destruct n.
+    + simpl. lia.
+    + simpl. destruct n.
+      ++ simpl. lia.
+      ++ assert (H1: (S n <= S (S n))%nat). { lia. }
+         assert (H2 : (n <= S (S n))%nat). { lia. }
+         assert (H3 : F (S n) > 0). 
+         { apply IH. apply H1. }
+         assert (H4: F n > 0).
+         { apply IH. apply H2. } lia.
+Qed.
 
 Lemma next_fib_greater : forall n : nat,
   fibonacci (S n) >= fibonacci n.
 Proof.
-  intros n. induction n as [| k IH].
+  intro n. induction n as [| k IH].
   - simpl. lia.
-  - induction k as [| k' IH'].
-    + simpl. lia.
-    + rewrite <- fib_suc_suc'. lia.
-Qed.
-
-
-
-Lemma fibonacci_positive: forall n : nat, fibonacci n > 0.
-Proof.
-  intros n.
-  induction n as [| n' IHn'].
-  - simpl. lia.
-  - destruct n' as [| n''].
-    + simpl. lia.
-    + rewrite <- Z.add_0_r at 1.
-      apply Z.add_lt_mono; assumption.
+  - rewrite -> fib_suc_suc. 
+    assert (H1 : F (S k) > 0).
+    { apply fibonacci_positive_strong. } 
+    assert (H2 : F k > 0).
+    { apply fibonacci_positive_strong. } lia.
 Qed.
 
 Check F.
@@ -82,11 +101,6 @@ About F.
 Compute F(1) - F(5).
 Compute F(3).
 Compute F(5).
-
-
-About Z.
-
-Require Import Lia.
 
 Lemma pow_2_z : forall (x : Z),
   x * x = Z.pow x 2.
@@ -106,7 +120,7 @@ Proof.
 Qed.
 
 
-Theorem F_diff : forall (n : nat),
+Theorem fib_diff : forall (n : nat),
   F(n+2) * F(n) - (F(n+1) * F(n+1)) = (Z.pow (-1) (Z.of_nat n)).
 Proof.
   intro n. induction n as [| k IH].
@@ -143,18 +157,15 @@ Qed.
 Lemma lemma1 : forall n : nat,
   F(n+2) * F(n) - F(n+1) ^ 2 = (-1) ^ (Z.of_nat n).
 Proof.
-  intro n. rewrite <- pow_2_z. apply F_diff.
+  intro n. rewrite <- pow_2_z. apply fib_diff.
 Qed.
 
-Example F_test : F (3602) * F(3600) - F(3601)^2 = (-1)^(3600).
+Example fib_test : F (3602) * F(3600) - F(3601)^2 = (-1)^(3600).
 Proof. apply (lemma1 3600). Qed.
 
 Compute F(15).
 Compute F(20).
 Compute F(25).
-
-Require Import QArith.
-Require Import Peano.
 
 Compute ((inject_Z (F 10)) / (inject_Z (F 9)))%Q.
 
@@ -183,7 +194,7 @@ Open Scope Z_scope.
 Lemma lemmma : forall (n : nat), (n > 0)%nat -> (2 * n + 1)%nat = (2 * n - 1 + 2)%nat.
 Proof.
   intros n H. induction n as [| k IH].
-  - simpl. exfalso. apply (gt_irrefl) in H. apply H.
+  - simpl. exfalso. apply (Nat.lt_irrefl) in H. apply H.
   - lia. 
 Qed.
 
@@ -224,8 +235,8 @@ Lemma lemma2 : forall (n : nat),
 Proof.
   intros n H. rewrite -> lemmma. replace (F (2 * n)) with (F (2 * n - 1 + 1)).
   rewrite -> lemma1. induction n.
-  - simpl. exfalso. apply (gt_irrefl) in H. apply H.
-  - simpl. rewrite plus_0_r. assert (H2: (n + S n - 0)%nat = (2 * n + 1)%nat).
+  - simpl. exfalso. apply (Nat.lt_irrefl) in H. apply H.
+  - simpl. rewrite Nat.add_0_r. assert (H2: (n + S n - 0)%nat = (2 * n + 1)%nat).
     { lia. } rewrite -> H2. apply minus_one_pow_odd. 
   - assert (H2 : (2 * n - 1 + 1 = 2 * n)%nat). { lia. } rewrite -> H2. reflexivity.
   - apply H.
@@ -276,6 +287,24 @@ Proof.
   repeat rewrite Z.mul_1_r. auto.
 Qed.
 
+Lemma div_Q : forall (a b c d : Q),
+  (a > 0) /\ (c > 0) /\ (a * b < c * d) -> b / c < d / a.
+Proof.
+  intros a b c d [H1 [H2 H3]].
+  assert (H4 : b < (c * d) / a).
+  { apply Qlt_shift_div_l. apply H1. rewrite Qmult_comm. apply H3. }
+  apply Qlt_shift_div_r.
+  - apply H2.
+  - rewrite Qmult_comm. unfold Qdiv in H4. unfold Qdiv. rewrite <- Qmult_assoc in H4.
+    apply H4.
+Qed.
+
+Lemma inject_Z_gt_0 : forall a : Z,
+  (a > 0)%Z -> inject_Z a > 0.
+Proof.
+  intros a. unfold inject_Z. unfold Qlt. simpl.
+  rewrite Z.mul_1_r. intro H. apply Z.gt_lt in H. apply H.
+Qed.
 
 Lemma lemma7 : forall (n : nat),
   (n > 0)%nat -> 
@@ -286,22 +315,97 @@ Proof.
   assert (H2 : inject_Z (F (2 * n - 1)) * inject_Z (F (2 * n + 2)) <
              inject_Z (F (2 * n)) * inject_Z (F (2 * n + 1))).
          { repeat rewrite <- inject_Z_mul. apply inject_Z_lt. apply H1. }
-  
-  
-  
+  assert (H3 : (F (2 * n - 1) > 0)%Z).
+         { apply fibonacci_positive_strong with (n := (2 * n - 1)%nat). }
+  assert (H4 : (F (2 * n + 1) > 0)%Z).
+         { apply fibonacci_positive_strong with (n := (2 * n + 1)%nat). }
+  assert (H5 : inject_Z (F (2 * n - 1)) > 0).
+         { apply inject_Z_gt_0. apply H3. }
+  assert (H6 : inject_Z (F (2 * n + 1)) > 0).
+         { apply inject_Z_gt_0. apply H4. }
+  apply div_Q. split.
+  - apply H5.
+  - split.
+    + apply H6.
+    + rewrite Qmult_comm with (x := inject_Z (F (2 * n + 1))) (y := inject_Z (F (2 * n))). apply H2.
+Qed.
 
-
-
-Lemma a_decreasing_bounded_below : forall (n : nat),
-  (a(n) > 0)%Z /\ (a(n+1) < a(n))%Z.
+Lemma a_decreasing : forall (n : nat),
+  (n > 0)%nat -> a (S n) < a n.
 Proof.
-  intros n. split.
-  -  
-  induction n as [| k IH].
-    -- simpl. reflexivity.
-    -- simpl. repeat rewrite Nat.add_0_r.
-  - induction n as [| k IH].
-    -- simpl. reflexivity.
-    -- replace (k+1)%nat with (S k) in IH.
-      --- simpl. repeat rewrite Nat.add_0_r. repeat rewrite Nat.sub_0_r.
-Abort.
+  intros n H1.
+  unfold a. destruct n.
+  - simpl. lia.
+  - assert (H2 : (2 * S (S n) = (2 * S n + 2))%nat).
+    { lia. } rewrite -> H2 at 1. 
+    assert (H3 : (2 * S (S n) - 1 = (2 * (S n) + 1))%nat).
+    { lia. } rewrite -> H3.
+    apply lemma7. apply H1.
+Qed.
+
+Example a_test: a (10) < a (9).
+Proof.
+  simpl. unfold Qlt. simpl. reflexivity. Qed.
+
+
+Example a_test2: a (100) < a (99).
+Proof.
+  apply a_decreasing. lia. Qed.
+
+Lemma a_bounded_below : forall (n : nat),
+  (n > 0)%nat -> a n > 0.
+Proof.
+  intros n H1. unfold a. destruct n.
+  - lia.
+  - assert (H2 : (2 * S n - 1 = (2 * n + 1))%nat).
+    { lia. } rewrite -> H2.
+    assert (H3 : (F (2 * n + 1) > 0)%Z).
+    { apply fibonacci_positive_strong with (n := (2 * n + 1)%nat). }
+    assert (H4 : (F (2 * S n) > 0)%Z).
+    { apply fibonacci_positive_strong with (n := (2 * S n)%nat). }
+    apply inject_Z_gt_0 in H3. apply inject_Z_gt_0 in H4.
+    unfold Qdiv. apply Qmult_lt_0_compat. apply H4.
+    apply Qinv_lt_0_compat. apply H3.
+Qed.
+
+
+Example a_test3: a (10) > 0.
+Proof.
+  simpl. unfold Qlt. simpl. reflexivity. Qed.
+
+Example a_test4: a (100) > 0.
+Proof.
+  apply a_bounded_below. lia. Qed.
+
+Open Scope R_scope.
+
+(* Define a sequence as a function from natural numbers to reals *)
+Definition sequence := nat -> R.
+
+(* Stating that a sequence is strictly decreasing *)
+Definition strictly_decreasing (a : sequence) : Prop :=
+  forall n : nat, a n > a (S n).
+
+Definition strictly_increasing (a : sequence) : Prop :=
+  forall n : nat, a n < a (S n).
+
+(* Stating that a sequence is bounded below *)
+Definition bounded_below (a : sequence) (LB : R) : Prop :=
+  forall n : nat, LB < a n.
+
+Definition bounded_above (a : sequence) (UB : R) : Prop := 
+  forall n : nat, UB > a n.
+
+(* Monotonic Sequence Theorem for strictly decreasing sequences *)
+Axiom Monotonic_Sequence_Theorem :
+  forall (a : sequence) (LB UB : R),
+  ((strictly_decreasing a /\ bounded_below a LB) \/
+  (strictly_increasing a /\ bounded_above a UB)) ->
+  exists L : R,
+    (forall e : R, e > 0 ->
+     exists N : nat, forall n : nat, (n > N)%nat -> Rabs (a n - L) < e).
+
+Close Scope R_scope.
+
+Example poop : (2 + 2 = 4)%nat.
+Proof. lia. Qed. 
