@@ -1,4 +1,4 @@
-Require Import Peano ZArith Lia QArith Reals.
+Require Import Peano ZArith Lia QArith Reals Nat.
 Open Scope Z_scope.
 
 Fixpoint fibonacci (n : nat) : Z :=
@@ -65,6 +65,8 @@ Proof.
   apply H. lia.
 Qed.
 
+Close Scope nat_scope.
+
 Open Scope Z_scope.
 
 Lemma fibonacci_positive_strong : forall n, fibonacci n > 0.
@@ -119,7 +121,6 @@ Proof.
   - lia.
 Qed.
 
-
 Theorem fib_diff : forall (n : nat),
   F(n+2) * F(n) - (F(n+1) * F(n+1)) = (Z.pow (-1) (Z.of_nat n)).
 Proof.
@@ -152,7 +153,6 @@ Proof.
         { lia. } rewrite -> H3.
       reflexivity.
 Qed.
-
 
 Lemma lemma1 : forall n : nat,
   F(n+2) * F(n) - F(n+1) ^ 2 = (-1) ^ (Z.of_nat n).
@@ -200,25 +200,41 @@ Qed.
 
 Search (_ - 0).
 
-Require Import ZArith.
-
 Check Z.pow_1_l.
 
-Lemma minus_one_pow_odd : forall n : nat,
-  (-1) ^ Z.of_nat (2 * n + 1) < 0.
+Lemma odd_pow_neg : forall k, Nat.Odd k -> (-1) ^ Z.of_nat k = -1.
 Proof.
-  intros n. induction n as [| k IH].
-  - simpl. lia.
-  - rewrite Nat2Z.inj_add. rewrite -> Z.pow_add_r.
-    -- assert (H: (-1) ^ Z.of_nat 1 = -1). { lia. } 
-       rewrite -> H. assert (H2 : (2 * S k = (2 * k + 1) + 1)%nat).
-       { lia. } rewrite -> H2. rewrite Nat2Z.inj_add. rewrite -> Z.pow_add_r.
-       --- rewrite -> H. rewrite <- Z.mul_assoc. assert (H3: -1 * -1 = 1).
-           { lia. } rewrite -> H3. rewrite Z.mul_1_r. apply IH.
-       --- lia.
-       --- lia.
+  intros k Hodd.
+  destruct Hodd as [m Heq]. 
+  rewrite Heq.
+  assert (Z.of_nat (2 * m + 1) = 2 * (Z.of_nat m) + 1).
+  {
+    rewrite Nat2Z.inj_add. 
+    rewrite Nat2Z.inj_mul.
+    reflexivity.
+  }
+  rewrite H. 
+  rewrite Z.pow_add_r.
+  - rewrite Z.pow_mul_r.
+    -- rewrite Z.pow_1_r. rewrite Z.pow_2_r. simpl. rewrite Z.pow_1_l.
+      --- reflexivity.
+      --- lia.
     -- lia.
     -- lia.
+  - lia.
+  - lia.
+Qed.
+
+Lemma even_pow_pos : forall k, Nat.Even k -> (-1) ^ Z.of_nat k = 1.
+Proof.
+  intros k. unfold Nat.Even. intros [m Heq].
+  assert (H2: (-1) ^ Z.of_nat (2 * m + 1) = -1).
+  { apply odd_pow_neg. exists m. reflexivity. } 
+  rewrite Heq. rewrite Nat2Z.inj_add in H2. rewrite Z.pow_add_r in H2.
+  - assert (H3 : (-1) ^ Z.of_nat 1 = -1). { lia. } rewrite H3 in H2.
+    lia.
+  - lia.
+  - lia.
 Qed.
 
 Lemma pow_n_squared_plus_1_unknown_sign : exists n m : nat,
@@ -237,7 +253,9 @@ Proof.
   rewrite -> lemma1. induction n.
   - simpl. exfalso. apply (Nat.lt_irrefl) in H. apply H.
   - simpl. rewrite Nat.add_0_r. assert (H2: (n + S n - 0)%nat = (2 * n + 1)%nat).
-    { lia. } rewrite -> H2. apply minus_one_pow_odd. 
+    { lia. } rewrite -> H2.
+    assert (H3: (-1) ^ Z.of_nat (2 * n + 1) = -1).
+    { apply odd_pow_neg. exists n. reflexivity. } rewrite H3. lia.
   - assert (H2 : (2 * n - 1 + 1 = 2 * n)%nat). { lia. } rewrite -> H2. reflexivity.
   - apply H.
 Qed.
@@ -376,6 +394,15 @@ Proof.
 Example a_test4: a (100) > 0.
 Proof.
   apply a_bounded_below. lia. Qed.
+
+Close Scope Q_scope.
+
+Lemma lemma8 : forall (n : nat),
+  F (2*n+2) * F(2*n) - F(2*n + 1)^2 = 1.
+Proof.
+  intro n. rewrite lemma1 with (n := (2 * n)%nat).
+  apply even_pow_pos. exists n. lia.
+Qed.
 
 Open Scope R_scope.
 
