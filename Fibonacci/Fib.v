@@ -41,6 +41,16 @@ Proof.
     apply fib_suc_suc'.
 Qed.
 
+Lemma fib_suc_suc''' : forall n : nat, F(n+3) = F(n + 2) + F(n+1).
+Proof.
+  intro n. destruct n as [| n'] eqn:En.
+  - simpl. reflexivity.
+  - assert (H1: (S n' + 3 = (S n' + 1) + 2)%nat).
+    { lia. } rewrite H1.
+    assert (H2: (S n' + 2 = (S n' + 1) + 1)%nat).
+    { lia. } rewrite H2.
+    apply fib_suc_suc'.
+Qed.
 
 Open Scope nat_scope.
 
@@ -94,6 +104,18 @@ Proof.
     assert (H1 : F (S k) > 0).
     { apply fibonacci_positive_strong. } 
     assert (H2 : F k > 0).
+    { apply fibonacci_positive_strong. } lia.
+Qed.
+
+Lemma next_fib_greater' : forall n : nat,
+  (n >= 1)%nat -> fibonacci (S n) > fibonacci n.
+Proof.
+  intros n H. destruct n as [| n'] eqn:En.
+  - lia.
+  - rewrite -> fib_suc_suc. 
+    assert (H1 : F (S n') > 0).
+    { apply fibonacci_positive_strong. } 
+    assert (H2 : F n' > 0).
     { apply fibonacci_positive_strong. } lia.
 Qed.
 
@@ -298,6 +320,12 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma inject_Z_plus : forall a b : Z, inject_Z (a + b) == inject_Z a + inject_Z b.
+Proof.
+  intros.
+  unfold Qplus, inject_Z. simpl. repeat rewrite Z.mul_1_r. reflexivity.
+Qed.
+
 Lemma inject_Z_lt : forall a b : Z,
   (a < b)%Z -> inject_Z a < inject_Z b.
 Proof.
@@ -312,6 +340,18 @@ Proof.
   assert (H4 : b < (c * d) / a).
   { apply Qlt_shift_div_l. apply H1. rewrite Qmult_comm. apply H3. }
   apply Qlt_shift_div_r.
+  - apply H2.
+  - rewrite Qmult_comm. unfold Qdiv in H4. unfold Qdiv. rewrite <- Qmult_assoc in H4.
+    apply H4.
+Qed.
+
+Lemma div_Q' : forall (a b c d : Q),
+  (a > 0) /\ (c > 0) /\ (a * b > c * d) -> b / c > d / a.
+Proof.
+  intros a b c d [H1 [H2 H3]].
+  assert (H4 : b > (c * d) / a).
+  { apply Qlt_shift_div_r. apply H1. rewrite (Qmult_comm b a). apply H3. }
+  apply Qlt_shift_div_l.
   - apply H2.
   - rewrite Qmult_comm. unfold Qdiv in H4. unfold Qdiv. rewrite <- Qmult_assoc in H4.
     apply H4.
@@ -397,14 +437,161 @@ Proof.
 
 Close Scope Q_scope.
 
-Lemma lemma8 : forall (n : nat),
+Lemma lemma8 : forall (n : nat), (n >= 0)%nat ->
   F (2*n+2) * F(2*n) - F(2*n + 1)^2 = 1.
 Proof.
-  intro n. rewrite lemma1 with (n := (2 * n)%nat).
+  intros n H1. rewrite lemma1 with (n := (2 * n)%nat).
   apply even_pow_pos. exists n. lia.
 Qed.
 
-Open Scope R_scope.
+Lemma lemma9 : forall (n : nat), (n >= 0)%nat ->
+  F (2*n+2) * F(2*n) - F(2*n + 1)^2 > 0.
+Proof.
+  intros n H1. rewrite lemma8. lia. lia.
+Qed.
+
+Lemma lemma10 : forall (n : nat), (n >= 0)%nat ->
+  F (2*n+2) * F(2*n) > F(2*n + 1)^2.
+Proof.
+  intros n H. apply lemma9 in H. lia.
+Qed.
+
+Lemma lemma11 : forall (n : nat), (n >= 0)%nat ->
+  F (2*n) * F(2*n+1) + F(2*n + 2) * F (2 * n) > F(2*n + 1)^2 + F(2*n) * F(2*n+1).
+Proof.
+  intros n H. apply lemma10 in H. lia.
+Qed.
+
+(*create lemma12 which is the same as lemma11 but factor out F(2n) on the left and
+  factor out F(2n+1) on the right*)
+
+Lemma lemma12 : forall (n : nat), (n >= 0)%nat ->
+  F (2*n) * (F(2*n+1) + F(2*n+2)) > F(2*n + 1) * (F(2*n+1) + F(2*n)).
+Proof.
+  intros n H. apply lemma11 in H. lia.
+Qed.
+
+(*create lemma13 which converts the part of both products which is a sum to the next larger fib nubmer*)
+
+Lemma lemma13: forall (n : nat), (n >= 0)%nat ->
+  F(2*n) * F (2*n + 3) > F(2*n + 1) * F(2*n + 2).
+Proof.
+  intros n H. apply lemma12 in H. rewrite <- fib_suc_suc' in H. rewrite fib_suc_suc'''.
+  lia.
+Qed.
+
+Open Scope Q_scope.
+
+Lemma lemma14 : forall (n : nat),
+  (n >= 0)%nat ->
+  inject_Z (F ((2 * n + 3))) / inject_Z (F (2 * n + 2)) > 
+  inject_Z (F (2 * n + 1)) / inject_Z (F (2 * n)).
+Proof.
+  intros n H1. apply lemma13 in H1.
+  assert (H2 : inject_Z (F (2 * n)) * inject_Z (F (2 * n + 3)) >
+               inject_Z (F (2 * n + 1)) * inject_Z (F (2 * n + 2))).
+         { repeat rewrite <- inject_Z_mul. apply inject_Z_lt. lia. }
+  assert (H3 : (F (2 * n) > 0)%Z).
+         { apply fibonacci_positive_strong with (n := (2 * n)%nat). }
+  assert (H4 : (F (2 * n + 2) > 0)%Z).
+         { apply fibonacci_positive_strong with (n := (2 * n + 2)%nat). }
+  assert (H5 : inject_Z (F (2 * n)) > 0).
+         { apply inject_Z_gt_0. apply H3. }
+  assert (H6 : inject_Z (F (2 * n + 2)) > 0).
+         { apply inject_Z_gt_0. apply H4. }
+  apply div_Q'. split.
+  - apply H5.
+  - split.
+    + apply H6.
+    + rewrite Qmult_comm with (x := inject_Z (F (2 * n + 2))) (y := inject_Z (F (2 * n + 1))). apply H2.
+Qed.
+
+Lemma b_increasing : forall (n : nat), 
+  (n >= 0)%nat -> b (S n) > b n.
+Proof.
+  intros n H1. unfold b. destruct n.
+  - simpl. apply Qlt_shift_div_l.
+    -- reflexivity.
+    -- reflexivity.
+  - assert (H2 : (2 * S (S n) + 1 = 2 * S n + 3)%nat).
+    { lia. } rewrite H2.
+    assert (H3 : (2 * S (S n) = 2 * (S n) + 2)%nat).
+    { lia. } rewrite H3.
+    apply lemma14. apply H1.
+Qed.
+
+Lemma lemma15 : forall (n : nat), 
+  (n >= 1)%nat -> (inject_Z (F n)) / (inject_Z (F (S n))) < 1.
+Proof.
+  intros n H1. destruct n.
+  - lia.
+  - apply Qlt_shift_div_r.
+    + assert (H2 : (F (S (S n)) > 0)%Z).
+      { apply fibonacci_positive_strong with (n := (S (S n))%nat). }
+      apply inject_Z_gt_0 in H2. apply H2.
+    + rewrite Qmult_1_l. assert (H3 : (F (S n) < F (S (S n)))%Z).
+      { apply next_fib_greater' in H1. lia. } 
+      apply inject_Z_lt in H3. apply H3.
+Qed.
+
+Lemma lemma16 : forall (n : nat),
+  (n >= 2)%nat -> (inject_Z (F (n-1))) / (inject_Z (F (n))) < 1.
+Proof.
+  intros n H1. destruct n.
+  - lia.
+  - assert (H2: (S (S n - 1) = S n)%nat).
+    { lia. } rewrite <- H2 at 2. apply lemma15. lia.
+Qed.
+
+Lemma lemma17 : b 0 < 2.
+Proof.
+  unfold b. simpl. unfold Qlt. simpl. reflexivity.
+Qed.
+
+Lemma lemma18 : b 1 < 2.
+Proof.
+  unfold b. simpl. unfold Qlt. simpl. reflexivity.
+Qed.
+
+Lemma lemma19: forall (n : nat),
+  (n >= 2)%nat -> b n < 2.
+Proof.
+  intros n H1. unfold b. rewrite fib_suc_suc''. 
+  - unfold Qdiv. rewrite Qmult_comm. rewrite inject_Z_plus.
+    rewrite Qmult_plus_distr_r. rewrite Qmult_comm. rewrite Qmult_inv_r.
+    -- assert (H3 : / inject_Z (F (2 * n)) * inject_Z (F (2 * n - 1)) < 1).
+      { rewrite Qmult_comm. apply lemma16. lia. }
+      replace (2) with (1 + 1). rewrite Qplus_comm.
+      apply Qplus_lt_le_compat.
+      --- apply H3.
+      --- apply Qle_refl.
+      --- auto.
+    -- assert (H2 : (F (2 * n) > 0)%Z).
+      { apply fibonacci_positive_strong with (n := (2 * n)%nat). }
+      apply inject_Z_gt_0 in H2. unfold not. intro H3. rewrite H3 in H2. inversion H2.
+- lia. 
+Qed.
+
+Lemma b_bounded_above : forall (n : nat),
+  b n < 2.
+Proof.
+  intro n. destruct n.
+  - apply lemma17.
+  - destruct n.
+    -- apply lemma18.
+    -- apply lemma19. lia.
+Qed.
+
+
+Definition c (n : nat) : Q := inject_Z (F (2 * n + 1)) / inject_Z (F (2 * n)).
+
+Compute c (0).
+Compute c (1).
+Compute c (2).
+Compute c (3).
+Compute c (4).
+Compute c (5).
+Compute c (7).
 
 (* Define a sequence as a function from natural numbers to reals *)
 Definition sequence := nat -> R.
