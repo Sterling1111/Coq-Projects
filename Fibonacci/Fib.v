@@ -593,6 +593,8 @@ Compute c (4).
 Compute c (5).
 Compute c (7).
 
+Open Scope R_scope.
+
 (* Define a sequence as a function from natural numbers to reals *)
 Definition sequence := nat -> R.
 
@@ -620,6 +622,3 @@ Axiom Monotonic_Sequence_Theorem :
      exists N : nat, forall n : nat, (n > N)%nat -> Rabs (a n - L) < e).
 
 Close Scope R_scope.
-
-Example poop : (2 + 2 = 4)%nat.
-Proof. lia. Qed. 
