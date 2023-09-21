@@ -585,13 +585,80 @@ Qed.
 
 Definition c (n : nat) : Q := inject_Z (F (2 * n + 1)) / inject_Z (F (2 * n)).
 
-Compute c (0).
 Compute c (1).
 Compute c (2).
 Compute c (3).
 Compute c (4).
 Compute c (5).
-Compute c (7).
+Compute c (6).
+
+Lemma Qmult_minus_distr_l : forall a b c : Q,
+  a * (b - c) == a * b - a * c.
+Proof.
+  intros a b c.
+  
+  unfold Qminus, Qmult.
+  unfold Qeq.
+  simpl.
+  lia.
+Qed.
+
+Lemma lemma21 : forall a b c d : Q,
+  (b > 0) /\ (d > 0) -> d * / d * (a * / b) == (/b * /d) * (a * d).
+Proof.
+  intros a b c d H.
+  destruct H as [H1 H2].
+  rewrite Qmult_inv_r. 
+      - rewrite Qmult_1_l. 
+        rewrite Qmult_comm with (x := a) (y := d).
+        rewrite Qmult_assoc.
+        rewrite <- Qmult_assoc with (n := /b) (m := /d) (p := d).
+        rewrite Qmult_comm with (x := /d) (y := d).
+        rewrite Qmult_inv_r.
+          -- rewrite Qmult_1_r. apply Qmult_comm.
+          -- unfold not. intro H5. rewrite H5 in H2. inversion H2.
+      - unfold not. intro H5. rewrite H5 in H2. inversion H2.
+Qed.
+
+
+Lemma lemma20 : forall (a b c d : Q),
+  (b > 0) /\ (d > 0) -> a / b - c / d == (a * d - b * c) / (b * d).
+Proof.
+  intros a b c d [H1 H2]. unfold Qdiv.
+  assert (H3 : ((d * / d) * (a * / b) == a * / b)).
+    { 
+      rewrite Qmult_inv_r.
+      - rewrite Qmult_1_l. reflexivity.
+      - unfold not. intro H3. rewrite H3 in H2. inversion H2.
+    }
+  assert (H4 : ((b * / b) * (c * / d) == c * / d)).
+    {
+      rewrite Qmult_inv_r.
+      - rewrite Qmult_1_l. reflexivity.
+      - unfold not. intro H4. rewrite H4 in H1. inversion H1.
+    }
+  rewrite <- H3. rewrite <- H4.
+  rewrite lemma21.
+  - rewrite lemma21.
+    -- rewrite Qmult_comm with (x := /b) (y := /d). 
+       rewrite <- Qmult_minus_distr_l. rewrite Qinv_mult_distr.
+       rewrite Qmult_comm. rewrite Qmult_comm with (x := c) (y := b) at 1.
+       rewrite Qmult_comm with (x := /b) (y := /d). reflexivity.
+    -- auto.
+    -- auto.
+  - auto.
+  - auto.
+Qed.
+
+Lemma bn_minus_an : forall (n : nat), 
+  (n > 0)%nat -> b n - a n == 1 / (inject_Z (F (2*n)) * inject_Z (F(2*n - 1))).
+Proof.
+  intros n H1. unfold b. unfold a. destruct n.
+  - lia.
+  - rewrite lemma20.
+    -- 
+Qed.
+
 
 Open Scope R_scope.
 
