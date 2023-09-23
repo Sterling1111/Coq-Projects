@@ -1,4 +1,5 @@
-Require Import Peano ZArith Lia QArith Reals Nat.
+Require Import Peano ZArith Lia QArith Reals Nat Reals.Reals.
+
 Open Scope Z_scope.
 
 Fixpoint fibonacci (n : nat) : Z :=
@@ -133,6 +134,15 @@ Proof.
   rewrite -> Z.mul_1_r. reflexivity.
 Qed.
 
+Definition unject_Z (q : Q) : Z :=
+  Qnum q.
+
+Lemma unject_inject_Z : forall (z : Z),
+  unject_Z (inject_Z z) = z.
+Proof.
+  intro z. unfold unject_Z. unfold inject_Z. simpl. reflexivity.
+Qed.
+
 Lemma pow_add_one_nat : forall k : nat, (-1)^(Z.of_nat (k + 1)) = (-1)^(Z.of_nat k) * (-1)^1.
 Proof.
   intros k.
@@ -191,9 +201,12 @@ Compute F(25).
 
 Compute ((inject_Z (F 10)) / (inject_Z (F 9)))%Q.
 
+Definition Q_seq := nat -> Q.
+Definition seq := nat -> R.
+
 Definition a (n :nat) : Q :=
   match n with
-  | O => 3
+  | O => 2
   | _ => (inject_Z (F(2 * n))) / (inject_Z (F(2 * n - 1)))
   end.
 
@@ -266,7 +279,6 @@ Proof.
   - simpl. reflexivity.
   - simpl. reflexivity.
 Qed.
-
 
 Lemma lemma2 : forall (n : nat), 
   (n > 0)%nat -> F(2*n+1)*F(2*n-1) - F(2*n)^2 < 0.
@@ -388,7 +400,7 @@ Proof.
     + rewrite Qmult_comm with (x := inject_Z (F (2 * n + 1))) (y := inject_Z (F (2 * n))). apply H2.
 Qed.
 
-Lemma a_decreasing : forall (n : nat),
+Lemma a_decreasing_strict : forall (n : nat),
   (n > 0)%nat -> a (S n) < a n.
 Proof.
   intros n H1.
@@ -401,6 +413,25 @@ Proof.
     apply lemma7. apply H1.
 Qed.
 
+Definition Q_seq_decreasing (a : Q_seq) : Prop :=
+  forall (n : nat), a (S n) <= a n.
+
+Definition Q_seq_increasing (a : Q_seq) : Prop := 
+  forall (n : nat), a (S n) >= b n.
+
+Definition Q_seq_bounded_below (a : Q_seq) : Prop :=
+  exists (LB : Q), forall (n : nat), a n >= LB.
+
+Definition Q_seq_bounded_above (a : Q_seq) : Prop :=
+  exists (UB : Q), forall (n : nat), a n <= UB.
+
+Lemma a_Q_decreasing : Q_seq_decreasing a.
+Proof.
+  intros n. destruct n.
+  - simpl. unfold Qle. simpl. reflexivity.
+  - apply Qlt_le_weak. apply a_decreasing_strict. lia.
+Qed.
+
 Example a_test: a (10) < a (9).
 Proof.
   simpl. unfold Qlt. simpl. reflexivity. Qed.
@@ -408,13 +439,12 @@ Proof.
 
 Example a_test2: a (100) < a (99).
 Proof.
-  apply a_decreasing. lia. Qed.
+  apply a_decreasing_strict. lia. Qed.
 
-Lemma a_bounded_below : forall (n : nat),
-  (n > 0)%nat -> a n > 0.
+Lemma a_bounded_below : Q_seq_bounded_below a.
 Proof.
-  intros n H1. unfold a. destruct n.
-  - lia.
+  unfold a. unfold Q_seq_bounded_below. exists 0. intro n. destruct n.
+  - unfold Qle. simpl. lia.
   - assert (H2 : (2 * S n - 1 = (2 * n + 1))%nat).
     { lia. } rewrite -> H2.
     assert (H3 : (F (2 * n + 1) > 0)%Z).
@@ -422,18 +452,14 @@ Proof.
     assert (H4 : (F (2 * S n) > 0)%Z).
     { apply fibonacci_positive_strong with (n := (2 * S n)%nat). }
     apply inject_Z_gt_0 in H3. apply inject_Z_gt_0 in H4.
-    unfold Qdiv. apply Qmult_lt_0_compat. apply H4.
-    apply Qinv_lt_0_compat. apply H3.
+    unfold Qdiv. apply Qmult_le_0_compat.
+    -- apply Qlt_le_weak. apply H4.
+    -- apply Qinv_le_0_compat. apply Qlt_le_weak. apply H3.
 Qed.
 
-
-Example a_test3: a (10) > 0.
+Example a_test3: a (0) >= 0.
 Proof.
-  simpl. unfold Qlt. simpl. reflexivity. Qed.
-
-Example a_test4: a (100) > 0.
-Proof.
-  apply a_bounded_below. lia. Qed.
+  simpl. unfold Qlt. simpl. apply Qlt_le_weak. reflexivity. Qed.
 
 Close Scope Q_scope.
 
@@ -506,10 +532,9 @@ Proof.
     + rewrite Qmult_comm with (x := inject_Z (F (2 * n + 2))) (y := inject_Z (F (2 * n + 1))). apply H2.
 Qed.
 
-Lemma b_increasing : forall (n : nat), 
-  (n >= 0)%nat -> b (S n) > b n.
+Lemma b_Q_increasing : Q_seq_increasing b.
 Proof.
-  intros n H1. unfold b. destruct n.
+  intros n. apply Qlt_le_weak. unfold b. destruct n.
   - simpl. apply Qlt_shift_div_l.
     -- reflexivity.
     -- reflexivity.
@@ -517,7 +542,7 @@ Proof.
     { lia. } rewrite H2.
     assert (H3 : (2 * S (S n) = 2 * (S n) + 2)%nat).
     { lia. } rewrite H3.
-    apply lemma14. apply H1.
+    apply lemma14. lia.
 Qed.
 
 Lemma lemma15 : forall (n : nat), 
@@ -582,9 +607,14 @@ Proof.
     -- apply lemma19. lia.
 Qed.
 
+Lemma b_Q_bounded_above : Q_seq_bounded_above b.
+Proof.
+  unfold Q_seq_bounded_above. exists 2. intro n. apply Qlt_le_weak. apply b_bounded_above.
+Qed. 
 
 Definition c (n : nat) : Q := inject_Z (F (2 * n + 1)) / inject_Z (F (2 * n)).
 
+Compute c (0).
 Compute c (1).
 Compute c (2).
 Compute c (3).
@@ -650,42 +680,292 @@ Proof.
   - auto.
 Qed.
 
-Lemma bn_minus_an : forall (n : nat), 
-  (n > 0)%nat -> b n - a n == 1 / (inject_Z (F (2*n)) * inject_Z (F(2*n - 1))).
+Lemma inject_Z_minus : forall a b : Z,
+  inject_Z (a - b) == inject_Z a - inject_Z b.
 Proof.
-  intros n H1. unfold b. unfold a. destruct n.
-  - lia.
-  - rewrite lemma20.
-    -- 
+  intros a b. unfold Qminus, inject_Z. simpl. unfold Qeq. simpl. lia.
 Qed.
 
+Lemma lemma1_Q : forall n : nat,
+  inject_Z (F(n+2)) * inject_Z (F(n)) - inject_Z (F(n+1) ^ 2) == inject_Z ((-1) ^ (Z.of_nat n)).
+Proof.
+  intros n.
+  rewrite <- inject_Z_mult. rewrite <- inject_Z_minus. rewrite lemma1. reflexivity.
+Qed.
+
+Lemma bn_minus_an : forall (n : nat), 
+  b n - a n == -1 / (inject_Z (F (2*n)) * inject_Z (F(2*n - 1))).
+Proof.
+  intros n. unfold b. unfold a. destruct n.
+  - simpl. reflexivity.
+  - rewrite lemma20.
+    -- assert (H2 : (2 * S n + 1 = 2 * S n - 1 + 2)%nat).
+      { lia. } rewrite H2.
+    assert (H3 : (2 * S n = 2 * S n - 1 + 1)%nat).
+      { lia. } rewrite H3 at 3. rewrite H3 at 4.
+    repeat rewrite <- inject_Z_mult. rewrite <- inject_Z_minus. rewrite <- Z.pow_2_r.
+    rewrite -> lemma1.
+    assert (H4 : (Nat.Odd (2 * S n - 1)%nat)).
+      { exists n. lia. } rewrite -> odd_pow_neg.
+      --- reflexivity.
+      --- apply H4.
+    -- split.
+      --- assert (H2 : (F (2 * S n - 1) > 0)%Z).
+          { apply fibonacci_positive_strong with (n := (2 * S n - 1)%nat). }
+          assert (H3 : (F (2 * S n) > 0)%Z).
+          { apply fibonacci_positive_strong with (n := (2 * S n)%nat). }
+          apply inject_Z_gt_0 in H2. apply inject_Z_gt_0 in H3. apply H3.
+      --- assert (H2 : (F (2 * S n - 1) > 0)%Z).
+          { apply fibonacci_positive_strong with (n := (2 * S n - 1)%nat). }
+          assert (H3 : (F (2 * S n) > 0)%Z).
+          { apply fibonacci_positive_strong with (n := (2 * S n)%nat). }
+          apply inject_Z_gt_0 in H2. apply inject_Z_gt_0 in H3. apply H2.
+Qed.
+
+Compute b 0 - a 0.
+Compute b 1 - a 1.
+Compute b 2 - a 2.
+Compute b 3 - a 3.
+Compute b 4 - a 4.
+
+Compute b 4.
+Compute (F 9).
+Compute (F 8).
+
+Compute a 4.
+
+Compute 55 / 34.
+Compute (b 4).
 
 Open Scope R_scope.
+
+Definition arbitrarily_small (a : nat -> R) :=
+  forall eps : R, eps > 0 -> exists N : nat, forall (n : nat), (n >= N)%nat -> Rabs (a n) < eps.
 
 (* Define a sequence as a function from natural numbers to reals *)
 Definition sequence := nat -> R.
 
 (* Stating that a sequence is strictly decreasing *)
-Definition strictly_decreasing (a : sequence) : Prop :=
-  forall n : nat, a n > a (S n).
+Definition decreasing (a : sequence) : Prop :=
+  forall n : nat, a n >= a (S n).
 
-Definition strictly_increasing (a : sequence) : Prop :=
-  forall n : nat, a n < a (S n).
+Definition increasing (a : sequence) : Prop :=
+  forall n : nat, a n <= a (S n).
 
 (* Stating that a sequence is bounded below *)
 Definition bounded_below (a : sequence) (LB : R) : Prop :=
-  forall n : nat, LB < a n.
+  forall n : nat, LB <= a n.
 
 Definition bounded_above (a : sequence) (UB : R) : Prop := 
-  forall n : nat, UB > a n.
+  forall n : nat, UB >= a n.
+
+Definition limit_seq (a : nat -> R) (l : R) :=
+  forall eps : R, eps > 0 ->
+                  exists N : nat, forall n : nat, (n >= N)%nat -> Rabs (a n - l) < eps.
 
 (* Monotonic Sequence Theorem for strictly decreasing sequences *)
 Axiom Monotonic_Sequence_Theorem :
   forall (a : sequence) (LB UB : R),
-  ((strictly_decreasing a /\ bounded_below a LB) \/
-  (strictly_increasing a /\ bounded_above a UB)) ->
-  exists L : R,
-    (forall e : R, e > 0 ->
-     exists N : nat, forall n : nat, (n > N)%nat -> Rabs (a n - L) < e).
+  ((decreasing a /\ bounded_below a LB) \/
+  (increasing a /\ bounded_above a UB)) ->
+  exists l : R, limit_seq a l.
 
+Definition one_over_n (n : nat) : R := 1 / INR n.
+
+Lemma pos_div_pos : forall eps : R, eps > 0 -> (1 / eps > 0).
+Proof.
+  intros eps Heps.
+  apply Rlt_gt.
+  unfold Rdiv.
+  rewrite Rmult_1_l.
+  apply Rinv_0_lt_compat.
+  apply Rgt_lt in Heps.
+  apply Heps.
+Qed.
+
+Lemma up_nonneg : forall eps : R, eps > 0 -> (up (1 + 1 / eps) > 0)%Z.
+Proof.
+  intros eps Heps.
+  assert (H : 1 + 1 / eps > 0).
+  {
+    apply Rplus_lt_le_0_compat.
+    - apply Rlt_0_1.
+    - apply Rlt_le. unfold Rdiv. rewrite Rmult_comm. 
+      rewrite Rmult_1_r. apply Rinv_0_lt_compat. apply Heps.
+  }
+  assert (H2 : IZR (up (1 + 1 / eps)) > (1 + 1 / eps) /\ IZR (up (1 + 1 / eps)) - (1 + 1 / eps) <= 1).
+  {
+    apply archimed.
+  }
+  destruct H2 as [H2 H3].
+  assert (H4 : forall r1 r2 : R, r1 > r2 -> r2 < r1).
+    { apply Rgt_lt. }
+  assert (H5 : IZR (up (1 + 1 / eps)) > 0).
+  {
+    apply (Rgt_trans _ (1 + 1 / eps) _).
+    - apply H2.
+    - apply H.
+  }
+  apply lt_IZR in H5. lia.
+Qed.
+
+Lemma nat_z_relationship : forall (N : Z) (n : nat),
+  (n >= Z.to_nat N)%nat -> (N <= Z.of_nat n)%Z.
+Proof.
+  intros N n H.
+  destruct (Z_lt_le_dec N 0).
+  - (* Case: N < 0 *)
+    apply Z.le_trans with (m := 0%Z).
+    --  lia.
+    -- apply Z2Nat.inj_le; lia.
+  - (* Case: N >= 0 *)
+    apply Z2Nat.inj_le; lia.
+Qed.
+
+Lemma illnameitlatter : forall r1 r2 r3 : R,
+  r1 >= 0 -> r2 > 0 -> r3 > 0 -> r1 >= r2 + r3 -> r1 > r3.
+Proof.
+  intros r1 r2 r3 H1 H2 H3 H4.
+  apply Rge_gt_trans with (r2 + r3). apply H4.
+  rewrite <- Rplus_0_r. rewrite Rplus_comm. apply Rplus_gt_compat_l. apply H2.
+Qed.
+
+Lemma one_over_n_arbitrarily_small : arbitrarily_small one_over_n.
+Proof.
+  unfold arbitrarily_small. unfold one_over_n. intros eps Heps.
+
+  set (N := (up (1 + (1 / eps)))%nat).
+
+  exists (Z.to_nat N).
+
+  intros n Hn.
+  unfold Rabs. 
+    
+    destruct (Rcase_abs (1 / INR n) ) as [H | H].
+    - assert (H2 : 1 / INR n >= 0).
+      {
+        destruct n. 
+        - simpl. unfold Rdiv. rewrite Rmult_1_l. rewrite Rinv_0. apply Rge_refl.
+        - apply Rgt_ge. apply pos_div_pos.  rewrite S_INR. 
+          apply Rlt_gt. apply Rplus_le_lt_0_compat. apply pos_INR. apply Rlt_0_1. 
+      }
+      apply Rlt_not_ge in H. contradiction.
+    - assert (IZR N >= 1 + (1 / eps)).
+    { 
+      generalize (archimed (1 + (1 / eps))); intros [H1 H2].
+      apply Rle_ge.
+      - unfold N. unfold Rle. left. apply H1.
+    }
+
+    assert (INR n >= IZR N).
+    {
+      apply Rle_ge.
+      rewrite INR_IZR_INZ.
+      apply IZR_le.
+      apply nat_z_relationship.
+      apply Hn.
+    }
+    assert (INR n >= 1 + (1 / eps)).
+    {
+      apply Rge_trans with (r2 := IZR N).
+      - apply H1.
+      - apply H0.
+    }
+    apply Rplus_ge_compat_l with (r := 1) in H2.
+    apply illnameitlatter in H2.
+    -- apply Rplus_gt_reg_l in H2.
+       unfold Rdiv. rewrite Rmult_1_l. apply Rgt_lt in H2. apply Rinv_lt_contravar in H2.
+       --- unfold Rdiv in H2. rewrite Rmult_1_l in H2. rewrite Rinv_inv in H2. apply H2.
+       --- apply Rgt_lt. apply Rmult_gt_0_compat.
+           ---- apply pos_div_pos. apply Heps.
+           ---- assert (H3 : 1 + 1 / eps > 0).
+                { apply Rplus_lt_le_0_compat.
+                  - apply Rlt_0_1.
+                  - apply Rlt_le. apply pos_div_pos. apply Heps.
+                }
+                assert (H4 : IZR N > 0).
+                { apply Rge_gt_trans with (r2 := 1 + 1 / eps).
+                  - apply H0.
+                  - apply H3.
+                }
+                apply Rge_gt_trans with (r2 := IZR N).
+                { apply H1. }
+                { apply H4. }
+    -- apply Rle_ge. apply Rlt_le. apply Rplus_le_lt_0_compat.
+      --- apply Rlt_le. apply Rlt_0_1.
+      --- assert (H3 : 1 + 1 / eps > 0).
+                { apply Rplus_lt_le_0_compat.
+                  - apply Rlt_0_1.
+                  - apply Rlt_le. apply pos_div_pos. apply Heps.
+                }
+                assert (H4 : IZR N > 0).
+                { apply Rge_gt_trans with (r2 := 1 + 1 / eps).
+                  - apply H0.
+                  - apply H3.
+                }
+                apply Rge_gt_trans with (r2 := IZR N).
+                { apply H1. }
+                { apply H4. }
+-- apply Rlt_gt. apply Rlt_0_1.
+-- apply Rplus_lt_le_0_compat.
+                  --- apply Rlt_0_1.
+                  --- apply Rlt_le. apply pos_div_pos. apply Heps.
+Qed.
+
+Lemma zero_lt_ten : 0 < INR 10.
+Proof.
+  (* Strategy: Derive it by converting from natural numbers *)
+  apply lt_INR_0.
+  simpl.
+  apply Nat.lt_0_succ.
+Qed.
+
+Example im_tired : exists (N : nat), 
+  forall (n : nat), (n >= N)%nat -> Rabs (one_over_n n) < (1/INR 10).
+Proof.
+  apply one_over_n_arbitrarily_small. unfold Rdiv. apply Rlt_gt. 
+  rewrite Rmult_1_l. apply Rinv_0_lt_compat. apply zero_lt_ten. 
+Qed.
+
+Lemma lim_one_over_n_0 : limit_seq one_over_n 0.
+Proof.
+  unfold limit_seq. intros e He.
+  
+  destruct (one_over_n_arbitrarily_small e He) as [N HN].
+  exists N. intros n Hn.
+  apply HN in Hn.
+  unfold Rminus. rewrite Ropp_0. rewrite Rplus_0_r.
+  apply Hn.
+Qed.
+
+Definition IQR (q : Q) : R :=
+  (IZR (Qnum q)) / (IZR (Z.pos (Qden q))).
+
+Definition fibR (n : nat) : R := IZR (fibonacci n).
+
+Definition aR (n : nat) : R := IQR (a n).
+
+Definition bR (n : nat) : R := IQR (b n).
+
+Definition cR (n : nat) : R := IQR (c n).
+
+Lemma Qseq_decreases_Rseq_decreases : forall (a : Q_seq),
+  Q_seq_decreasing a -> decreasing (fun n => IQR (a n)).
+Proof.
+  intros a Hdec n.
+  unfold Q_seq_decreasing in Hdec.
+  specialize (Hdec n).
+  unfold IQR.
+
+  (* Using properties of IZR and Q to R ordering *)
+  apply (Qlt_gt_trans (a n) (a (S n))) in Hdec.
+  rewrite Qlt_destruct in Hdec.
+  destruct Hdec as [[n1 d1] [n2 d2] Hcond | _].
+  simpl in Hcond.
+  rewrite Z.mul_1_r in Hcond.
+  rewrite <- inj_Qlt in Hcond.
+  apply lt_IZR.
+  rewrite <- mult_IZR.
+  assumption.
+Qed.
 Close Scope R_scope.
