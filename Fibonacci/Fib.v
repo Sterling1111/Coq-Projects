@@ -1,6 +1,8 @@
-Require Import Peano ZArith Lia QArith Reals Nat Reals.Reals.
+Require Import Peano ZArith Lia QArith Reals Nat Reals.
 
 Open Scope Z_scope.
+
+Check Rinv_0.
 
 Fixpoint fibonacci (n : nat) : Z :=
   match n with
@@ -830,6 +832,8 @@ Proof.
   rewrite <- Rplus_0_r. rewrite Rplus_comm. apply Rplus_gt_compat_l. apply H2.
 Qed.
 
+Open Scope R_scope.
+
 Lemma one_over_n_arbitrarily_small : arbitrarily_small one_over_n.
 Proof.
   unfold arbitrarily_small. unfold one_over_n. intros eps Heps.
@@ -845,7 +849,7 @@ Proof.
     - assert (H2 : 1 / INR n >= 0).
       {
         destruct n. 
-        - simpl. unfold Rdiv. rewrite Rmult_1_l. rewrite Rinv_0. apply Rge_refl.
+        - simpl. unfold Rdiv. rewrite Rmult_1_l. apply Req_ge. apply Rinv_0.
         - apply Rgt_ge. apply pos_div_pos.  rewrite S_INR. 
           apply Rlt_gt. apply Rplus_le_lt_0_compat. apply pos_INR. apply Rlt_0_1. 
       }
@@ -949,23 +953,68 @@ Definition bR (n : nat) : R := IQR (b n).
 
 Definition cR (n : nat) : R := IQR (c n).
 
-Lemma Qseq_decreases_Rseq_decreases : forall (a : Q_seq),
-  Q_seq_decreasing a -> decreasing (fun n => IQR (a n)).
+Lemma Rmult_le : forall r1 r2 r3 r4 : R,
+  (r2 > 0) -> (r4 > 0) -> r1 * r2 <= r3 * r4 -> r1 / r4 <= r3 / r2.
 Proof.
-  intros a Hdec n.
-  unfold Q_seq_decreasing in Hdec.
-  specialize (Hdec n).
-  unfold IQR.
-
-  (* Using properties of IZR and Q to R ordering *)
-  apply (Qlt_gt_trans (a n) (a (S n))) in Hdec.
-  rewrite Qlt_destruct in Hdec.
-  destruct Hdec as [[n1 d1] [n2 d2] Hcond | _].
-  simpl in Hcond.
-  rewrite Z.mul_1_r in Hcond.
-  rewrite <- inj_Qlt in Hcond.
-  apply lt_IZR.
-  rewrite <- mult_IZR.
-  assumption.
+  intros r1 r2 r3 r4 Hr2 Hr4 H.
+  unfold Rdiv.
+  apply Rmult_le_compat_r with (r := / r2) in H.
+  - rewrite Rmult_assoc in H.
+    rewrite Rinv_r in H.
+    -- rewrite Rmult_1_r in H.
+       rewrite Rmult_comm with (r1 := r3) (r2 := r4) in H.
+       rewrite Rmult_assoc in H.
+       apply Rmult_le_compat_r with (r := / r4) in H.
+       --- rewrite Rmult_comm with (r1 := r4) (r2 := r3 * / r2) in H.
+            rewrite Rmult_assoc in H.
+            rewrite Rinv_r in H.
+            ----- rewrite Rmult_1_r in H.
+                  apply H.
+            ----- apply Rgt_not_eq. apply Hr4.
+      --- apply Rlt_le. apply Rinv_0_lt_compat. apply Hr4.
+    -- apply Rgt_not_eq. apply Hr2.
+  - apply Rlt_le. apply Rinv_0_lt_compat. apply Hr2.
 Qed.
+
+Lemma R_ge_Q : forall q1 q2 : Q, 
+  (q1 >= q2)%Q -> IQR q1 >= IQR q2.
+Proof.
+  intros q1 q2 H.
+  unfold IQR.
+  unfold Qle in H.
+  apply IZR_le in H.
+  rewrite mult_IZR in H.
+  rewrite mult_IZR in H.
+  unfold Rdiv.
+  apply Rmult_le in H.
+  - unfold Rdiv in H.
+    apply Rle_ge in H. apply H.
+  - apply Rgt_lt. apply IZR_lt. apply Pos2Z.is_pos.
+  - apply Rgt_lt. apply IZR_lt. apply Pos2Z.is_pos.
+Qed.
+
+Lemma R_le_Q : forall q1 q2 : Q, 
+  (q1 <= q2)%Q -> IQR q1 <= IQR q2.
+Proof.
+  intros q1 q2 H.
+  apply Rge_le. apply R_ge_Q. apply H.
+Qed.
+
+Lemma Qseq_decreases_Rseq_decreases : forall (s : Q_seq),
+  Q_seq_decreasing s -> decreasing (fun n => IQR (s n)).
+Proof.
+  intros s H n. unfold Q_seq_decreasing in H.
+  apply R_ge_Q. apply H.
+Qed.
+
+Lemma IQR_a : decreasing (fun n => IQR (a n)).
+  Proof. apply Qseq_decreases_Rseq_decreases. apply a_Q_decreasing.
+Qed.
+
+Lemma Qseq_increases_Rseq_increases : forall (s : Q_seq),
+  Q_seq_increasing s -> increasing (fun n => IQR (s n)).
+Proof. 
+  intros s H n. unfold Q_seq_increasing in H.
+  apply R_le_Q. apply H with (n := S n).
+
 Close Scope R_scope.
