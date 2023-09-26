@@ -844,13 +844,13 @@ Definition bounded_above (a : sequence) : Prop :=
   exists UB : R, forall n : nat, UB >= a n.
 
 Definition convergent_sequence (a : sequence) : Prop :=
-  exists (l : R), 
+  exists (L : R), 
     forall (eps : R), eps > 0 ->
-      exists (N : nat), forall (n : nat), (n >= N)%nat -> Rabs (a n - l) < eps.
+      exists (N : nat), forall (n : nat), (n >= N)%nat -> Rabs (a n - L) < eps.
 
-Definition limit_of_sequence (a : nat -> R) (l : R) : Prop :=
+Definition limit_of_sequence (a : nat -> R) (L : R) : Prop :=
   forall eps : R, eps > 0 ->
-                  exists N : nat, forall n : nat, (n >= N)%nat -> Rabs (a n - l) < eps.
+                  exists N : nat, forall n : nat, (n >= N)%nat -> Rabs (a n - L) < eps.
 
 Definition arbitrarily_small (a : sequence) : Prop :=
   limit_of_sequence a 0.
