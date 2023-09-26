@@ -846,7 +846,7 @@ Definition bounded_above (a : sequence) : Prop :=
 Definition convergent_sequence (a : sequence) : Prop :=
   exists (l : R), 
     forall (eps : R), eps > 0 ->
-      exists (N : nat), forall (n : nat), (n >= N)%nat -> Rabs (a n - 1) < eps.
+      exists (N : nat), forall (n : nat), (n >= N)%nat -> Rabs (a n - l) < eps.
 
 Definition limit_of_sequence (a : nat -> R) (l : R) : Prop :=
   forall eps : R, eps > 0 ->
@@ -1417,7 +1417,7 @@ Proof.
   - apply H1.
 Qed.
 
-Lemma seq_converge_to_same_limit: 
+Lemma two_seq_converge_to_same_limit: 
   forall (a b : sequence) (La Lb : R),
   (* Assuming a_n converges to La and b_n converges to Lb *)
   limit_of_sequence a La -> limit_of_sequence b Lb -> arbitrarily_small (fun n => b n - a n) ->
@@ -1532,10 +1532,10 @@ Qed.
 Require Import FunctionalExtensionality.
 
 Lemma aR_bR_same_limit : forall La Lb : R,
-  limit_of_sequence aR La -> limit_of_sequence bR Lb -> (La = Lb).
+  (limit_of_sequence aR La /\ limit_of_sequence bR Lb) -> (La = Lb).
 Proof.
-  intros La Lb H1 H2.
-  apply seq_converge_to_same_limit with (a := aR) (b := bR).
+  intros La Lb [H1 H2].
+  apply two_seq_converge_to_same_limit with (a := aR) (b := bR).
   - apply H1.
   - apply H2.
   - unfold arbitrarily_small. replace (fun n : nat => bR n - aR n) with (b_minus_aR).
@@ -1543,78 +1543,133 @@ Proof.
     -- unfold b_minus_aR. unfold bR. unfold aR. unfold b_minus_a. apply functional_extensionality. intros n. rewrite IQR_minus. reflexivity.
 Qed.
 
-Open Scope nat_scope.
-
 Lemma odd_div_2 :
-  forall n m, Nat.odd n = true -> n = (2 * m + 1)%nat -> (n / 2 = m)%nat.
+  forall n m, Nat.Odd n -> n = (2 * m + 1)%nat -> (n / 2 = m)%nat.
 Proof.
   intros n m Hodd Heq.
   
-  (* Use the specification of odd to rewrite the equation *)
-  rewrite Nat.odd_spec in Hodd.
   destruct Hodd as [m' Hm'].
 
-  (* Now, we know n = 2 * m' + 1, and we have the hypothesis n = 2 * m + 1. *)
-  (* Thus, m' must be equal to m. *)
-  assert (m = m') as Hm_m'. { lia. } subst m'. 
-    rewrite Heq. 
-
-  induction n.
-  - lia.
-  - apply IHn.
-    --  
+  assert (m = m') as Hm_m' by lia.
   subst m'.
 
-  (* We simplify n / 2 when n = 2 * m + 1. *)
-  rewrite Heq.
+  rewrite Heq. rewrite Nat.add_comm. rewrite Nat.mul_comm.
   rewrite Nat.div_add.
-  - simpl. rewrite Nat.div_mul; auto.
-    lia.
-  - intros contra. inversion contra.
+  - simpl. reflexivity.
+  - lia.
 Qed.
 
+Lemma even_div_2 : forall n m, Nat.Even n -> n = (2 * m)%nat -> (n / 2 = m)%nat.
+Proof.
+  intros n m Heven Heq.
+  rewrite Heq.
+  rewrite Nat.mul_comm.
+  rewrite Nat.div_mul.
+  - reflexivity.
+  - lia.
+Qed.
 
 Lemma n_odd_cR_eq_aR : forall (n : nat),
-  Nat.Odd n -> exists k : nat, cR n = aR k.
+  Nat.Odd n -> cR n = aR ((n / 2 + 1)%nat).
 Proof.
-  intros n H. unfold Nat.Odd in H. unfold cR. unfold aR. unfold c. unfold a. exists (n / 2 + 1)%nat.
-  destruct H as [m H].
+  intros n H1. unfold cR. unfold aR. unfold c. unfold a.
   destruct n as [| n'] eqn:En.
-  - inversion H. lia.
-  - assert (H2 : (n' + 1 = S n')%nat) by lia. rewrite <- H2.
+  - inversion H1. lia.
+  - pose proof H1 as H2. destruct H1 as [k H1].
+    assert ((S n' / 2 = k)%nat).
+    { apply odd_div_2. apply H2. apply H1. }
+    assert ((S n' / 2 + 1 = k + 1)%nat) by lia.
+    destruct ((S n' / 2 + 1)%nat).
+    -- lia.
+    -- rewrite H1. rewrite H0. replace ((2 * (k + 1))%nat) with  ((2 * k + 1 + 1)%nat) by lia.
+       replace ((2 * k + 1 + 1 - 1)%nat) with ((2 * k + 1)%nat) by lia. reflexivity. 
 Qed.
 
+Lemma n_even_cR_eq_bR : forall (n : nat),
+  Nat.Even n -> cR n = bR ((n / 2)%nat).
+Proof.
+  intros n H1. unfold cR. unfold bR. unfold c. unfold b.
+  destruct n as [| n'] eqn:En.
+  - simpl. reflexivity.
+  - pose proof H1 as H2. destruct H1 as [k H1].
+    assert ((S n' / 2 = k)%nat).
+    { apply even_div_2. apply H2. apply H1. }
+    assert ((S n' / 2 = k)%nat) by lia.
+    rewrite H. rewrite H1. replace ((2 * k)%nat) with  ((2 * k + 1 - 1)%nat) by lia.
+    replace ((2 * k + 1 - 1)%nat) with ((2 * k)%nat) by lia. reflexivity.
+Qed.
 
 Lemma c_converges_to_L:
-  forall (an bn cn : sequence) (L : R),
-  (* Given: an converges to L *)
-  (forall eps : R, eps > 0 -> exists N : nat, forall n, (n >= N)%nat -> Rabs (an n - L) < eps) ->
-  (* Given: bn converges to L *)
-  (forall eps : R, eps > 0 -> exists N : nat, forall n, (n >= N)%nat -> Rabs (bn n - L) < eps) ->
-  (* For large enough n, cn is either an or bn *)
-  (forall n : nat, exists k : nat, (n > 2 * k - 1)%nat -> cn n = an k \/ cn n = bn k) ->
-  (* Goal: cn converges to L *)
-  (forall eps : R, eps > 0 -> exists N : nat, forall n, (n >= N)%nat -> Rabs (cn n - L) < eps).
+  forall (a b c : sequence) (L : R),
+  limit_of_sequence a L ->
+  limit_of_sequence b L ->
+  (forall n : nat,
+    (Nat.Even n -> c n = b ((n / 2)%nat)) /\
+    (Nat.Odd n -> c n = a ((n / 2 + 1)%nat))) ->
+  limit_of_sequence c L.
 Proof.
-intros an bn cn L Han Hbn Hcn.
+intros a b c L Han Hbn Hcn.
+
+unfold limit_of_sequence in Han, Hbn. unfold limit_of_sequence.
 intros eps Heps.
 
-(* Extract Na and Nb from the assumptions *)
 destruct (Han eps Heps) as [Na HNa].
 destruct (Hbn eps Heps) as [Nb HNb].
 
-(* Define N based on the informal proof *)
-let N := max (2 * Na - 1) (2 * Nb) in
+set(N := max (2 * Na - 1) (2 * Nb)).
 exists N.
 
 intros n Hn.
-destruct (Hcn n) as [k Hk].
 
-(* This is where you'd continue the proof using the triangle inequality and the convergence properties of an and bn. 
-   The next steps would involve unfolding the definitions, simplifying, and employing the necessary inequalities. *)
+destruct (Hcn n) as [Heven1 Hodd1].
 
-(* ... *)
+destruct (Nat.Even_or_Odd n) as [Heven2 | Hodd2].
+- pose proof Heven2 as Heven3. apply Heven1 in Heven2.
+  rewrite Heven2. apply HNb. destruct (Heven3) as [k H]. assert ((n / 2 = k)%nat).
+  { apply even_div_2. apply Heven3. apply H. } lia.
+- pose proof Hodd2 as Hodd3. apply Hodd1 in Hodd2.
+  rewrite Hodd2. apply HNa. destruct (Hodd3) as [k H]. assert ((n / 2 = k)%nat).
+  { apply odd_div_2. apply Hodd3. apply H. } lia.
+Qed.
 
-Admitted. (* Replace with 'Qed' once the proof is complete *)
+Theorem cR_has_limit : forall (L1 L2: R),
+  limit_of_sequence aR L1 ->
+  limit_of_sequence bR L2 ->
+  (limit_of_sequence cR L1 /\ limit_of_sequence cR L2).
+Proof.
+  intros L1 L2 H1 H2.
+
+  assert (H4 : L1 = L2).
+  { apply aR_bR_same_limit. split; assumption. }
+
+  split.
+
+  - apply c_converges_to_L with (a := aR) (b := bR).
+    -- apply H1.
+    -- rewrite <- H4 in H2. apply H2.
+    -- intros n. split; intros Hparity.
+      --- apply n_even_cR_eq_bR. apply Hparity.
+      --- apply n_odd_cR_eq_aR. apply Hparity.
+  - apply c_converges_to_L with (a := aR) (b := bR).
+    -- rewrite H4 in H1. apply H1.
+    -- apply H2.
+    -- intros n. split; intros Hparity.
+      --- apply n_even_cR_eq_bR. apply Hparity.
+      --- apply n_odd_cR_eq_aR. apply Hparity.
+Qed.
+
+Theorem cR_convergent : convergent_sequence cR.
+Proof.
+  assert (HaR : convergent_sequence aR) by apply aR_converges.
+  assert (HbR : convergent_sequence bR) by apply bR_converges.
+
+  destruct HaR as [La Ha], HbR as [Lb Hb].
+
+  assert (HcR_both : limit_of_sequence cR La /\ limit_of_sequence cR Lb).
+  { apply cR_has_limit; assumption. }
+
+  destruct HcR_both as [HcR1 HcR2].
+  unfold convergent_sequence. exists Lb. assumption.
+Qed.
 
 Close Scope R_scope.
