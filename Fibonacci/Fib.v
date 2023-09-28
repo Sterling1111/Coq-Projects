@@ -55,25 +55,16 @@ Qed.
 
 Open Scope nat_scope.
 
-Definition strong_induction_T (P : nat -> Prop) : Prop :=
+Lemma strong_induction (P : nat -> Prop) :
   P 0 ->
-  (forall n, (forall k, k <= n -> P k) -> P (S n)) ->
+  (forall m, (forall k : nat, k < m -> P k) -> P m) ->
   forall n, P n.
-
-Lemma strong_induction: forall P, strong_induction_T P.
 Proof.
-  unfold strong_induction_T.
-  intros P Hbase Hstep.
-  intros n.
-  assert (forall k, k <= n -> P k).
-  {
-    induction n.
-    - intros k Hkn. inversion Hkn. apply Hbase.
-    - intros k Hkn. inversion Hkn.
-      + apply Hstep. intros k0 Hk0n. apply IHn. lia.
-      + apply IHn. lia.
-  }
-  apply H. lia.
+  intros H1 H2 n. enough (H0: forall k, k <= n -> P k).
+    - apply H0. lia.
+    - induction n.
+    -- intros k Hk. inversion Hk. apply H1.
+    -- intros k Hk. apply H2. intros k' Hk'. apply IHn. lia.
 Qed.
 
 Close Scope nat_scope.
@@ -91,9 +82,9 @@ Proof.
       ++ assert (H1: (S n <= S (S n))%nat). { lia. }
          assert (H2 : (n <= S (S n))%nat). { lia. }
          assert (H3 : F (S n) > 0). 
-         { apply IH. apply H1. }
+         { apply IH. lia. }
          assert (H4: F n > 0).
-         { apply IH. apply H2. } lia.
+         { apply IH. lia. } lia.
 Qed.
 
 Lemma next_fib_greater : forall n : nat,
@@ -1845,4 +1836,4 @@ Proof.
   unfold convergent_sequence. exists Lb. assumption.
 Qed.
 
-Close Scope R_scope.
+Open Scope nat_scope.
