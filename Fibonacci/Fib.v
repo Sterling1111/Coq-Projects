@@ -1422,7 +1422,6 @@ Qed.
 
 Lemma double_negation : - (-1) = 1.
 Proof.
-  (* Use the definition of -1 *)
   rewrite <- Ropp_involutive.
   reflexivity.
 Qed.
