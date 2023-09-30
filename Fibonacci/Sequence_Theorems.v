@@ -51,6 +51,27 @@ Proof.
     lra.
 Qed.
 
+(*
+  Monotonic Sequence Theorem (Increasing)
+
+  Suppose that a is an increasing sequence and that it is bounded above. 
+  Then by the completeness axiom, a has a least upper bound L. Given e > 0, 
+  L - e is not an upper bound for a, so there exists a natural number N such
+  that a_N > L - e. But the sequence is increasing so a_n >= a_N forall n >= N.
+  So forall n >= N, a_n > L - e. Now 0 <= L - a_n < e which means that 
+  |L - a_n| < e. and so lim a -> L.
+*)
+
+(*
+  Monotonic Sequence Theorem (Eventually Increasing)
+
+  Suppose that a is an eventually increasing sequence that is bound above.
+  Construct a set S of all the elements of a starting from the point of
+  continual increase. Then this set has a least upper bound since it is bound
+  above by at most the bound of sequence a. Then the proof follows the same
+  as above.
+*)
+
 Lemma Monotonic_Sequence_Theorem_Increasing : forall (a : sequence),
   increasing a -> bounded_above a -> convergent_sequence a.
 Proof.
@@ -139,6 +160,27 @@ Proof.
   - replace (- (a n - L)) with (L - a n) by lra. assert (H14 : a n >= L). apply H11. apply H13. lra.
   - apply H12. lia.
 Qed.
+
+Lemma Monotonic_Sequence_Theorem_Increasing_Eventually : forall (a : sequence),
+  eventually_increasing a -> bounded_above a -> convergent_sequence a.
+Proof.
+  intros a [N H1] [UB H2].
+
+  pose (b := (fun n => a ((n + N)%nat)) : sequence).
+
+  assert (H3 : increasing b) by (intros n; apply H1; lia).
+  assert (H4 : bounded_above b) by (exists UB; intros n; apply H2).
+
+  assert (convergent_sequence b).
+  {
+    apply Monotonic_Sequence_Theorem_Increasing.
+    apply H3.
+    apply H4.
+  }
+
+  destruct 
+Qed.
+
 
 
 Lemma Monotonic_Sequence_Theorem_Decreasing' : forall (a : sequence),
