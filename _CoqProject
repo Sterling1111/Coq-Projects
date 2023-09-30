@@ -15,7 +15,7 @@ Foundations2/Induction.v
 Foundations2/Lists.v
 
 Fibonacci/Fib.v
-Fibonacci/FibR.v
-Fibonacci/MST.v
+Fibonacci/Fib2.v
+Fibonacci/Sequence_Theorems.v
 Fibonacci/Sequence.v
 Fibonacci/Completeness.v

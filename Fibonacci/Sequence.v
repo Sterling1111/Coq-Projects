@@ -2,29 +2,6 @@ Require Export Reals.
 
 Open Scope R_scope.
 
-Fixpoint fibonacci (n : nat) : R :=
-  match n with
-  | O => 1
-  | S n' => match n' with
-            | O => 1
-            | S n'' => fibonacci(n') + fibonacci(n'')
-            end
-  end.
-
-Global Notation F := fibonacci.
-  
-Definition a (n : nat) : R :=
-  match n with
-  | 0 => 2
-  | _ => F(2*n) / F(2*n-1)
-  end.
-
-Definition b (n : nat) : R := F(2*n+1) / F(2*n).
-
-Definition c (n : nat) : R := F(n+1) / F n.
-
-Definition b_minus_a (n : nat) : R := b n - a n.
-
 Definition sequence := nat -> R.
 
 Definition decreasing (a : sequence) : Prop :=
@@ -32,6 +9,14 @@ Definition decreasing (a : sequence) : Prop :=
 
 Definition increasing (a : sequence) : Prop :=
   forall n : nat, a n <= a (S n).
+
+Definition eventually_decreasing (a : sequence) : Prop :=
+  exists (N : nat),
+    forall (n : nat), (n >= N)%nat -> a n >= a (S n).
+
+Definition eventually_increasing (a : sequence) : Prop :=
+  exists (N : nat),
+    forall (n : nat), (n >= N)%nat -> a n <= a (S n).
 
 (* Stating that a sequence is bounded below *)
 Definition bounded_below (a : sequence) : Prop :=
@@ -54,12 +39,3 @@ Definition arbitrarily_small (a : sequence) : Prop :=
 
 Definition monotonic_sequence (a : sequence) : Prop :=
   (increasing a /\ bounded_above a) \/ (decreasing a /\ bounded_below a).
-
-Definition is_lower_bound (E:R -> Prop) (m:R) := forall x:R, E x -> x >= m.
-
-Definition has_lower_bound (E:R -> Prop) := exists m : R, is_lower_bound E m.
-
-Definition is_glb (E:R -> Prop) (m:R) :=
-  is_lower_bound E m /\ (forall b:R, is_lower_bound E b -> m >= b).
-
-Definition one_over_n (n : nat) : R := 1 / INR n.
