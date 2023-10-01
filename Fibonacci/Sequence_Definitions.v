@@ -39,3 +39,6 @@ Definition arbitrarily_small (a : sequence) : Prop :=
 
 Definition monotonic_sequence (a : sequence) : Prop :=
   (increasing a /\ bounded_above a) \/ (decreasing a /\ bounded_below a).
+
+Definition monotonic_sequence_eventual (a : sequence) : Prop :=
+  (eventually_increasing a /\ bounded_above a) \/ (eventually_decreasing a /\ bounded_below a).

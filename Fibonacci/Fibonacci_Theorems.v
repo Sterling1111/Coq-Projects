@@ -1,17 +1,11 @@
 Require Import Peano ZArith Lia QArith Reals Nat Lra Classical.
 
+From Fibonacci Require Import 
+  Completeness Fibonacci_Definitions Miscellaneous_Lemmas 
+  Sequence_Definitions Strong_Induction Miscellaneous_Lemmas
+  Sequence_Theorems.
+
 Open Scope R_scope.
-
-Fixpoint fibonacci (n : nat) : R :=
-  match n with
-  | O => 1
-  | S n' => match n' with
-            | O => 1
-            | S n'' => fibonacci(n') + fibonacci(n'')
-            end
-  end.
-
-Global Notation F := fibonacci.
 
 Lemma fib_S_S_n : forall n : nat, F (S (S n)) = F (S n) + F n.
 Proof.
@@ -47,22 +41,6 @@ Proof.
   apply fib_n_plus_2.
 Qed.
 
-Open Scope nat_scope.
-
-Lemma strong_induction (P : nat -> Prop) :
-  P 0 ->
-  (forall m, (forall k : nat, k < m -> P k) -> P m) ->
-  forall n, P n.
-Proof.
-  intros H1 H2 n. enough (H0: forall k, k <= n -> P k).
-  - apply H0. lia.
-  - induction n.
-    -- intros k Hk. inversion Hk. apply H1.
-    -- intros k Hk. apply H2. intros k' Hk'. apply IHn. lia.
-Qed.
-
-Open Scope R_scope.
-
 Lemma fib_n_ge_1 : forall n, F n >= 1.
 Proof.
   apply strong_induction.
@@ -70,7 +48,7 @@ Proof.
   - intros n IH. destruct n.
     + simpl. lra.
     + simpl. destruct n.
-      ++ simpl. lra.
+      ++ lra.
       ++ assert (H1: (S n <= S (S n))%nat) by lia.
          assert (H2 : (n <= S (S n))%nat) by lia.
          assert (H3 : F (S n) >= 1) by (apply IH; lia).
@@ -159,15 +137,6 @@ Proof.
   - apply H2.
 Qed.
 
-Lemma Rpow_neg1_n_plus_1 : forall (n : nat),
-  (-1) ^ (n + 1) = (-1) ^ n * (-1) ^ 1.
-Proof.
-  intros n.
-  induction n.
-  - simpl. lra.
-  - simpl. rewrite IHn. lra.
-Qed.
-
 Lemma lemma1 : forall (n : nat),
   F(n+2) * F n - (F(n+1))^2 = (-1)^n.
 Proof.
@@ -186,17 +155,107 @@ Proof.
             ( F(k+2) * (F k + F(k+1) - F(k+2)) - (-1)^k) by lra.
     rewrite Rplus_comm.
     replace ( F(k+1) + F k ) with ( F(k+2) ) by (rewrite <- fib_n_plus_2; reflexivity).
-    rewrite Rpow_neg1_n_plus_1. lra.
+    rewrite pow_neg1_n_plus_1. lra.
 Qed.
 
-Definition a (n : nat) : R :=
-  match n with
-  | 0 => 2
-  | _ => F(2*n) / F(2*n-1)
-  end.
-
-Lemma a_decreasing : .
+Lemma lemma2 : forall (n : nat), 
+  (n > 0)%nat -> F(2*n+1)*F(2*n-1) - F(2*n)^2 < 0.
 Proof.
-  
+  intros n H. destruct n as [| k] eqn:Ek.
+  - lia.
+  - replace ( (2 * S k + 1) )%nat with ( (2 * k + 1) + 2 )%nat by lia.
+    replace ( (2 * S k - 1) )%nat with ( (2 * k + 1) )%nat by lia.
+    replace ( (2 * S k) )%nat with ( (2 * k + 1) + 1 )%nat by lia.
+
+    rewrite lemma1. rewrite pow_neg1_odd.
+    -- lra.
+    -- exists k. reflexivity.
 Qed.
-  
+
+Lemma lemma3 : forall (n : nat),
+  (n > 0)%nat -> F(2*n+2) / F(2*n+1) < F(2*n) / F(2*n-1).
+Proof.
+  intros n H1.
+  apply frac_lt.
+  - split.
+    -- apply fib_n_gt_0.
+    -- apply fib_n_gt_0.
+  - replace ( F(2*n+2) ) with ( F(2*n+1) + F(2*n) ) by (rewrite fib_n_plus_2; lra).
+    assert (H2: F(2*n+1) = F(2*n) + F(2*n-1)) by (apply fib_n_plus_1; lia). rewrite H2 at 2.
+    repeat rewrite Rmult_plus_distr_r.
+    replace ( (F(2*n) * F(2*n)) ) with ( (F(2*n))^2 ) by lra.
+    rewrite Rmult_comm with (r1 := F(2*n)).
+    apply Rplus_lt_compat_r. apply Rminus_lt. apply lemma2. apply H1.
+Qed.
+
+Lemma a_eventually_decreasing : eventually_decreasing a.
+Proof.
+  unfold eventually_decreasing. exists 1%nat. intros n H1. unfold a.
+  destruct n as [| n'] eqn:En.
+  - inversion H1.
+  - apply Rle_ge. apply Rlt_le.
+    replace ( (2 * S (S n'))%nat ) with ( (2 * S n' + 2)%nat ) at 1 by lia.
+    replace ( ())
+Qed.
+
+    
+Lemma b_minus_a_eq : forall (n : nat), 
+  b_minus_a n = -1 / (F(2*n) * F(2*n - 1)).
+Proof.
+  intros n. unfold b_minus_a. unfold b. unfold a. destruct n.
+  - simpl. lra.
+  - rewrite minus_frac. 
+    -- replace ( (2 * S n + 1) )%nat with ( (2 * S n - 1 + 2))%nat by lia.
+       replace ( F (2 * S n) * F (2 * S n) ) with ( (F(2 * S n)^2)) by lra.
+       replace ( (2 * S n) )%nat with ( (2 * S n - 1 + 1))%nat at 3 by lia.
+       rewrite lemma1.
+       rewrite pow_neg1_odd.
+       --- lra.
+       --- exists n. lia.
+    -- split.
+       --- apply fib_n_gt_0.
+       --- apply fib_n_gt_0.
+Qed.
+
+Lemma b_minus_a_increasing : increasing b_minus_a.
+Proof.
+  intros n. repeat rewrite b_minus_a_eq. 
+  assert (H1 : F (2 * S n) > 0) by (apply fib_n_gt_0).
+  assert (H2 : F (2 * n) > 0) by (apply fib_n_gt_0).
+  assert (H3 : F (2 * S n - 1) > 0) by (apply fib_n_gt_0).
+  assert (H4 : F (2 * n - 1) > 0) by (apply fib_n_gt_0).
+  assert (H5 : F (2 * S n) >= F (2 * n)) by (apply n1_ge_n2_imp_fib_n1_ge_fib_n2; lia).
+  assert (H6 : F (2 * S n - 1) >= F (2 * n - 1)) by (apply n1_ge_n2_imp_fib_n1_ge_fib_n2; lia).
+  replace (-1 / (F (2 * n) * F (2 * n - 1))) with (- (1 / (F (2 * n) * F (2 * n - 1)) )) by lra.
+  replace (-1 / (F (2 * S n) * F (2 * S n - 1))) with (- ( 1 / (F (2 * S n) * F (2 * S n - 1))) ) by lra.
+  apply neg_frac_ge.
+  apply frac_ge.
+  - split.
+    -- apply Rmult_gt_0_compat; apply H2 || apply H4.
+    -- apply Rmult_gt_0_compat; apply H1 || apply H3.
+  - rewrite Rmult_1_l. rewrite Rmult_1_r.
+    apply prod_gt_prod. lra. lra. lra. lra. lra. lra.
+Qed.
+
+Lemma b_minus_a_bounded_below : bounded_above b_minus_a.
+Proof.
+  exists 0. intros n. rewrite b_minus_a_eq.
+  assert (H1 : F (2 * n) > 0) by (apply fib_n_gt_0).
+  assert (H2 : F (2 * n - 1) > 0) by (apply fib_n_gt_0).
+  assert (H3 : F (2 * n) * F (2 * n - 1) > 0) by (apply Rmult_gt_0_compat; apply H1 || apply H2).
+  replace (-1 / (F (2 * n) * F (2 * n - 1))) with (- (1 / (F (2 * n) * F (2 * n - 1)) )) by lra.
+  assert (H4 : 1 / (F (2 * n) * F (2 * n - 1)) > 0) by (apply pos_div_pos; lra). lra.
+Qed.
+
+Lemma b_minus_a_monotonic : monotonic_sequence b_minus_a.
+Proof.
+  unfold monotonic_sequence. left. split.
+  - apply b_minus_a_increasing.
+  - apply b_minus_a_bounded_below.
+Qed.
+
+Lemma b_minus_a_convergent : convergent_sequence b_minus_a.
+Proof.
+  apply Monotonic_Sequence_Theorem.
+  apply b_minus_a_monotonic.
+Qed.
