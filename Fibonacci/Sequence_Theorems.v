@@ -270,7 +270,7 @@ Proof.
       {
         destruct n. 
         - simpl. unfold Rdiv. rewrite Rmult_1_l. apply Req_ge. apply Rinv_0.
-        - apply Rgt_ge. apply pos_div_pos.  rewrite S_INR. 
+        - apply Rgt_ge. apply one_div_pos.  rewrite S_INR. 
           apply Rlt_gt. apply Rplus_le_lt_0_compat. apply pos_INR. apply Rlt_0_1. 
       }
       apply Rlt_not_ge in H4. contradiction. apply H3.
@@ -299,7 +299,7 @@ Proof.
     {
       apply Rplus_lt_le_0_compat.
       - apply Rlt_0_1.
-      - apply Rlt_le. apply pos_div_pos. apply H1.
+      - apply Rlt_le. apply one_div_pos. apply H1.
     }
     assert (H8 : IZR N > 0).
     {
@@ -314,7 +314,7 @@ Proof.
        unfold Rdiv. rewrite Rmult_1_l. apply Rgt_lt in H6. apply Rinv_lt_contravar in H6.
        --- unfold Rdiv in H6. rewrite Rmult_1_l in H6. rewrite Rinv_inv in H6. apply H6.
        --- apply Rgt_lt. apply Rmult_gt_0_compat.
-           ---- apply pos_div_pos. apply H1.
+           ---- apply one_div_pos. apply H1.
            ---- apply Rge_gt_trans with (r2 := IZR N).
                 { apply H5. }
                 { apply H8. }
@@ -326,7 +326,7 @@ Proof.
     -- apply Rlt_gt. apply Rlt_0_1.
     -- apply Rplus_lt_le_0_compat.
       --- apply Rlt_0_1.
-      --- apply Rlt_le. apply pos_div_pos. apply H1.
+      --- apply Rlt_le. apply one_div_pos. apply H1.
 Qed.
 
 Lemma lim_one_div_n_0 : limit_of_sequence one_div_n 0.

@@ -195,7 +195,17 @@ Proof.
   - inversion H1.
   - apply Rle_ge. apply Rlt_le.
     replace ( (2 * S (S n'))%nat ) with ( (2 * S n' + 2)%nat ) at 1 by lia.
-    replace ( ())
+    replace ( (2 * S (S n') -1)%nat ) with ( (2 * (S n') + 1)%nat ) by lia.
+    apply lemma3. lia.
+Qed.
+
+Lemma a_bounded_below : bounded_below a.
+Proof.
+  exists 0. intros n. destruct n as [| n'] eqn:En.
+  - simpl. lra.
+  - unfold a. assert (F (2 * S n') > 0) by apply fib_n_gt_0.
+    assert (F (2 * S n' - 1) > 0) by apply fib_n_gt_0.
+    
 Qed.
 
     
