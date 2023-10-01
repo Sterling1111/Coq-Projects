@@ -205,9 +205,8 @@ Proof.
   - simpl. lra.
   - unfold a. assert (F (2 * S n') > 0) by apply fib_n_gt_0.
     assert (F (2 * S n' - 1) > 0) by apply fib_n_gt_0.
-    
+    apply Rlt_le. apply Rdiv_lt_0_compat; apply H || apply H0. 
 Qed.
-
     
 Lemma b_minus_a_eq : forall (n : nat), 
   b_minus_a n = -1 / (F(2*n) * F(2*n - 1)).
