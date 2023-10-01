@@ -62,7 +62,7 @@ Proof.
   rewrite Heq. rewrite pow_neg1_n_plus_1 in H2. lra.
 Qed.
 
-Lemma pos_div_pos : forall eps : R, eps > 0 -> (1 / eps > 0).
+Lemma one_div_pos : forall eps : R, eps > 0 -> (1 / eps > 0).
 Proof.
   intros eps Heps. apply Rlt_gt. unfold Rdiv.
   rewrite Rmult_1_l. apply Rinv_0_lt_compat.
@@ -126,9 +126,9 @@ Proof.
   replace (/ d * (b * c * / b)) with (c / d) in H3 by (field; lra).
   apply H3. 
 
-  apply Rgt_ge. replace (/ d) with (1 / d) by lra. apply pos_div_pos. apply H2.
+  apply Rgt_ge. replace (/ d) with (1 / d) by lra. apply one_div_pos. apply H2.
 
-  apply Rgt_ge. replace (/ b) with (1 / b) by lra. apply pos_div_pos. apply H1.
+  apply Rgt_ge. replace (/ b) with (1 / b) by lra. apply one_div_pos. apply H1.
 Qed.
 
 Lemma frac_le : forall (a b c d : R),
@@ -143,9 +143,9 @@ Proof.
   replace (/ d * (b * c * / b)) with (c / d) in H3 by (field; lra).
   apply H3. 
 
-  apply Rlt_le. replace (/ d) with (1 / d) by lra. apply pos_div_pos. apply H2.
+  apply Rlt_le. replace (/ d) with (1 / d) by lra. apply one_div_pos. apply H2.
 
-  apply Rlt_le. replace (/ b) with (1 / b) by lra. apply pos_div_pos. apply H1.
+  apply Rlt_le. replace (/ b) with (1 / b) by lra. apply one_div_pos. apply H1.
 Qed.
 
 Lemma frac_gt : forall (a b c d : R),
@@ -160,9 +160,9 @@ Proof.
   replace (/ d * (b * c * / b)) with (c / d) in H3 by (field; lra).
   apply H3.
 
-  replace (/ d) with (1 / d) by lra. apply pos_div_pos. apply H2.
+  replace (/ d) with (1 / d) by lra. apply one_div_pos. apply H2.
 
-  replace (/ b) with (1 / b) by lra. apply pos_div_pos. apply H1.
+  replace (/ b) with (1 / b) by lra. apply one_div_pos. apply H1.
 Qed.
 
 Lemma frac_lt : forall (a b c d : R),
@@ -177,9 +177,9 @@ Proof.
   replace (/ d * (b * c * / b)) with (c / d) in H3 by (field; lra).
   apply H3.
 
-  replace (/ d) with (1 / d) by lra. apply pos_div_pos. apply H2.
+  replace (/ d) with (1 / d) by lra. apply one_div_pos. apply H2.
 
-  replace (/ b) with (1 / b) by lra. apply pos_div_pos. apply H1.
+  replace (/ b) with (1 / b) by lra. apply one_div_pos. apply H1.
 Qed.
 
 Lemma prod_gt_prod : forall a b c d : R, 
@@ -191,4 +191,13 @@ Proof.
   - lra.
   - lra.
   - lra.
+Qed.
+
+Lemma pos_div_pos : forall a b:R, a > 0 -> b > 0 -> a / b > 0.
+Proof.
+  intros a b Ha Hb.
+  unfold Rdiv. (* Unfold the division to be a multiplication by inverse *)
+  apply Rmult_gt_0_compat.
+  - exact Ha.
+  - apply Rinv_0_lt_compat. exact Hb.
 Qed.
