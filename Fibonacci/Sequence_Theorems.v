@@ -1,5 +1,5 @@
-From Fibonacci Require Import Sequence_Definitions Completeness 
-                              Miscellaneous_Lemmas.
+From Fibonacci Require Import Completeness Miscellaneous_Lemmas.
+From Fibonacci Require Export Sequence_Definitions.
 Require Import Lra Classical Lia.
 
 Lemma increasing_ge : forall (a : sequence) (n1 n2 : nat),

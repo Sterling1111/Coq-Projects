@@ -1,8 +1,8 @@
-Require Import Peano ZArith Lia QArith Reals Nat Lra Classical FunctionalExtensionality.
+Require Import Lia Lra FunctionalExtensionality.
 
 From Fibonacci Require Import 
   Completeness Fibonacci_Definitions Miscellaneous_Lemmas 
-  Sequence_Definitions Strong_Induction Sequence_Theorems.
+  Strong_Induction Sequence_Theorems.
 
 Open Scope R_scope.
 
