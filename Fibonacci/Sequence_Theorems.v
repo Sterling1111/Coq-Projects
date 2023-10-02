@@ -222,6 +222,7 @@ Proof.
 Qed.
 
 Definition one_div_n (n : nat) : R := 1 / INR n.
+Definition neg_one_div_n (n : nat) : R := -1 * (one_div_n n).
 
 Lemma one_div_n_eventually_decreasing : eventually_decreasing one_div_n.
 Proof.
@@ -410,4 +411,77 @@ Proof.
     assert (Heps_lte_lt : Rabs (a n - La) + Rabs (Lb - b n) + Rabs (b n - a n) < (eps / 4) + (eps / 4) + (eps / 4)) by lra.
     replace (eps / 4 + eps / 4 + eps / 4) with (3 * eps / 4) in Heps_lte_lt by lra.
     assert (H_contra : eps < 3 * eps / 4) by lra. lra.
+Qed.
+
+Lemma two_seq_arbitrarily_small_pos : forall (a b : sequence),
+  arbitrarily_small b -> a_bounded_above_by_b a b -> nonnegative_sequence a -> arbitrarily_small a.
+Proof.
+  intros a b H1 H2 H3.
+  unfold arbitrarily_small in H1. unfold limit_of_sequence in H1.
+  unfold a_bounded_above_by_b in H2.
+  unfold nonnegative_sequence in H3.
+  unfold arbitrarily_small. unfold limit_of_sequence.
+  intros eps Heps.
+  destruct (H1 eps Heps) as [N HN].
+  exists N. intros n Hn.
+  specialize (HN n Hn).
+  unfold Rabs. rewrite Rminus_0_r. rewrite Rminus_0_r in HN.
+  specialize (H3 n). specialize (H2 n).
+  destruct (Rcase_abs (a n)) as [Hbn | Hbn].
+  - lra.
+  - unfold Rabs in HN. destruct (Rcase_abs (b n)) as [Hbn' | Hbn'].
+    + lra.
+    + lra.
+Qed.
+
+Lemma two_seq_arbitrarily_small_neg : forall (a b : sequence),
+  arbitrarily_small b -> a_bounded_below_by_b a b -> nonpositive_sequence a -> arbitrarily_small a.
+Proof.
+  intros a b H1 H2 H3.
+  unfold arbitrarily_small in H1. unfold limit_of_sequence in H1.
+  unfold a_bounded_below_by_b in H2.
+  unfold nonpositive_sequence in H3.
+  unfold arbitrarily_small. unfold limit_of_sequence.
+  intros eps Heps.
+  destruct (H1 eps Heps) as [N HN].
+  exists N. intros n Hn.
+  specialize (HN n Hn).
+  unfold Rabs. rewrite Rminus_0_r. rewrite Rminus_0_r in HN.
+  specialize (H3 n). specialize (H2 n).
+  destruct (Rcase_abs (a n)) as [Hbn | Hbn].
+  - unfold Rabs in HN. destruct (Rcase_abs (b n)) as [Hbn' | Hbn'].
+    + lra.
+    + lra.
+  - lra.
+Qed.
+
+Lemma seq_neg_seq_arbitrarily_small : forall (a : sequence),
+  arbitrarily_small a -> arbitrarily_small (fun n => - a n).
+Proof.
+  intros a H1.
+  unfold arbitrarily_small in H1. unfold limit_of_sequence in H1.
+  unfold arbitrarily_small. unfold limit_of_sequence.
+  intros eps Heps.
+  destruct (H1 eps Heps) as [N HN].
+  exists N. intros n Hn.
+  specialize (HN n Hn).
+  unfold Rabs. rewrite Rminus_0_r. rewrite Rminus_0_r in HN.
+  replace (- - a n) with (a n) by lra.
+  destruct (Rcase_abs (a n)) as [Hbn | Hbn].
+  - destruct (Rcase_abs (- a n)) as [Hbn' | Hbn'].
+    + lra.
+    + unfold Rabs in HN. destruct (Rcase_abs (a n)) as [Hbn'' | Hbn''].
+      * lra.
+      * lra.
+  - destruct (Rcase_abs (- a n)) as [Hbn' | Hbn'].
+    + unfold Rabs in HN. destruct (Rcase_abs (a n)) as [Hbn'' | Hbn''].
+      * lra.
+      * lra.
+    + lra.
+Qed.
+
+Lemma neg_one_div_n_arbitrarily_small : arbitrarily_small (fun n => - one_div_n n).
+Proof.
+  apply seq_neg_seq_arbitrarily_small.
+  apply one_div_n_arbitrarily_small.
 Qed.

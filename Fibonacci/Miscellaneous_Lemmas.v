@@ -201,3 +201,13 @@ Proof.
   - exact Ha.
   - apply Rinv_0_lt_compat. exact Hb.
 Qed.
+
+Lemma division_inequality: forall a b : R, a <= b -> b > 0 -> a / b <= 1.
+Proof.
+  intros a b H1 H2.
+  apply Rmult_le_compat_r with (r := 1/b) in H1.
+  - replace (a * (1 / b)) with (a / b) in H1 by lra.
+    replace (b * (1 / b)) with 1 in H1 by (field; lra).
+    apply H1.
+  - apply Rlt_le. apply one_div_pos. apply H2.
+Qed.  

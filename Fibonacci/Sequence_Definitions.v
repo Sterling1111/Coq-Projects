@@ -42,3 +42,15 @@ Definition monotonic_sequence (a : sequence) : Prop :=
 
 Definition monotonic_sequence_eventual (a : sequence) : Prop :=
   (eventually_increasing a /\ bounded_above a) \/ (eventually_decreasing a /\ bounded_below a).
+
+Definition nonnegative_sequence (a : sequence) : Prop :=
+  forall n : nat, a n >= 0.
+
+Definition nonpositive_sequence (a : sequence) : Prop :=
+  forall n : nat, a n <= 0.
+
+Definition a_bounded_above_by_b (a b : sequence) : Prop :=
+  forall n : nat, a n <= b n.
+
+Definition a_bounded_below_by_b (a b : sequence) : Prop :=
+  forall n : nat, a n >= b n.

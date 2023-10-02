@@ -161,15 +161,15 @@ Qed.
 Lemma lemma2 : forall (n : nat), 
   (n > 0)%nat -> F(2*n+1)*F(2*n-1) - F(2*n)^2 < 0.
 Proof.
-  intros n H. destruct n as [| k] eqn:Ek.
+  intros n H. destruct n as [| n'] eqn:En.
   - lia.
-  - replace ( (2 * S k + 1) )%nat with ( (2 * k + 1) + 2 )%nat by lia.
-    replace ( (2 * S k - 1) )%nat with ( (2 * k + 1) )%nat by lia.
-    replace ( (2 * S k) )%nat with ( (2 * k + 1) + 1 )%nat by lia.
+  - replace ( (2 * S n' + 1) )%nat with ( (2 * n' + 1) + 2 )%nat by lia.
+    replace ( (2 * S n' - 1) )%nat with ( (2 * n' + 1) )%nat by lia.
+    replace ( (2 * S n') )%nat with ( (2 * n' + 1) + 1 )%nat by lia.
 
     rewrite lemma1. rewrite pow_neg1_odd.
     -- lra.
-    -- exists k. reflexivity.
+    -- exists n'. reflexivity.
 Qed.
 
 Lemma lemma3 : forall (n : nat),
@@ -207,7 +207,77 @@ Proof.
     assert (F (2 * S n' - 1) > 0) by apply fib_n_gt_0.
     apply Rlt_le. apply Rdiv_lt_0_compat; apply H || apply H0. 
 Qed.
+
+Lemma lemma4 : forall (n : nat),
+  F(2*n+2) * F(2*n) - F(2*n+1)^2 > 0.
+Proof.
+  destruct n as [| n'] eqn:En.
+  - simpl. lra.
+  - rewrite lemma1. rewrite pow_neg1_even.
+    -- lra.
+    -- exists (S n'). reflexivity.
+Qed.
+
+Lemma lemma5 : forall (n : nat),
+  F(2*n+3) / F(2*n+2) > F(2*n+1) / F(2*n).
+Proof.
+  intro n. apply frac_gt.
+  - split.
+    -- apply fib_n_gt_0.
+    -- apply fib_n_gt_0.
+  - replace ( F(2*n+3) ) with ( F(2*n+2) + F(2*n+1) ) by (rewrite fib_n_plus_3; lra).
+    assert (H1: F(2*n+2) = F(2*n+1) + F(2*n)) by (apply fib_n_plus_2; lia). rewrite H1 at 2.
+    repeat rewrite Rmult_plus_distr_r.
+    replace ( (F(2*n+1) * F(2*n+1)) ) with ( (F(2*n+1))^2 ) by lra.
+    rewrite Rmult_comm with (r1 := F(2*n+1)).
+    apply Rplus_gt_compat_r. apply Rminus_gt. apply lemma4.
+Qed.
+
+Lemma b_increasing : increasing b.
+Proof.
+  intros n. unfold b.
+  apply Rge_le. apply Rgt_ge.
+  replace ( (2 * S n + 1) )%nat with ( (2*n + 3)%nat ) by lia.
+  replace ( (2 * S n) )%nat with ( (2*n+2)%nat ) by lia.
+  apply lemma5.
+Qed.
+
+Lemma lemma6 : forall n : nat,
+  F n / F (S n) <= 1.
+Proof.
+  intros n. 
+  assert (H1 : F (S n) >= F n) by apply fib_Sn_ge_fib_n.
+  assert (H2 : F (S n) > 0) by apply fib_n_gt_0.
+  apply division_inequality.
+  - lra.
+  - lra.
+Qed.
+
+Lemma b_bounded_above : bounded_above b.
+Proof.
+  exists 2. intros n. unfold b.
+  destruct n as [| n'] eqn:En.
+  - simpl. lra.
+  - assert (H1 : F(2 * S n' + 1) = F(2 * S n') + F(2 * S n' - 1)) by (apply fib_n_plus_1; lia).
+    rewrite H1.
+    assert (H2 : F (2 * S n' - 1) > 0) by apply fib_n_gt_0.
+    assert (H3 : F (2 * S n') > 0) by apply fib_n_gt_0.
     
+    assert (H4: (F (2 * S n') + F (2 * S n' - 1)) / F (2 * S n') = 1 + F (2 * S n' - 1) / F (2 * S n')).
+      { field. lra. } rewrite H4.
+    replace ( (2 * S n') )%nat with ( (S (2 * S n' - 1))%nat ) at 2 by lia.
+    assert (H5 : F (2 * S n' - 1) / F (S (2 * S n' - 1)) <= 1) by apply lemma6.
+    lra.
+Qed.
+
+Lemma b_convergent : convergent_sequence b.
+Proof.
+  apply Monotonic_Sequence_Theorem. unfold monotonic_sequence. left.
+  split.
+  - apply b_increasing.
+  - apply b_bounded_above.
+Qed.
+
 Lemma b_minus_a_eq : forall (n : nat), 
   b_minus_a n = -1 / (F(2*n) * F(2*n - 1)).
 Proof.
@@ -268,3 +338,50 @@ Proof.
   apply Monotonic_Sequence_Theorem.
   apply b_minus_a_monotonic.
 Qed.
+
+Lemma b_minus_a_bounded_above_by_one_div_n : a_bounded_above_by_b b_minus_a one_div_n.
+Proof.
+  unfold a_bounded_above_by_b. intros n. unfold one_div_n. rewrite b_minus_a_eq.
+  destruct n as [| n'] eqn:En.
+  - simpl. unfold Rdiv. rewrite Rinv_0. lra.
+  - apply frac_le.
+    -- split.
+       --- apply Rmult_gt_0_compat; apply fib_n_gt_0.
+       --- apply Rlt_gt. apply lt_0_INR. lia.
+    -- assert (F (2 * S n') >= 1) by apply fib_n_ge_1.
+       assert (F (2 * S n' - 1) >= 1) by apply fib_n_ge_1.
+       assert (0 < INR (S n')) by (apply lt_0_INR; lia).
+       apply Rle_trans with (r2 := 0).
+       --- lra.
+       --- rewrite Rmult_1_r. apply Rlt_le. apply Rmult_lt_0_compat. lra. lra.
+Qed.
+
+Lemma b_minus_a_bounded_below_by_neg_one_div_n : a_bounded_below_by_b b_minus_a (fun n => - one_div_n n).
+Proof.
+  unfold a_bounded_below_by_b. intros n. unfold one_div_n. rewrite b_minus_a_eq.
+  destruct n as [| n'] eqn:En.
+  - simpl. unfold Rdiv. rewrite Rinv_0. rewrite Rmult_0_r. rewrite Rmult_1_l. lra.
+  - apply frac_le.
+    -- split.
+       --- apply Rmult_gt_0_compat; apply fib_n_gt_0.
+       --- apply Rlt_gt. apply lt_0_INR. lia.
+    -- assert (F (2 * S n') >= 1) by apply fib_n_ge_1.
+       assert (F (2 * S n' - 1) >= 1) by apply fib_n_ge_1.
+       assert (0 < INR (S n')) by (apply lt_0_INR; lia).
+       apply Rle_trans with (r2 := 0).
+       --- lra.
+       --- rewrite Rmult_1_r. apply Rlt_le. apply Rmult_lt_0_compat. lra. lra.
+Qed.
+
+Lemma b_minus_a_nonnegative_sequence : nonnegative_sequence b_minus_a.
+Proof.
+  unfold nonnegative_sequence. intros n. rewrite b_minus_a_eq.
+Qed.
+
+
+Lemma b_minus_aR_arbitrarily_small : arbitrarily_small b_minus_a.
+Proof.
+  apply two_seq_arbitrarily_small with (b := one_div_n).
+  - apply one_div_n_arbitrarily_small.
+  - apply b_minus_a_bounded_above_by_one_div_n.
+  - apply b_minus_a_convergent. 
