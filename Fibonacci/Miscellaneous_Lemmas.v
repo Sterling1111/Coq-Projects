@@ -211,3 +211,29 @@ Proof.
     apply H1.
   - apply Rlt_le. apply one_div_pos. apply H2.
 Qed.  
+
+Lemma odd_div_2 :
+  forall n m, Nat.Odd n -> n = (2 * m + 1)%nat -> (n / 2 = m)%nat.
+Proof.
+  intros n m Hodd Heq.
+  
+  destruct Hodd as [m' Hm'].
+
+  assert (m = m') as Hm_m' by lia.
+  subst m'.
+
+  rewrite Heq. rewrite Nat.add_comm. rewrite Nat.mul_comm.
+  rewrite Nat.div_add.
+  - simpl. reflexivity.
+  - lia.
+Qed.
+
+Lemma even_div_2 : forall n m, Nat.Even n -> n = (2 * m)%nat -> (n / 2 = m)%nat.
+Proof.
+  intros n m Heven Heq.
+  rewrite Heq.
+  rewrite Nat.mul_comm.
+  rewrite Nat.div_mul.
+  - reflexivity.
+  - lia.
+Qed.

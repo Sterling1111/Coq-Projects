@@ -485,3 +485,45 @@ Proof.
   apply seq_neg_seq_arbitrarily_small.
   apply one_div_n_arbitrarily_small.
 Qed.
+
+Lemma one_div_n_pos : forall (n : nat),
+  one_div_n n >= 0.
+Proof.
+  unfold one_div_n. destruct n. 
+  - simpl. unfold Rdiv. rewrite Rmult_1_l. apply Req_ge. apply Rinv_0.
+  - apply Rgt_ge. apply pos_div_pos. lra. rewrite S_INR. 
+    apply Rlt_gt. apply Rplus_le_lt_0_compat. apply pos_INR. apply Rlt_0_1.
+Qed. 
+
+Lemma c_converges_to_L:
+  forall (a b c : sequence) (L : R),
+  limit_of_sequence a L ->
+  limit_of_sequence b L ->
+  (forall n : nat,
+    (Nat.Even n -> c n = b ((n / 2)%nat)) /\
+    (Nat.Odd n -> c n = a ((n / 2 + 1)%nat))) ->
+  limit_of_sequence c L.
+Proof.
+intros a b c L Han Hbn Hcn.
+
+unfold limit_of_sequence in Han, Hbn. unfold limit_of_sequence.
+intros eps Heps.
+
+destruct (Han eps Heps) as [Na HNa].
+destruct (Hbn eps Heps) as [Nb HNb].
+
+set(N := max (2 * Na - 1) (2 * Nb)).
+exists N.
+
+intros n Hn.
+
+destruct (Hcn n) as [Heven1 Hodd1].
+
+destruct (Nat.Even_or_Odd n) as [Heven2 | Hodd2].
+- pose proof Heven2 as Heven3. apply Heven1 in Heven2.
+  rewrite Heven2. apply HNb. destruct (Heven3) as [k H]. assert ((n / 2 = k)%nat).
+  { apply even_div_2. apply Heven3. apply H. } lia.
+- pose proof Hodd2 as Hodd3. apply Hodd1 in Hodd2.
+  rewrite Hodd2. apply HNa. destruct (Hodd3) as [k H]. assert ((n / 2 = k)%nat).
+  { apply odd_div_2. apply Hodd3. apply H. } lia.
+Qed.

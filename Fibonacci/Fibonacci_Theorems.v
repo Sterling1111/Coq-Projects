@@ -1,9 +1,8 @@
-Require Import Peano ZArith Lia QArith Reals Nat Lra Classical.
+Require Import Peano ZArith Lia QArith Reals Nat Lra Classical FunctionalExtensionality.
 
 From Fibonacci Require Import 
   Completeness Fibonacci_Definitions Miscellaneous_Lemmas 
-  Sequence_Definitions Strong_Induction Miscellaneous_Lemmas
-  Sequence_Theorems.
+  Sequence_Definitions Strong_Induction Sequence_Theorems.
 
 Open Scope R_scope.
 
@@ -208,6 +207,14 @@ Proof.
     apply Rlt_le. apply Rdiv_lt_0_compat; apply H || apply H0. 
 Qed.
 
+Lemma a_converges : convergent_sequence a.
+Proof.
+  apply Monotonic_Sequence_Theorem_Strong. unfold monotonic_sequence_eventual.
+  right. split.
+  - apply a_eventually_decreasing.
+  - apply a_bounded_below. 
+Qed.
+
 Lemma lemma4 : forall (n : nat),
   F(2*n+2) * F(2*n) - F(2*n+1)^2 > 0.
 Proof.
@@ -270,7 +277,7 @@ Proof.
     lra.
 Qed.
 
-Lemma b_convergent : convergent_sequence b.
+Lemma b_converges : convergent_sequence b.
 Proof.
   apply Monotonic_Sequence_Theorem. unfold monotonic_sequence. left.
   split.
@@ -296,92 +303,140 @@ Proof.
        --- apply fib_n_gt_0.
 Qed.
 
-Lemma b_minus_a_increasing : increasing b_minus_a.
+Lemma b_minus_a_neg : forall (n : nat),
+  b_minus_a n < 0.
 Proof.
-  intros n. repeat rewrite b_minus_a_eq. 
-  assert (H1 : F (2 * S n) > 0) by (apply fib_n_gt_0).
-  assert (H2 : F (2 * n) > 0) by (apply fib_n_gt_0).
-  assert (H3 : F (2 * S n - 1) > 0) by (apply fib_n_gt_0).
-  assert (H4 : F (2 * n - 1) > 0) by (apply fib_n_gt_0).
-  assert (H5 : F (2 * S n) >= F (2 * n)) by (apply n1_ge_n2_imp_fib_n1_ge_fib_n2; lia).
-  assert (H6 : F (2 * S n - 1) >= F (2 * n - 1)) by (apply n1_ge_n2_imp_fib_n1_ge_fib_n2; lia).
-  replace (-1 / (F (2 * n) * F (2 * n - 1))) with (- (1 / (F (2 * n) * F (2 * n - 1)) )) by lra.
-  replace (-1 / (F (2 * S n) * F (2 * S n - 1))) with (- ( 1 / (F (2 * S n) * F (2 * S n - 1))) ) by lra.
-  apply neg_frac_ge.
-  apply frac_ge.
+  intros n. rewrite b_minus_a_eq.
+  assert (H1 : F (2 * n) >= 1) by apply fib_n_ge_1.
+  assert (H2 : F (2 * n - 1) >= 1) by apply fib_n_ge_1.
+  assert (H3 : F (2 * n) * F (2 * n - 1) > 0) by (apply Rmult_gt_0_compat; lra). 
+  assert (H4 : 1 / (F (2 * n) * F (2 * n - 1)) > 0) by (apply pos_div_pos; lra).
+  lra.
+Qed.
+
+Lemma neg_b_minus_a_lte_one_div_n : forall (n : nat),
+  (n >= 1)%nat -> - b_minus_a n <= one_div_n n.
+Proof.
+  intros n H. unfold one_div_n.
+  rewrite b_minus_a_eq.
+  replace (- (-1 / (F (2 * n) * F (2 * n - 1)))) with (1 / (F (2 * n) * F (2 * n - 1))) by lra.
+  apply frac_le.
   - split.
-    -- apply Rmult_gt_0_compat; apply H2 || apply H4.
-    -- apply Rmult_gt_0_compat; apply H1 || apply H3.
+    -- apply Rmult_gt_0_compat; apply fib_n_gt_0.
+    -- apply Rlt_gt. apply lt_0_INR. lia.
   - rewrite Rmult_1_l. rewrite Rmult_1_r.
-    apply prod_gt_prod. lra. lra. lra. lra. lra. lra.
+    apply Rge_le. apply fib_prod_ge_n.
 Qed.
 
-Lemma b_minus_a_bounded_below : bounded_above b_minus_a.
+Lemma b_minus_a_le_mag_one_div_n : forall (n : nat),
+  (n >= 1)%nat -> Rabs(b_minus_a n - 0) <= Rabs(one_div_n n - 0).
 Proof.
-  exists 0. intros n. rewrite b_minus_a_eq.
-  assert (H1 : F (2 * n) > 0) by (apply fib_n_gt_0).
-  assert (H2 : F (2 * n - 1) > 0) by (apply fib_n_gt_0).
-  assert (H3 : F (2 * n) * F (2 * n - 1) > 0) by (apply Rmult_gt_0_compat; apply H1 || apply H2).
-  replace (-1 / (F (2 * n) * F (2 * n - 1))) with (- (1 / (F (2 * n) * F (2 * n - 1)) )) by lra.
-  assert (H4 : 1 / (F (2 * n) * F (2 * n - 1)) > 0) by (apply pos_div_pos; lra). lra.
+  intros n H. repeat rewrite Rminus_0_r. unfold Rabs.
+  assert (H1 : b_minus_a n < 0) by apply b_minus_a_neg.
+  assert (H2 : one_div_n n >= 0) by apply one_div_n_pos.
+  destruct (Rcase_abs (b_minus_a n)) as [H3 | H4].
+  - destruct (Rcase_abs (one_div_n n)) as [H4 | H5].
+    -- apply (Rlt_not_ge _ _ H4) in H2. contradiction.
+    -- apply neg_b_minus_a_lte_one_div_n. apply H.
+  - destruct (Rcase_abs (one_div_n n)) as [H5 | H6].
+    -- apply (Rlt_not_ge _ _ H5) in H2. contradiction.
+    -- apply (Rlt_not_ge _ _ H1) in H4. contradiction.
 Qed.
 
-Lemma b_minus_a_monotonic : monotonic_sequence b_minus_a.
+Lemma b_minus_a_arbitrarily_small : arbitrarily_small b_minus_a.
 Proof.
-  unfold monotonic_sequence. left. split.
-  - apply b_minus_a_increasing.
-  - apply b_minus_a_bounded_below.
+  unfold arbitrarily_small. unfold limit_of_sequence. intros eps H1.
+  assert (H2 : exists N, forall n, (n >= N)%nat -> Rabs (one_div_n n - 0) < eps).
+  { apply one_div_n_arbitrarily_small. apply H1. }
+  destruct H2 as [N HN].
+
+  exists ((N + 1)%nat). intros n Hn_ge_N.
+  apply Rle_lt_trans with (r2 := Rabs (one_div_n n - 0)).
+  - apply b_minus_a_le_mag_one_div_n. lia.
+  - apply HN. lia.
 Qed.
 
-Lemma b_minus_a_convergent : convergent_sequence b_minus_a.
+Lemma lim_b_minus_a_0 : limit_of_sequence b_minus_a 0.
 Proof.
-  apply Monotonic_Sequence_Theorem.
-  apply b_minus_a_monotonic.
+  apply b_minus_a_arbitrarily_small.
 Qed.
 
-Lemma b_minus_a_bounded_above_by_one_div_n : a_bounded_above_by_b b_minus_a one_div_n.
+Lemma a_b_same_limit : forall La Lb : R,
+  (limit_of_sequence a La /\ limit_of_sequence b Lb) -> (La = Lb).
 Proof.
-  unfold a_bounded_above_by_b. intros n. unfold one_div_n. rewrite b_minus_a_eq.
+  intros La Lb [H1 H2].
+  apply two_seq_converge_to_same_limit with (a := a) (b := b).
+  - apply H1.
+  - apply H2.
+  - unfold arbitrarily_small. replace (fun n : nat => b n - a n) with (b_minus_a).
+    -- apply lim_b_minus_a_0.
+    -- unfold b_minus_a. unfold b. unfold a. unfold b_minus_a. apply functional_extensionality. reflexivity.
+Qed.
+
+Lemma n_odd_imp_c_eq_a : forall (n : nat),
+  Nat.Odd n -> c n = a ((n / 2 + 1)%nat).
+Proof.
+  intros n H1. unfold c. unfold a.
   destruct n as [| n'] eqn:En.
-  - simpl. unfold Rdiv. rewrite Rinv_0. lra.
-  - apply frac_le.
-    -- split.
-       --- apply Rmult_gt_0_compat; apply fib_n_gt_0.
-       --- apply Rlt_gt. apply lt_0_INR. lia.
-    -- assert (F (2 * S n') >= 1) by apply fib_n_ge_1.
-       assert (F (2 * S n' - 1) >= 1) by apply fib_n_ge_1.
-       assert (0 < INR (S n')) by (apply lt_0_INR; lia).
-       apply Rle_trans with (r2 := 0).
-       --- lra.
-       --- rewrite Rmult_1_r. apply Rlt_le. apply Rmult_lt_0_compat. lra. lra.
+  - inversion H1. lia.
+  - pose proof H1 as H2. destruct H1 as [k H1].
+    assert ((S n' / 2 = k)%nat) by (apply odd_div_2; apply H2 || apply H1).
+    assert ((S n' / 2 + 1 = k + 1)%nat) by lia.
+    destruct ((S n' / 2 + 1)%nat).
+    -- lia.
+    -- rewrite H1. rewrite H0. replace ((2 * (k + 1))%nat) with  ((2 * k + 1 + 1)%nat) by lia.
+       replace ((2 * k + 1 + 1 - 1)%nat) with ((2 * k + 1)%nat) by lia. reflexivity. 
 Qed.
 
-Lemma b_minus_a_bounded_below_by_neg_one_div_n : a_bounded_below_by_b b_minus_a (fun n => - one_div_n n).
+Lemma n_even_imp_c_eq_b : forall (n : nat),
+  Nat.Even n -> c n = b ((n / 2)%nat).
 Proof.
-  unfold a_bounded_below_by_b. intros n. unfold one_div_n. rewrite b_minus_a_eq.
+  intros n H1. unfold c. unfold b.
   destruct n as [| n'] eqn:En.
-  - simpl. unfold Rdiv. rewrite Rinv_0. rewrite Rmult_0_r. rewrite Rmult_1_l. lra.
-  - apply frac_le.
-    -- split.
-       --- apply Rmult_gt_0_compat; apply fib_n_gt_0.
-       --- apply Rlt_gt. apply lt_0_INR. lia.
-    -- assert (F (2 * S n') >= 1) by apply fib_n_ge_1.
-       assert (F (2 * S n' - 1) >= 1) by apply fib_n_ge_1.
-       assert (0 < INR (S n')) by (apply lt_0_INR; lia).
-       apply Rle_trans with (r2 := 0).
-       --- lra.
-       --- rewrite Rmult_1_r. apply Rlt_le. apply Rmult_lt_0_compat. lra. lra.
+  - simpl. reflexivity.
+  - pose proof H1 as H2. destruct H1 as [k H1].
+    assert ((S n' / 2 = k)%nat) by (apply even_div_2; apply H2 || apply H1).
+    assert ((S n' / 2 = k)%nat) by lia.
+    rewrite H. rewrite H1. replace ((2 * k)%nat) with  ((2 * k + 1 - 1)%nat) by lia.
+    replace ((2 * k + 1 - 1)%nat) with ((2 * k)%nat) by lia. reflexivity.
 Qed.
 
-Lemma b_minus_a_nonnegative_sequence : nonnegative_sequence b_minus_a.
+Theorem c_has_limit : forall (L1 L2: R),
+  limit_of_sequence a L1 ->
+  limit_of_sequence b L2 ->
+  (limit_of_sequence c L1 /\ limit_of_sequence c L2).
 Proof.
-  unfold nonnegative_sequence. intros n. rewrite b_minus_a_eq.
+  intros L1 L2 H1 H2.
+
+  assert (H4 : L1 = L2).
+  { apply a_b_same_limit. split; assumption. }
+
+  split.
+
+  - apply c_converges_to_L with (a := a) (b := b).
+    -- apply H1.
+    -- rewrite <- H4 in H2. apply H2.
+    -- intros n. split; intros Hparity.
+      --- apply n_even_imp_c_eq_b. apply Hparity.
+      --- apply n_odd_imp_c_eq_a. apply Hparity.
+  - apply c_converges_to_L with (a := a) (b := b).
+    -- rewrite H4 in H1. apply H1.
+    -- apply H2.
+    -- intros n. split; intros Hparity.
+      --- apply n_even_imp_c_eq_b. apply Hparity.
+      --- apply n_odd_imp_c_eq_a. apply Hparity.
 Qed.
 
-
-Lemma b_minus_aR_arbitrarily_small : arbitrarily_small b_minus_a.
+Theorem c_convergent : convergent_sequence c.
 Proof.
-  apply two_seq_arbitrarily_small with (b := one_div_n).
-  - apply one_div_n_arbitrarily_small.
-  - apply b_minus_a_bounded_above_by_one_div_n.
-  - apply b_minus_a_convergent. 
+  assert (Ha : convergent_sequence a) by apply a_converges.
+  assert (Hb : convergent_sequence b) by apply b_converges.
+
+  destruct Ha as [La Ha], Hb as [Lb Hb].
+
+  assert (Hc_both : limit_of_sequence c La /\ limit_of_sequence c Lb).
+  { apply c_has_limit; assumption. }
+
+  destruct Hc_both as [Hc1 Hc2].
+  unfold convergent_sequence. exists La. assumption.
+Qed.
