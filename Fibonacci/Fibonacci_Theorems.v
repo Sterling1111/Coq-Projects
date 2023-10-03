@@ -1,7 +1,7 @@
 Require Import Lia Lra FunctionalExtensionality.
 
 From Fibonacci Require Import 
-  Completeness Fibonacci_Definitions Miscellaneous_Lemmas 
+  Fibonacci_Definitions Miscellaneous_Lemmas 
   Strong_Induction Sequence_Theorems.
 
 Open Scope R_scope.
