@@ -9,9 +9,7 @@ Open Scope R_scope.
 Lemma fib_S_S_n : forall n : nat, F (S (S n)) = F (S n) + F n.
 Proof.
   intros n.
-  destruct n as [| n'] eqn:En.
-  - simpl. reflexivity.
-  - simpl. reflexivity.
+  simpl. reflexivity.
 Qed.
 
 Lemma fib_n_plus_2 : forall n : nat, F(n+2) = F(n+1) + F(n).
@@ -43,16 +41,14 @@ Qed.
 Lemma fib_n_ge_1 : forall n, F n >= 1.
 Proof.
   apply strong_induction.
-  - simpl. lra.
-  - intros n IH. destruct n.
-    + simpl. lra.
-    + simpl. destruct n.
-      ++ lra.
-      ++ assert (H1: (S n <= S (S n))%nat) by lia.
-         assert (H2 : (n <= S (S n))%nat) by lia.
-         assert (H3 : F (S n) >= 1) by (apply IH; lia).
-         assert (H4: F n >= 1) by (apply IH; lia).
-         lra.
+  - intros n IH. destruct n as [| n'] eqn:En.
+    -- simpl. lra.
+    -- destruct n' as [| n''] eqn:En'.
+       --- simpl. lra.
+       --- assert (H1 : F (S n'') >= 1) by (apply IH; lia).
+           assert (H2 : F n'' >= 1) by (apply IH; lia).
+           rewrite fib_S_S_n.
+           lra.
 Qed.
 
 Lemma fib_n_gt_0 : forall n, F n > 0.
@@ -303,23 +299,31 @@ Proof.
        --- apply fib_n_gt_0.
 Qed.
 
-Lemma b_minus_a_neg : forall (n : nat),
-  b_minus_a n < 0.
+Lemma a_minus_b_eq : forall (n : nat),
+  a_minus_b n = 1 / (F(2*n) * F(2*n - 1)).
 Proof.
-  intros n. rewrite b_minus_a_eq.
+  intros n.
+  assert (H1 : a_minus_b n = - (b_minus_a n)).
+  { unfold a_minus_b. unfold b_minus_a. lra. }
+  rewrite H1. rewrite b_minus_a_eq. lra. 
+Qed.
+
+Lemma a_minus_b_pos : forall (n : nat),
+  a_minus_b n > 0.
+Proof.
+  intros n. rewrite a_minus_b_eq.
   assert (H1 : F (2 * n) >= 1) by apply fib_n_ge_1.
   assert (H2 : F (2 * n - 1) >= 1) by apply fib_n_ge_1.
-  assert (H3 : F (2 * n) * F (2 * n - 1) > 0) by (apply Rmult_gt_0_compat; lra). 
+  assert (H3 : F (2 * n) * F (2 * n - 1) > 0) by (apply Rmult_gt_0_compat; lra).
   assert (H4 : 1 / (F (2 * n) * F (2 * n - 1)) > 0) by (apply pos_div_pos; lra).
   lra.
 Qed.
 
-Lemma neg_b_minus_a_lte_one_div_n : forall (n : nat),
-  (n >= 1)%nat -> - b_minus_a n <= one_div_n n.
+Lemma a_minus_b_lte_one_div_n : forall (n : nat),
+  (n >= 1)%nat -> a_minus_b n <= one_div_n n.
 Proof.
   intros n H. unfold one_div_n.
-  rewrite b_minus_a_eq.
-  replace (- (-1 / (F (2 * n) * F (2 * n - 1)))) with (1 / (F (2 * n) * F (2 * n - 1))) by lra.
+  rewrite a_minus_b_eq.
   apply frac_le.
   - split.
     -- apply Rmult_gt_0_compat; apply fib_n_gt_0.
@@ -328,22 +332,22 @@ Proof.
     apply Rge_le. apply fib_prod_ge_n.
 Qed.
 
-Lemma b_minus_a_le_mag_one_div_n : forall (n : nat),
-  (n >= 1)%nat -> Rabs(b_minus_a n - 0) <= Rabs(one_div_n n - 0).
+Lemma a_minus_b_le_mag_one_div_n : forall (n : nat),
+  (n >= 1)%nat -> Rabs(a_minus_b n - 0) <= Rabs(one_div_n n - 0).
 Proof.
   intros n H. repeat rewrite Rminus_0_r. unfold Rabs.
-  assert (H1 : b_minus_a n < 0) by apply b_minus_a_neg.
+  assert (H1 : a_minus_b n > 0) by apply a_minus_b_pos.
   assert (H2 : one_div_n n >= 0) by apply one_div_n_pos.
-  destruct (Rcase_abs (b_minus_a n)) as [H3 | H4].
+  destruct (Rcase_abs (a_minus_b n)) as [H3 | H4].
   - destruct (Rcase_abs (one_div_n n)) as [H4 | H5].
     -- apply (Rlt_not_ge _ _ H4) in H2. contradiction.
-    -- apply neg_b_minus_a_lte_one_div_n. apply H.
+    -- lra.
   - destruct (Rcase_abs (one_div_n n)) as [H5 | H6].
     -- apply (Rlt_not_ge _ _ H5) in H2. contradiction.
-    -- apply (Rlt_not_ge _ _ H1) in H4. contradiction.
+    -- apply a_minus_b_lte_one_div_n. apply H.
 Qed.
 
-Lemma b_minus_a_arbitrarily_small : arbitrarily_small b_minus_a.
+Lemma a_minus_b_arbitrarily_small : arbitrarily_small a_minus_b.
 Proof.
   unfold arbitrarily_small. unfold limit_of_sequence. intros eps H1.
   assert (H2 : exists N, forall n, (n >= N)%nat -> Rabs (one_div_n n - 0) < eps).
@@ -352,13 +356,13 @@ Proof.
 
   exists ((N + 1)%nat). intros n Hn_ge_N.
   apply Rle_lt_trans with (r2 := Rabs (one_div_n n - 0)).
-  - apply b_minus_a_le_mag_one_div_n. lia.
+  - apply a_minus_b_le_mag_one_div_n. lia.
   - apply HN. lia.
 Qed.
 
-Lemma lim_b_minus_a_0 : limit_of_sequence b_minus_a 0.
+Lemma lim_a_minus_b_0 : limit_of_sequence a_minus_b 0.
 Proof.
-  apply b_minus_a_arbitrarily_small.
+  apply a_minus_b_arbitrarily_small.
 Qed.
 
 Lemma a_b_same_limit : forall La Lb : R,
@@ -368,9 +372,9 @@ Proof.
   apply two_seq_converge_to_same_limit with (a := a) (b := b).
   - apply H1.
   - apply H2.
-  - unfold arbitrarily_small. replace (fun n : nat => b n - a n) with (b_minus_a).
-    -- apply lim_b_minus_a_0.
-    -- unfold b_minus_a. unfold b. unfold a. unfold b_minus_a. apply functional_extensionality. reflexivity.
+  - unfold arbitrarily_small. replace (fun n : nat => a n - b n) with (a_minus_b).
+    -- apply lim_a_minus_b_0.
+    -- unfold a_minus_b. apply functional_extensionality. intros x. reflexivity.
 Qed.
 
 Lemma n_odd_imp_c_eq_a : forall (n : nat),
@@ -431,6 +435,8 @@ Theorem c_convergent : convergent_sequence c.
 Proof.
   assert (Ha : convergent_sequence a) by apply a_converges.
   assert (Hb : convergent_sequence b) by apply b_converges.
+
+  unfold convergent_sequence in Ha, Hb.
 
   destruct Ha as [La Ha], Hb as [Lb Hb].
 

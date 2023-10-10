@@ -22,3 +22,5 @@ Definition b (n : nat) : R := F(2*n + 1) / F(2*n).
 Definition c (n : nat) : R := F(n + 1) / F n.
 
 Definition b_minus_a (n : nat) : R := b n - a n.
+
+Definition a_minus_b (n : nat) : R := a n - b n.

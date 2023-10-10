@@ -338,7 +338,7 @@ Qed.
 Lemma two_seq_converge_to_same_limit: 
   forall (a b : sequence) (La Lb : R),
   (* Assuming a_n converges to La and b_n converges to Lb *)
-  limit_of_sequence a La -> limit_of_sequence b Lb -> arbitrarily_small (fun n => b n - a n) ->
+  limit_of_sequence a La -> limit_of_sequence b Lb -> arbitrarily_small (fun n => a n - b n) ->
   La = Lb.
 Proof.
   intros a b La Lb Ha Hb Hdiff.
@@ -347,32 +347,30 @@ Proof.
   unfold arbitrarily_small in Hdiff. 
   unfold limit_of_sequence in Hdiff.
 
-  pose (eps := Rabs (La - Lb)).
+  set (eps := Rabs (La - Lb)).
   pose proof (Rtotal_order La Lb) as [Hlt|[Heq|Hgt]].
 
-  - assert (Heps_pos : eps > 0).
-    { unfold eps. apply Rabs_pos_lt. lra. }
-    assert (Heps_div_4_pos : eps / 4 > 0).
-    { apply Rlt_gt. apply Rmult_lt_0_compat. apply Heps_pos. apply Rinv_0_lt_compat. lra. }
+  - assert (Heps_pos : 0 < eps) by (apply Rabs_pos_lt; lra).
+    assert (Heps_div_4_pos : eps / 4 > 0) by lra.
       
     destruct (Ha (eps / 4) Heps_div_4_pos) as [Na HNa].
     destruct (Hb (eps / 4) Heps_div_4_pos) as [Nb HNb].
     destruct (Hdiff (eps / 4) Heps_div_4_pos) as [Nc HNc].
 
-    pose (N := max (max Na Nb) Nc).
-    pose (n := N).
+    set (N := max (max Na Nb) Nc).
+    set (n := N).
 
     assert (Hna : (n >= Na)%nat). lia.
     assert (Hnb : (n >= Nb)%nat). lia.
     assert (Hnc : (n >= Nc)%nat). lia.
     assert (Hnaeps : ((eps / 4) > Rabs (a n - La))). { apply HNa. apply Hna. }
     assert (Hnbeps : ((eps / 4) > Rabs (b n - Lb))). { apply HNb. apply Hnb. }
-    assert (Hndeps : ((eps / 4) > Rabs (b n - a n))). { rewrite <- Rminus_0_r with (r := b n - a n). apply HNc. apply Hnc. }
+    assert (Hndeps : ((eps / 4) > Rabs (a n - b n))). { rewrite <- Rminus_0_r with (r := a n - b n). apply HNc. apply Hnc. }
     assert (Heps_eq : eps = Rabs((La - a n) + (b n - Lb) + (a n - b n))).
     { unfold eps. assert ((La - a n) + (b n - Lb) + (a n - b n) = La - Lb) by lra. rewrite H. reflexivity. }
     assert (Heps_lte : eps <= Rabs (La - a n) + Rabs (b n - Lb) + Rabs (a n - b n)).
-    { rewrite Heps_eq. apply Rabs_triang_3. }
-    assert (Heps_lte_eq : Rabs (La - a n) + Rabs (b n - Lb) + Rabs (a n - b n) = Rabs (a n - La) + Rabs (b n - Lb) + Rabs (b n - a n)).
+    { rewrite Heps_eq. apply Rabs_triang_3. } 
+    assert (Heps_lte_eq : Rabs (La - a n) + Rabs (b n - Lb) + Rabs (a n - b n) = Rabs (a n - La) + Rabs (b n - Lb) + Rabs (a n - b n)).
     { rewrite Rabs_minus_sym. rewrite Rabs_minus_sym with (x := a n) (y := b n). reflexivity. }
 
     rewrite Heps_lte_eq in Heps_lte.
@@ -382,29 +380,27 @@ Proof.
 
   - assumption.
 
-  - assert (Heps_pos : eps > 0).
-    { unfold eps. apply Rabs_pos_lt. lra. }
-    assert (Heps_div_4_pos : eps / 4 > 0).
-    { apply Rlt_gt. apply Rmult_lt_0_compat. apply Heps_pos. apply Rinv_0_lt_compat. lra. }
+  - assert (Heps_pos : 0 < eps) by (apply Rabs_pos_lt; lra).
+    assert (Heps_div_4_pos : eps / 4 > 0) by lra.
       
     destruct (Ha (eps / 4) Heps_div_4_pos) as [Na HNa].
     destruct (Hb (eps / 4) Heps_div_4_pos) as [Nb HNb].
     destruct (Hdiff (eps / 4) Heps_div_4_pos) as [Nc HNc].
 
-    pose (N := max (max Na Nb) Nc).
-    pose (n := N).
+    set (N := max (max Na Nb) Nc).
+    set (n := N).
 
     assert (Hna : (n >= Na)%nat). lia.
     assert (Hnb : (n >= Nb)%nat). lia.
     assert (Hnc : (n >= Nc)%nat). lia.
     assert (Hnaeps : ((eps / 4) > Rabs (a n - La))). { apply HNa. apply Hna. }
     assert (Hnbeps : ((eps / 4) > Rabs (b n - Lb))). { apply HNb. apply Hnb. }
-    assert (Hndeps : ((eps / 4) > Rabs (b n - a n))). { rewrite <- Rminus_0_r with (r := b n - a n). apply HNc. apply Hnc. }
+    assert (Hndeps : ((eps / 4) > Rabs (a n - b n))). { rewrite <- Rminus_0_r with (r := a n - b n). apply HNc. apply Hnc. }
     assert (Heps_eq : eps = Rabs((La - a n) + (b n - Lb) + (a n - b n))).
     { unfold eps. assert ((La - a n) + (b n - Lb) + (a n - b n) = La - Lb) by lra. rewrite H. reflexivity. }
     assert (Heps_lte : eps <= Rabs (La - a n) + Rabs (b n - Lb) + Rabs (a n - b n)).
-    { rewrite Heps_eq. apply Rabs_triang_3. }
-    assert (Heps_lte_eq : Rabs (La - a n) + Rabs (b n - Lb) + Rabs (a n - b n) = Rabs (a n - La) + Rabs (b n - Lb) + Rabs (b n - a n)).
+    { rewrite Heps_eq. apply Rabs_triang_3. } 
+    assert (Heps_lte_eq : Rabs (La - a n) + Rabs (b n - Lb) + Rabs (a n - b n) = Rabs (a n - La) + Rabs (b n - Lb) + Rabs (a n - b n)).
     { rewrite Rabs_minus_sym. rewrite Rabs_minus_sym with (x := a n) (y := b n). reflexivity. }
 
     rewrite Heps_lte_eq in Heps_lte.
@@ -522,7 +518,9 @@ destruct (Hcn n) as [Heven1 Hodd1].
 destruct (Nat.Even_or_Odd n) as [Heven2 | Hodd2].
 - pose proof Heven2 as Heven3. apply Heven1 in Heven2.
   rewrite Heven2. apply HNb. destruct (Heven3) as [k H]. assert ((n / 2 = k)%nat).
-  { apply even_div_2. apply Heven3. apply H. } lia.
+  { apply even_div_2. apply Heven3. apply H. }
+  assert ((2 * k) >= (N))%nat by lia. 
+  assert (n >= 2 * Nb)%nat by lia. lia.
 - pose proof Hodd2 as Hodd3. apply Hodd1 in Hodd2.
   rewrite Hodd2. apply HNa. destruct (Hodd3) as [k H]. assert ((n / 2 = k)%nat).
   { apply odd_div_2. apply Hodd3. apply H. } lia.
