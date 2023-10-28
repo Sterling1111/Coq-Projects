@@ -17,19 +17,19 @@ Definition e1 : Expr := Op (Num 1) (Num 2).
 
 Compute (eval e1 mult).
 
-Compute flat_map (fun n => n + 2) (seq 1 5).
+Compute flat_map (fun n => map (fun m => m + n) ([1; 2; 3])) (seq 7 3).
 
-Fixpoint parenthesize (lst : list nat) : list Expr :=
-  match lst with
+Fixpoint parenthesize (l : list nat) : list Expr :=
+  match l with
   | [] => []
   | x :: xs => match xs with
                 | [] => [Num x]
                 | _ :: _ =>
                     flat_map
                       (fun split_point : nat =>
-                      let left := firstn split_point lst in
-                      let right := skipn split_point lst in
-                      flat_map (fun l : Expr => map (fun r : Expr => Op l r) (parenthesize right)) (parenthesize left))
-                      (seq 1 (Nat.pred (length lst)))
+                      let left := firstn split_point l in
+                      let right := skipn split_point l in
+                      flat_map (fun el : Expr => map (fun er : Expr => Op el er) (parenthesize right)) (parenthesize left))
+                      (seq 1 (Nat.pred (length l)))
                 end
   end.
