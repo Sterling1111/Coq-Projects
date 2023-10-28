@@ -441,8 +441,8 @@ Proof.
   destruct Ha as [La Ha], Hb as [Lb Hb].
 
   assert (Hc_both : limit_of_sequence c La /\ limit_of_sequence c Lb).
-  { apply c_has_limit; assumption. }
+  { apply c_has_limit. unfold limit_of_sequence. apply Ha. unfold limit_of_sequence. apply Hb.  }
 
   destruct Hc_both as [Hc1 Hc2].
-  unfold convergent_sequence. exists La. assumption.
+  unfold convergent_sequence. exists La. unfold limit_of_sequence in Hc1. apply Hc1.
 Qed.

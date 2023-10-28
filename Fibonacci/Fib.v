@@ -688,6 +688,13 @@ Qed.
 
 Definition c (n : nat) : Q := inject_Z (F (n + 1)) / inject_Z (F n).
 
+Compute c (2) - c (1).
+Compute c(4) - c(3).
+
+Compute F(0).
+Compute F(1).
+Compute F(2).
+
 Definition b_minus_a (n : nat) : Q := b n - a n.
 
 Compute c (0).
