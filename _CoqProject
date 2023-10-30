@@ -1,6 +1,7 @@
 -Q Foundations Foundations
 -Q Fibonacci Fibonacci
 -Q Foundations2 Foundations2
+-Q Cpdt Cpdt
 
 Foundations/Basics.v
 Foundations/Induction.v
@@ -24,3 +25,5 @@ Fibonacci/Strong_Induction.v
 Fibonacci/Miscellaneous_Lemmas.v
 Fibonacci/WellOrdering.v
 Fibonacci/QRT.v
+
+Cpdt/CpdtTactics.v
