@@ -1,4 +1,6 @@
-Require Import Lia ZArith.
+Require Import Lia ZArith List.
+From Cpdt Require Import CpdtTactics.
+
 
 Lemma strong_induction :
   forall P : nat -> Prop,
@@ -9,6 +11,18 @@ Proof.
   - induction n.
     -- intros k Hk. inversion Hk. apply H1. intros k' Hk'. inversion Hk'.
     -- intros k Hk. apply H1. intros k' Hk'. apply IHn. lia.
+  - apply H2. lia.
+Qed.
+
+Lemma strong_induction_list :
+  forall P : list nat -> Prop,
+  (forall l, (forall l', length l' < length l -> P l') -> P l) ->
+  forall l, P l.
+Proof.
+  intros P H1 l. assert (H2: forall l', length l' <= length l -> P l').
+  - induction l.
+    -- intros l' Hl'. inversion Hl'. apply H1. intros l'' Hl''. lia.
+    -- intros l' Hl'. apply H1. intros l'' Hl''. apply IHl. simpl in Hl'. lia.
   - apply H2. lia.
 Qed.
 

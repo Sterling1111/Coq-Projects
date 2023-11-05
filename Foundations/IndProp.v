@@ -62,3 +62,44 @@ Inductive Perm3 {X : Type} : list X -> list X -> Prop :=
       Perm3 [a;b;c] [a;c;b]
   | perm3_trans (l1 l2 l3 : list X) :
       Perm3 l1 l2 -> Perm3 l2 l3 -> Perm3 l1 l3.
+
+Example Perm3_example1 : Perm3 [1;2;3] [2;3;1].
+Proof.
+  apply perm3_trans with [2;1;3].
+  - apply perm3_swap12.
+  - apply perm3_swap23.
+Qed.
+
+Inductive ev : nat -> Prop :=
+| ev_0 : ev 0
+| ev_SS (n : nat) : ev n -> ev (S (S n)).
+
+Theorem ev_4 : ev 4.
+Proof.
+  repeat apply ev_SS. apply ev_0.  
+Qed.
+
+Theorem ev_plus4 : forall n, ev n -> ev (4 + n).
+Proof.
+  intros. simpl. repeat apply ev_SS. apply H.
+Qed.
+
+Theorem ev_double : forall n : nat,
+  ev (double n).
+Proof.
+  intros. induction n as [| k IH].
+  - simpl. apply ev_0.
+  - simpl. apply ev_SS. apply IH.
+Qed.
+
+Theorem ev_inversion : forall n : nat,
+  ev n ->
+  (n = 0) \/ (exists n', n = S (S n') /\ ev n').
+Proof.
+  intros n H. destruct H as [| n''] eqn:En'.
+  - left. reflexivity.
+  - right. exists n''. split.
+    -- reflexivity.
+    -- apply e.
+Qed.
+
