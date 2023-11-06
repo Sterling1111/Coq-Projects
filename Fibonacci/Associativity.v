@@ -26,6 +26,8 @@ Fixpoint elements (e : expr) : list nat :=
   | Op e1 e2 => elements e1 ++ elements e2
   end.
 
+Fixpoint fold_right d
+
 Definition e1 : expr := Op (Num 1) (Num 2).
 
 Compute (eval mult e1).
@@ -104,11 +106,13 @@ Compute (map (eval plus) (parenthesize [1;2;3;4;5;6;7;8])).
 
 Lemma lem2 : forall (l1 l2 : list nat) (op : nat -> nat -> nat), 
   Associative op ->
-  fold_right op 0 (l1 ++ l2) = fold_right op 0 l1 + fold_right op 0 l2.
+  fold_right op 0 (l1 ++ l2) = op (fold_right op 0 l1) (fold_right op 0 l2).
 Proof.
   intros l1 l2. induction l1.
-  - intros op H. simpl. reflexivity.
+  - intros op H. simpl. destruct l2.
+    -- simpl.
   - intros op H. simpl. rewrite IHl1.
+    -- unfold Associative in H. rewrite H. lia.
 Qed.
 
 Check expr_ind.
