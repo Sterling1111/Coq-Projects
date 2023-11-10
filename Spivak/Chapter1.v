@@ -16,7 +16,7 @@ Proof.
 Qed.
 
 Lemma lemma_1_1_ii : forall (x y : R),
-  pow x 2 - pow y 2 = (x - y) * (x + y).
+  x ^ 2 - y ^ 2 = (x - y) * (x + y).
 Proof.
   intros x y. unfold pow. unfold Rminus. repeat rewrite Rmult_1_r.
   rewrite Rmult_plus_distr_l. repeat rewrite Rmult_plus_distr_r.
@@ -28,12 +28,14 @@ Proof.
 Qed.
 
 Lemma lemma_1_1_iii : forall (x y : R),
-  x = y \/ x = -y -> pow x 2 = pow y 2.
+  x ^ 2 = y ^ 2 -> x = y \/ x = -y.
 Proof.
-  intros x y H. destruct H as [H | H].
-  - rewrite H. reflexivity.
-  - rewrite H. unfold pow. rewrite <- Rmult_assoc. rewrite Rmult_opp_opp.
-    repeat rewrite Rmult_1_r. reflexivity.
+  intros x y H.
+  assert (H1 : x ^ 2 - y ^ 2 = 0) by lra.
+  rewrite lemma_1_1_ii in H1. apply Rmult_integral in H1.
+  destruct H1 as [H1 | H1].
+  - left. apply Rminus_diag_uniq in H1. apply H1.
+  - right. rewrite Rplus_comm in H1. apply Rplus_opp_r_uniq in H1. apply H1.
 Qed.
 
 Lemma lemma_1_1_iv : forall (x y : R),
@@ -105,6 +107,20 @@ Proof.
        simpl. replace ((n' + 1)%nat) with ((S n')%nat) by lia. lra.
 Qed.
 
+Require Import Cpdt.CpdtTactics.
+
+Lemma sum_from_to_equ_1': forall f i n,
+  (i < n)%nat -> sum_f i n f = sum_f i (n-1) f + f n.
+Proof.
+  intros. induction n as [| k IH].
+  - lia.
+  - replace ((S k - 1)%nat) with (k%nat) by lia.
+    assert (H2 : (i < k \/ i = k)%nat) by lia. destruct H2 as [H2 | H2].
+    -- rewrite IH. 2 : { lia. }
+       crush. unfold sum_f. what right do you have to judge what you judged to be right
+       
+    rewrite IH. 2 : { lia. }
+  
 Lemma sum_from_to_equ_1 : forall (f : nat -> R) (i n : nat),
   (i < n)%nat -> sum_from_to f i n = sum_from_to f i (n-1) + f n.
 Proof.
@@ -383,15 +399,11 @@ Proof.
   intros x y. rewrite lemma_1_1_v with (n := 3%nat). compute. lra. lia.
 Qed.
 
-
-Lemma lemma_1_1_vi : forall (x y : R) (n : nat),
-  (n >= 1)%nat ->
-  x ^ 3 + y ^ 3 = (x + y) * sum_from_to (fun i => (-1) ^ i * x ^ (n - i - 1) * y ^ i) 0 (2).
+Lemma lemma_1_1_vi : forall (x y : R),
+  x ^ 3 + y ^ 3 = (x + y) * (x ^ 2 - x * y + y ^ 2).
 Proof.
-  intros x y n H1.
-  induction n as [| n' IH].
-  - lia.
-  - rewrite sum_from_to_equ_1. rewrite sum_from_to_equ_1.
-    -- replace ((2 - 1 - 1)%nat) with (0%nat) by lia. rewrite sum_from_to_0_0. simpl.
-       repeat rewrite Rmult_1_r. rewrite Rmult_1_l. repeat rewrite Nat.sub_0_r. 
-       
+  intros x y. assert (H1 : x ^ 3 + y ^ 3 = x ^ 3 - ((- y) ^ 3)) by lra.
+  rewrite H1. rewrite lemma_1_1_iv with (x := x) (y := -y). 
+  replace (x -- y) with (x + y) by lra. replace (x * - y) with (- x * y) by lra.
+  replace ((-y) ^ 2) with (y ^ 2) by lra. lra.
+Qed.

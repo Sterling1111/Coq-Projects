@@ -99,5 +99,3 @@ Proof.
     -- right. unfold ZEven. exists q. lia.
     -- left. unfold ZOdd. exists q. lia.
 Qed.
-
-
