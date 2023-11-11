@@ -79,6 +79,29 @@ Proof.
   simpl. reflexivity.
 Qed.
 
+Lemma sum_from_to_1' : forall f n,
+  sum_f_R0 f (S n) = sum_f_R0 f n + f (S n).
+Proof.
+  destruct n; simpl; lra.
+Qed.
+
+Lemma sum_from_to_2' : forall n f,
+  sum_f_R0 (fun x => f (S x)) n = sum_f_R0 f (S n) - f 0%nat.
+Proof.
+  intros. induction n.
+  - simpl. lra.
+  - simpl. rewrite IHn. rewrite sum_from_to_1'. lra.
+Qed.
+
+Lemma sum_from_to_2'' : forall n a f,
+  sum_f_R0 (fun x => f (S (x + a))%nat) n = sum_f_R0 (fun x => f (x + a)%nat) (S n) - f a.
+Proof.
+  intros n a f.
+  induction n as [| k IH].
+  - simpl. lra.
+  - simpl. rewrite IH. rewrite sum_from_to_1'. simpl. lra.
+Qed.
+
 Lemma sum_from_to_2 : forall (f : nat -> R) (i n : nat),
   sum_from_to' f i (S n) = sum_from_to' f (S i) (n) + f i.
 Proof.
@@ -107,8 +130,6 @@ Proof.
        simpl. replace ((n' + 1)%nat) with ((S n')%nat) by lia. lra.
 Qed.
 
-Require Import Cpdt.CpdtTactics.
-
 Lemma sum_from_to_equ_1': forall f i n,
   (i < n)%nat -> sum_f i n f = sum_f i (n-1) f + f n.
 Proof.
@@ -117,9 +138,13 @@ Proof.
   - replace ((S k - 1)%nat) with (k%nat) by lia.
     assert (H2 : (i < k \/ i = k)%nat) by lia. destruct H2 as [H2 | H2].
     -- rewrite IH. 2 : { lia. }
-       crush. unfold sum_f. what right do you have to judge what you judged to be right
-       
-    rewrite IH. 2 : { lia. }
+       unfold sum_f. replace ((S k - i)%nat) with ((S (k - i))%nat) by lia.
+       rewrite sum_from_to_1'. replace ((k - i)%nat) with (S (k - 1 - i)%nat) by lia.
+       rewrite sum_from_to_1'. replace ((S (k - 1 - i) + i))%nat with (k%nat) by lia.
+       replace ((S (S (k - 1 - i)) + i))%nat with ((S k)%nat) by lia. reflexivity.
+    -- rewrite H2. unfold sum_f. replace ((S k - k)%nat) with 1%nat by lia.
+       replace ((k - k)%nat) with 0%nat by lia. simpl. lra.
+Qed.
   
 Lemma sum_from_to_equ_1 : forall (f : nat -> R) (i n : nat),
   (i < n)%nat -> sum_from_to f i n = sum_from_to f i (n-1) + f n.
@@ -172,6 +197,24 @@ Proof.
     -- rewrite sum_from_to_3. 2 : { lia. } reflexivity.
 Qed.
 
+Lemma sum_from_to_equ_3' : forall (f : nat -> R) (i n : nat),
+  (i < n)%nat -> sum_f (S i) n f = sum_f i n f - f i.
+Proof.
+  intros f i n H.
+  unfold sum_f.
+  induction n as [| k IH].
+  - lia.
+  - assert (H2 : (i < k \/ i = k)%nat) by lia. destruct H2 as [H2 | H2].
+    -- replace ((S k - i)%nat) with (S(k - i)%nat) by lia.
+       rewrite sum_from_to_1'. replace ((S (k - i) + i)%nat) with ((S k)%nat) by lia.
+       replace (sum_f_R0 (fun x : nat => f (x + i)%nat) (k - i) + f (S k) - f i)
+       with (sum_f_R0 (fun x : nat => f (x + i)%nat) (k - i) - f i + f (S k)) by lra. rewrite <- IH.
+       2 : { lia. } replace ((S k - S i)%nat) with (S (k - S i)%nat) by lia. rewrite sum_from_to_1'.
+       replace ((S (k - S i) + S i)%nat) with ((S k)%nat) by lia. reflexivity.
+    -- rewrite H2. replace ((S k - k)%nat) with 1%nat by lia. replace ((S k - S k)%nat) with 0%nat by lia.
+       simpl. lra.
+Qed.
+
 Lemma sum_from_to_equ_4 : forall (f : nat -> R) (i n : nat),
   (i < n)%nat -> sum_from_to f i (S n) = sum_from_to f i n + f (S n).
 Proof.
@@ -194,6 +237,18 @@ Proof.
   unfold sum_from_to.
   replace (0 <? 0)%nat with false by (symmetry; apply Nat.ltb_irrefl).
   simpl. reflexivity.
+Qed.
+
+Lemma sum_f_0_0 : forall f,
+  sum_f 0 0 f = f 0%nat.
+Proof.
+  intros. unfold sum_f. simpl. lra.
+Qed.
+
+Lemma sum_f_a_a : forall f a,
+  sum_f a a f = f a.
+Proof.
+  intros. unfold sum_f. rewrite Nat.sub_diag. simpl. lra.
 Qed.
 
 Lemma sum_from_to_distributive :
@@ -220,6 +275,17 @@ Proof.
     apply Hdist.
     assert (H2 : (u >= l)%nat). { rewrite Nat.ltb_ge in H. apply H. }
     lia.
+Qed.
+
+Lemma sum_f_mult_distributive :
+  forall f l u x,
+    x * (sum_f l u f) = sum_f l u (fun i => f i * x).
+Proof.
+  intros. unfold sum_f.
+  set (k := (u - l)%nat).
+  induction k as [| k' IH].
+  - simpl. lra.
+  - simpl. rewrite <- IH. lra. 
 Qed.
 
 Lemma sum_from_to_congruence: forall (f g : nat -> R) (l u : nat),
@@ -259,6 +325,27 @@ Proof.
                ----- lia.
           ---- intros k H4. apply H1. lia.
           ---- lia.
+Qed.
+
+Lemma sum_from_to_congruence' : forall (f g : nat -> R) (l u : nat),
+  (l <= u)%nat ->
+  (forall k, f k = g k) -> sum_f l u f = sum_f l u g.
+Proof.
+  intros f g l u H1 H2.
+  unfold sum_f. induction u as [| u' IH].
+  - simpl. rewrite H2. reflexivity.
+  - assert (H3 : (l > u')%nat \/ (l <= u')%nat) by lia.
+    destruct H3 as [H3 | H3].
+    -- replace ((S u' - l)%nat) with (0%nat) by lia. simpl. rewrite H2. reflexivity.
+    -- replace ((S u' - l)%nat) with (S (u' - l)%nat) by lia. 
+       repeat rewrite sum_from_to_1'. rewrite IH. 2 : { lia. } rewrite H2. reflexivity.
+Qed.
+
+Theorem sums_equivalent' : forall (l u : nat) (x y : R) (f1 f2 : nat -> R),
+  (l <= u)%nat -> (forall i : nat, f1 i = f2 i) -> sum_f l u f1 = sum_f l u f2.
+Proof.
+  intros l u x y f1 f2 H1.
+  apply sum_from_to_congruence'. apply H1.
 Qed.
     
 Theorem sums_equivalent : forall (l u : nat) (x y : R) (f1 f2 : nat -> R),
@@ -329,6 +416,35 @@ Proof.
             replace ((S (u - l) + l)%nat) with ((S u)%nat) by lia. lra.
 Qed.
 
+Theorem sum_reindex' : forall (f : nat -> R) (l u s : nat),
+  (s <= l <= u)%nat ->
+  sum_f l u f = sum_f (l - s) (u - s) (fun i => f (i + s)%nat).
+Proof.
+  intros f l u s H.
+  induction l as [| l' IH].
+  - simpl. replace ((s)%nat) with (0%nat) by lia. rewrite Nat.sub_0_r.
+    apply sum_from_to_congruence'. lia. intros k. replace ((k + 0)%nat) with (k%nat) by lia. reflexivity.
+  - assert (H2 : (S l' = u)%nat \/ (S l' < u)%nat) by lia. destruct H2 as [H2 | H2].
+    -- rewrite H2. repeat rewrite sum_f_a_a. replace ((u - s + s)%nat) with ((u)%nat) by lia. reflexivity.
+    -- rewrite sum_from_to_equ_3'. 2 : { lia. }
+       assert (H3 : (s <= l')%nat \/ (s = S l')) by lia. destruct H3 as [H3 | H3].
+       --- rewrite IH. 2 : { lia. }
+            replace ((S l' - s)%nat) with (S (l' - s)%nat) by lia.
+            rewrite sum_from_to_equ_3'. 2 : { lia. }
+            replace ((l' - s + s)%nat) with ((l')%nat) by lia. lra.
+       --- rewrite <- H3. replace ((S l' - S l')%nat) with (0%nat) by lia. simpl.
+           unfold sum_f. replace ((u - s - (s - s))%nat) with ((u - s)%nat) by lia.
+           replace ((u - l')%nat) with (S (u - s)%nat) by lia.
+           rewrite sum_from_to_1'. simpl. replace ((S (u - s + l')%nat)) with u%nat by lia.
+           set (f2 := fun x : nat => f (S (x + l'))%nat).
+           replace (fun x : nat => f (x + (s - s) + s)%nat) with (fun x : nat => f (S x + l')%nat).
+           2 : { apply functional_extensionality. intros x. replace (x + (s - s) + s)%nat with (x + S l')%nat by lia.
+           replace (S x + l')%nat with (x + S l')%nat by lia. reflexivity. }
+           replace (fun x : nat => f (S x + l')%nat) with f2. 2 : { apply functional_extensionality. unfold f2. simpl. reflexivity. }
+           unfold f2. rewrite sum_from_to_2''. simpl. replace (S (u - s + l')%nat) with u%nat by lia. lra.
+Qed.
+
+
 Theorem pow_equ : forall (r: R) (a : nat),
   (a > 0)%nat -> r ^ a = r * r ^ (a - 1).
 Proof.
@@ -367,6 +483,62 @@ Proof.
         apply functional_extensionality in H. rewrite H. reflexivity.
       }
       rewrite H3. rewrite sum_from_to_equ_2 with (i := 0%nat) (n := (n-1)%nat). 2: lia.
+      replace (x ^ 0) with 1 by lra. rewrite Rmult_1_l.
+      replace ((n - 0 - 1)%nat) with (n - 1)%nat by lia.
+      rewrite Nat.add_0_l.
+      assert (H4 : y * (sum_from_to (fun i : nat => x ^ i * y ^ (n - i - 1)) 1 (n - 1) + y ^ (n - 1))
+                = sum_from_to (fun i : nat => x ^ i * y ^ (n - i)) 1 (n - 1) + y ^ (n)).
+        {
+          rewrite Rmult_plus_distr_l. rewrite <- pow_equ. 2 : { lia. }
+          rewrite sum_from_to_distributive.
+          set (f1 := fun i : nat => x ^ i * y ^ (n - i - 1) * y).
+          set (f2 := fun i : nat => x ^ i * y ^ (n - i)).
+          rewrite sums_equivalent with (f1 := f1) (f2 := f2). reflexivity. auto. auto.
+          intros i H4. destruct i.
+          - lia.
+          - unfold f1. unfold f2. simpl. assert (H5 : (n - S i = 0)%nat \/ (n - S i > 0)%nat) by lia.
+            destruct H5 as [H5 | H5].
+            -- lia.
+            -- rewrite pow_equ with (r := y) (a := (n - S i)%nat). 2 : { lia. } lra.
+        }
+      rewrite H4. rewrite sum_reindex with (s := 1%nat) (l := 1%nat). 2 : { lia. }
+      replace ((1 - 1)%nat) with 0%nat by lia. replace ((n - 1 - 1)%nat) with (n - 2)%nat by lia. 
+      assert (H5 : sum_from_to (fun i : nat => x ^ (i+1) * y ^ (n - 1 - i)) 0 (n - 2) = 
+                   sum_from_to (fun i : nat => x ^ (i+1) * y ^ (n - (i+1))) 0 (n - 2)).
+        { apply sum_from_to_congruence. intros i H5. replace ((n - 1 - i)%nat) with (n - (i+1))%nat by lia. reflexivity. }
+      rewrite H5. lra.
+Qed.
+
+Lemma lemma_1_1_vi' : forall (x y : R) (n : nat),
+  (n >= 1)%nat ->
+  x ^ n - y ^ n = (x - y) * sum_f 0 (n-1) (fun i => x ^ i * y ^ (n - i - 1)).
+Proof.
+  intros x y n H1.
+  assert (H2 : (n = 1 \/ n = 2 \/ n = 3 \/ n >= 4)%nat) by lia. destruct H2 as [H2 | [H2 | [H2 | H2]]].
+  - rewrite H2. compute. lra.
+  - rewrite H2. compute. lra.
+  - rewrite H2. compute. lra.
+  - rewrite Rmult_minus_distr_r. rewrite sum_from_to_equ_1' at 1. 2: lia.
+    replace ((n - 1 - 1)%nat) with (n - 2)%nat by lia. 
+    replace ((n - (n - 1) - 1)%nat) with 0%nat by lia.
+    replace (y ^ 0) with 1 by lra. rewrite Rmult_1_r.
+    rewrite Rmult_plus_distr_l. replace (x * x ^ (n - 1)) with (x ^ n). 
+      2 : { destruct n. simpl. lia. simpl. rewrite Nat.sub_0_r. reflexivity. }
+    assert (H3 : x * sum_f 0 (n - 2) (fun i : nat => x ^ i * y ^ (n - i - 1))
+                = sum_f 0 (n - 2) (fun i : nat => x ^ (i + 1) * y ^ (n - 1 - i))).
+      {
+        rewrite sum_f_mult_distributive.
+        set (f1 := fun i : nat => x ^ i * y ^ (n - i - 1) * x).
+        set (f2 := fun i : nat => x ^ (i + 1) * y ^ (n - 1 - i)).
+        assert (forall i : nat, f1 i = f2 i).
+        { intro i. unfold f1. unfold f2. replace (i + 1)%nat with (S i) by lia.
+          replace (n - 1 - i)%nat with (n - i - 1)%nat by lia.
+          replace (x ^ i * y ^ (n - i - 1) * x) with (x ^ i * x * y ^ (n - i - 1)) by lra.
+          simpl. lra.
+        }
+        apply functional_extensionality in H. rewrite H. reflexivity.
+      }
+      rewrite H3. rewrite sum_from_to_equ_2' with (i := 0%nat) (n := (n-1)%nat). 2: lia.
       replace (x ^ 0) with 1 by lra. rewrite Rmult_1_l.
       replace ((n - 0 - 1)%nat) with (n - 1)%nat by lia.
       rewrite Nat.add_0_l.

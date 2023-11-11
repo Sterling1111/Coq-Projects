@@ -1,4 +1,5 @@
 Require Import Lia Lra FunctionalExtensionality.
+Require Import Cpdt.CpdtTactics.
 
 From Fibonacci Require Import 
   Fibonacci_Definitions Miscellaneous_Lemmas 
@@ -8,8 +9,7 @@ Open Scope R_scope.
 
 Lemma fib_S_S_n : forall n : nat, F (S (S n)) = F (S n) + F n.
 Proof.
-  intros n.
-  simpl. reflexivity.
+  reflexivity.
 Qed.
 
 Lemma fib_n_plus_2 : forall n : nat, F(n+2) = F(n+1) + F(n).
@@ -161,7 +161,6 @@ Proof.
   - replace ( (2 * S n' + 1) )%nat with ( (2 * n' + 1) + 2 )%nat by lia.
     replace ( (2 * S n' - 1) )%nat with ( (2 * n' + 1) )%nat by lia.
     replace ( (2 * S n') )%nat with ( (2 * n' + 1) + 1 )%nat by lia.
-
     rewrite lemma1. rewrite pow_neg1_odd.
     -- lra.
     -- exists n'. reflexivity.

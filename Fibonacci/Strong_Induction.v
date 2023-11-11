@@ -52,7 +52,7 @@ Proof.
   }
   
   specialize(Hnneg n). rewrite Heq in Hnneg. 
-  replace (Z.of_nat (Z.to_nat z)) with (z) in Hnneg. apply Hnneg.
+  replace (Z.of_nat (Z.to_nat z)) with (z) in Hnneg. apply Hnneg. 
   rewrite Z2Nat.id. lia. lia.
 Qed.
 

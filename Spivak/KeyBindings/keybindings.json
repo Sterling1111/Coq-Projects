@@ -1,0 +1,251 @@
+// Place your key bindings in this file to override the defaults
+[
+  {
+      "key": "ctrl+f",
+      "command": "cursorRight",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "ctrl+f",
+      "command": "cursorRight",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "right",
+      "command": "-cursorRight",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "ctrl+b",
+      "command": "cursorLeft",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "ctrl+shift+b",
+      "command": "cursorLeftSelect",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "ctrl+shift+f",
+      "command": "cursorRightSelect",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "alt+f",
+      "command": "cursorWordRight"
+  },
+  {
+      "key": "alt+b",
+      "command": "cursorWordLeft",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "shift+alt+b",
+      "command": "cursorWordLeftSelect",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "shift+alt+f",
+      "command": "cursorWordRightSelect"
+  },
+  {
+      "key": "ctrl+p",
+      "command": "cursorUp",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "ctrl+n",
+      "command": "cursorDown",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "ctrl+shift+n",
+      "command": "cursorDownSelect",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "ctrl+shift+p",
+      "command": "cursorUpSelect",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "alt+s",
+      "command": "cursorLineStart"
+  },
+  {
+      "key": "shift+alt+s",
+      "command": "cursorLineStartSelect"
+  },
+  {
+      "key": "alt+e",
+      "command": "cursorLineEnd"
+  },
+  {
+      "key": "shift+alt+e",
+      "command": "cursorLineEndSelect"
+  },
+  {
+      "key": "ctrl+y",
+      "command": "editor.action.deleteLines",
+      "when": "textInputFocus && !editorReadonly"
+  },
+  {
+      "key": "shift+enter",
+      "command": "editor.action.insertLineAfter",
+      "when": "editorTextFocus && !editorReadonly"
+  },
+  {
+      "key": "ctrl+enter",
+      "command": "editor.action.insertLineBefore",
+      "when": "editorTextFocus && !editorReadonly"
+  },
+  {
+      "key": "ctrl+alt+f",
+      "command": "extension.coq.stepForward",
+      "when": "editorTextFocus && editorLangId == 'coq'"
+  },
+  {
+      "key": "ctrl+alt+b",
+      "command": "extension.coq.stepBackward",
+      "when": "editorTextFocus && editorLangId == 'coq'"
+  },
+  {
+      "key": "ctrl+alt+e",
+      "command": "extension.coq.interpretToEnd",
+      "when": "editorTextFocus && editorLangId == 'coq'"
+  },
+  {
+      "key": "ctrl+i",
+      "command": "cursorPageDown",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "ctrl+n",
+      "command": "selectNextSuggestion",
+      "when": "suggestWidgetMultipleSuggestions && suggestWidgetVisible && textInputFocus"
+  },
+  {
+      "key": "ctrl+p",
+      "command": "selectPrevSuggestion",
+      "when": "suggestWidgetMultipleSuggestions && suggestWidgetVisible && textInputFocus"
+  },
+  {
+      "key": "ctrl+e",
+      "command": "-workbench.action.quickOpenNavigateNextInFilePicker",
+      "when": "inFilesPicker && inQuickOpen"
+  },
+  {
+      "key": "ctrl+e",
+      "command": "-workbench.action.quickOpen"
+  },
+  {
+      "key": "alt+c",
+      "command": "editor.action.clipboardCopyAction"
+  },
+  {
+      "key": "alt+v",
+      "command": "editor.action.clipboardPasteAction"
+  },
+  {
+      "key": "alt+x",
+      "command": "editor.action.clipboardCutAction"
+  },
+  {
+      "key": "ctrl+u",
+      "command": "cursorPageUp",
+      "when": "textInputFocus"
+  },
+  {
+      "key": "alt+z",
+      "command": "undo"
+  },
+  {
+      "key": "ctrl+n",
+      "command": "-workbench.action.files.newUntitledFile"
+  },
+  {
+      "key": "ctrl+e",
+      "command": "cancelSelection",
+      "when": "editorHasSelection && textInputFocus"
+  },
+  {
+      "key": "ctrl+e",
+      "command": "editor.action.inlineSuggest.hide",
+      "when": "inlineSuggestionVisible"
+  },
+  {
+      "key": "ctrl+e",
+      "command": "closeReferenceSearch",
+      "when": "inReferenceSearchEditor && !config.editor.stablePeek"
+  },
+  {
+      "key": "ctrl+e",
+      "command": "hideSuggestWidget",
+      "when": "suggestWidgetVisible && textInputFocus"
+  },
+  {
+      "key": "ctrl+d",
+      "command": "editor.action.copyLinesDownAction",
+      "when": "editorTextFocus && !editorReadonly"
+  },
+  {
+      "key": "alt+4",
+      "command": "actions.find",
+      "when": "editorFocus || editorIsOpen"
+  },
+  {
+      "key": "ctrl+e",
+      "command": "closeFindWidget",
+      "when": "editorFocus && findWidgetVisible && !isComposing"
+  },
+  {
+      "key": "ctrl+n",
+      "command": "editor.action.nextMatchFindAction",
+      "when": "editorFocus && findInputFocussed"
+  },
+  {
+      "key": "ctrl+p",
+      "command": "editor.action.previousMatchFindAction",
+      "when": "editorFocus && findInputFocussed"
+  },
+  {
+      "key": "alt+r",
+      "command": "workbench.action.navigateBack",
+      "when": "canNavigateBack"
+  },
+  {
+    "key": "tab",
+    "command": "-jumpToNextSnippetPlaceholder",
+    "when": "editorTextFocus && hasNextTabstop && inSnippetMode"
+  },
+  {
+    "key": "ctrl+,",
+    "command": "workbench.action.terminal.scrollDown",
+    "when": "terminalFocus && terminalHasBeenCreated && !terminalAltBufferActive || terminalFocus && terminalProcessSupported && !terminalAltBufferActive"
+  },
+  {
+    "key": "ctrl+,",
+    "command": "scrollLineDown",
+    "when": "textInputFocus"
+  },
+  {
+    "key": "ctrl+m",
+    "command": "scrollLineUp",
+    "when": "textInputFocus"
+  },
+  {
+    "key": "tab",
+    "command": "jumpToNextSnippetPlaceholder",
+    "when": "editorTextFocus && hasNextTabstop && inSnippetMode && !suggestWidgetVisible"
+  },
+  {
+    "key": "shift+tab",
+    "command": "jumpToPrevSnippetPlaceholder",
+    "when": "editorTextFocus && hasPrevTabstop && inSnippetMode && !suggestWidgetVisible"
+  },
+  {
+    "key": "shift+tab",
+    "command": "-jumpToPrevSnippetPlaceholder",
+    "when": "editorTextFocus && hasPrevTabstop && inSnippetMode"
+  }
+]

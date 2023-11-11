@@ -139,7 +139,7 @@ refine (Fix lengthOrder_wf (fun _ => list expr)
       match l with
       | [] => []
       | [x] => [Num x]  
-      | x :: xs => 
+      | x :: _ => 
         if le_lt_dec 2 (length l)
         then     
           flat_map
@@ -157,8 +157,15 @@ refine (Fix lengthOrder_wf (fun _ => list expr)
   - apply firstn_lengthOrder. lia.
 Defined.
 
-Compute (parenthesize [1;2;3;4]).
-Compute (map (eval plus) (parenthesize [1;2;3;4])).
+Compute length (map (eval plus) (parenthesize [1])).
+Compute length (map (eval plus) (parenthesize [1;2])).
+Compute length (map (eval plus) (parenthesize [1;2;3])).
+Compute length (map (eval plus) (parenthesize [1;2;3;4])).
+Compute length (map (eval plus) (parenthesize [1;2;3;4;5])).
+Compute length (map (eval plus) (parenthesize [1;2;3;4;5;6])).
+Compute length (map (eval plus) (parenthesize [1;2;3;4;5;6;7;8])).
+Compute length (map (eval plus) (parenthesize [1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16])).
+Compute length (map (eval plus) (parenthesize [1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17])).
 
 (*
 Theorem parenthesize_eval_consistent:
