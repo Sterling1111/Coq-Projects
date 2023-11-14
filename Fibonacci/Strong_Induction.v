@@ -14,6 +14,18 @@ Proof.
   - apply H2. lia.
 Qed.
 
+Lemma strong_induction' :
+  forall (P : nat -> Prop) (n0 : nat),
+  (forall m, (forall k : nat, n0 <= k < m -> P k) -> P m) ->
+  forall n, n >= n0 -> P n.
+Proof.
+  intros P n0 H1 n. assert (H2: forall k, n0 <= k <= n -> P k).
+  - induction n.
+    -- intros k Hk. inversion Hk. apply H1. intros k' Hk'. lia.
+    -- intros k Hk. apply H1. intros k' Hk'. apply IHn. lia.
+  - intros H3. apply H2. lia.
+Qed.
+
 Lemma strong_induction_list :
   forall P : list nat -> Prop,
   (forall l, (forall l', length l' < length l -> P l') -> P l) ->
