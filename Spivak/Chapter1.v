@@ -1,5 +1,5 @@
 Require Import Reals Lra Lia ZArith.ZArith Coq.Logic.FunctionalExtensionality.
-
+From Fibonacci Require Import Strong_Induction.
 Open Scope R_scope.
 
 Lemma lemma_1_1_i : forall (a x : R),
@@ -126,6 +126,23 @@ Proof.
        replace ((S (k - S i) + S i)%nat) with ((S k)%nat) by lia. reflexivity.
     -- rewrite H2. replace ((S k - k)%nat) with 1%nat by lia. replace ((S k - S k)%nat) with 0%nat by lia.
        simpl. lra.
+Qed.
+
+Lemma sum_from_to_equ_4 : forall f i n,
+  (i < n)%nat -> sum_f i (S n) f = sum_f i n f + f (S n).
+Proof.
+  intros f i n H.
+  induction n as [| k IH].
+  - replace i%nat with 0%nat by lia. unfold sum_f. simpl. lra.
+  - assert (H2 : (i = k \/ i < k)%nat) by lia. destruct H2 as [H2 | H2].
+    -- rewrite H2. unfold sum_f. replace ((S k - k)%nat) with 1%nat by lia.
+       replace (S (S k) - k)%nat with 2%nat by lia. simpl. lra.
+    -- rewrite IH.
+       --- unfold sum_f. replace ((S (S k) - i)%nat) with (S (S k - i))%nat by lia.
+           rewrite sum_from_to_1'. replace (S k - i)%nat with (S (k - i))%nat by lia.
+           rewrite sum_from_to_1'. replace ((S (k - i) + i)%nat) with (S k)%nat by lia.
+           replace (S (S (k - i)) + i)%nat with (S (S k))%nat by lia. reflexivity.
+       --- lia.
 Qed.
 
 Lemma sum_f_0_0 : forall f,
@@ -282,14 +299,40 @@ Proof.
   replace ((-y) ^ 2) with (y ^ 2) by lra. lra.
 Qed.
 
-Require Export Coq.Reals.RIneq.
-
-Check Rplus_le_compat_l.
-Check Rminus_eq_compat_r.
-
 Lemma lemma_1_2 : forall x y : R,
   x = y -> 1 = 2.
 Proof.
-  intros x y H. apply Rmult_eq_compat_l with (r := x) in H.
-  apply Rminus_eq_compat_r with (r := y^2) in H.
+  intros x y H1. pose proof H1 as H2.
+  apply Rmult_eq_compat_l with (r := x) in H1.
+  apply Rminus_eq_compat_r with (r := y^2) in H1.
+  replace (x * x) with (x ^ 2) in H1 by lra.
+  rewrite lemma_1_1_ii in H1. replace (y^2) with (y * y) in H1 by lra.
+  rewrite <- Rmult_minus_distr_r in H1.
+  apply Rmult_eq_reg_l in H1.
+  - rewrite H2 in H1. replace (y + y) with (2 * y) in H1 by lra. 
+    apply Rmult_eq_compat_r with (r := 1 / y) in H1. rewrite Rmult_assoc in H1.
+    unfold Rdiv in H1. rewrite Rmult_1_l in H1. rewrite Rmult_comm with (r1 := y) in H1.
+    assert (H3 : y <> 0 \/ y = 0) by lra. destruct H3 as [H3 | H3].
+    -- rewrite Rinv_l in H1.
+       --- rewrite Rmult_1_r in H1. rewrite H1. reflexivity.
+       --- apply H3.
+    -- (*we fail here because y is 0 so cant apply Rinv_l*) admit.
+  - apply Rminus_diag_eq in H2. (* we fail here again because x - y = 0*) 
+Abort.
+
+
+Theorem sum_n_nat : forall n : nat,
+  sum_f 0 n (fun i => INR i) = (INR n * (INR n + 1)) / 2.
+Proof.
+  intros n. induction n as [| k IH].
+  - rewrite sum_f_0_0. simpl. lra.
+  - assert (H1 : (k = 0 \/ k > 0)%nat) by lia. destruct H1 as [H1 | H1].
+    -- rewrite H1. unfold sum_f. simpl. lra.
+    -- rewrite sum_from_to_equ_4. 2 : { lia. }
+       rewrite IH. rewrite S_INR. lra.
+Qed.
+
+Example sheisa : sum_f 0 10 (fun i => INR i) = 55.
+Proof. 
+  rewrite sum_n_nat. simpl. lra.
 Qed.

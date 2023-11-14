@@ -164,8 +164,6 @@ Compute length (map (eval plus) (parenthesize [1;2;3;4])).
 Compute length (map (eval plus) (parenthesize [1;2;3;4;5])).
 Compute length (map (eval plus) (parenthesize [1;2;3;4;5;6])).
 Compute length (map (eval plus) (parenthesize [1;2;3;4;5;6;7;8])).
-Compute length (map (eval plus) (parenthesize [1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16])).
-Compute length (map (eval plus) (parenthesize [1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17])).
 
 (*
 Theorem parenthesize_eval_consistent:
