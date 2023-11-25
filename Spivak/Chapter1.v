@@ -1,5 +1,4 @@
 Require Import Reals Lra Lia ZArith.ZArith Coq.Logic.FunctionalExtensionality.
-From Fibonacci Require Import Strong_Induction.
 Open Scope R_scope.
 
 Lemma lemma_1_1_i : forall (a x : R),
@@ -399,6 +398,115 @@ Proof.
     2 : {apply H1. } rewrite Rmult_1_r. reflexivity.
 Qed.
 
+Lemma lemma_1_4_i : forall x : R,
+  x < -1 <-> 4 - x < 3 - 2 * x.
+Proof.
+  intro x. split.
+  - intro H. apply Rplus_lt_compat_r with (r := - 2 * x) in H.
+    apply Rplus_lt_compat_r with (r := 4) in H. 
+    replace (x + -2 * x + 4) with (4 - x) in H by lra.
+    replace (-1 + -2 * x + 4) with (3 - 2 * x) in H by lra.
+    apply H.
+  - intro H. apply Rplus_lt_compat_r with (r := 2 * x) in H.
+    apply Rplus_lt_compat_r with (r := -4) in H.
+    replace (4 - x + 2 * x + -4) with (x) in H by lra.
+    replace (3 - 2 * x + 2 * x + -4) with (-1) in H by lra.
+    apply H.
+Qed.
+
+Lemma lemma_1_4_ii : forall x : R,
+  5 - x^2 < 8.
+Proof.
+  intro x. apply Rplus_lt_reg_l with (r := -5).
+  replace (-5 + (5 - x ^ 2)) with (-x^2) by lra. replace (-5+8) with (--3) by lra.
+  apply Ropp_lt_gt_contravar. simpl. rewrite Rmult_1_r. rewrite <- Rsqr_def. 
+  assert (0 <= Rsqr x) by apply Rle_0_sqr. lra.
+Qed.
+
+Lemma O_lt_7 : 0 <= 7. lra. Qed.
+
+Lemma lemma_1_4_iii : forall x : R,
+  x > Rsqrt (mknonnegreal 7 O_lt_7) \/ x < - Rsqrt (mknonnegreal 7 O_lt_7) <-> 5 - x^2 < - 2.
+Proof.
+  intros. split.
+  - intros [H1 | H2].
+    -- 
+Admitted.
+Proof.
+  intro x. split.
+  - intros [H1 | H2].
+    -- apply Rplus_lt_reg_l with (r := 2).
+  replace (2 + (5 - x ^ 2)) with (7 - x ^ 2) by lra. replace (2 + -2) with 0 by lra.
+  apply Rplus_lt_reg_l with (r := -7). rewrite Rplus_0_r.
+  replace (-7 + (7 - x ^ 2)) with (-x^2) by lra.
+Abort.
+
+Lemma lemma_1_4_iv : forall x : R,
+  (x - 1) * (x - 3) > 0.
+Proof.
+
+Abort.
+
+Lemma lemma_1_4_v : forall x : R,
+  x^2 - 2 * x + 2 > 0.
+Proof.
+
+Abort.
+
+Lemma lemma_1_4_vi : forall x : R,
+  x^2 + x + 1 > 2.
+Proof.
+
+Abort.
+
+Lemma lemma_1_4_vii : forall x : R,
+  x^2 - x + 10 > 16.
+Proof.
+
+Abort.
+
+Lemma lemma_1_4_viii : forall x : R,
+  x^2 + x + 1 > 0.
+Proof.
+
+Abort.
+
+Lemma lemma_1_4_ix : forall x : R,
+  (x - PI) * (x + 5) * (x - 3) > 0.
+Proof.
+
+Abort.
+
+Lemma lemma_1_4_x : forall x : R,
+  (x - Rpower 2 (1/3)) * (x - Rpower 2 (1/2)) > 0.
+Proof.
+
+Abort.
+
+Lemma lemma_1_4_xi : forall x : R,
+  Rpower 2 x < 8.
+Proof.
+
+Abort.
+
+Lemma lemma_1_4_xii : forall x : R,
+  x + Rpower 3 x < 4.
+Proof.
+
+Abort.
+
+Lemma lemma_1_4_xiii : forall x : R,
+  1 / x + 1 / (1 - x) > 0.
+Proof.
+
+Abort.
+
+Lemma lemma_1_4_xiv : forall x : R,
+  (x - 1) / (x + 1) > 0.
+Proof.
+
+Abort.
+
 Theorem sum_n_nat : forall n : nat,
   sum_f 0 n (fun i => INR i) = (INR n * (INR n + 1)) / 2.
 Proof.
@@ -446,6 +554,7 @@ Proof.
     -- apply H2. apply IH. lia.
 Qed.
 
+
 Open Scope nat_scope.
 
 Fixpoint factorial (n : nat) : nat :=
@@ -454,4 +563,18 @@ Fixpoint factorial (n : nat) : nat :=
   | S n' => n * factorial n'
   end.
 
-Compute factorial 5.
+
+Definition choose (n k : nat) : nat :=
+  (factorial n) / (factorial k * factorial (n - k)).
+
+Lemma lemma_2_3 : forall n k : nat,
+  (k >= 1)%nat -> (n >= k) ->
+  choose (S n) k = choose n (k-1) + choose n k.
+Proof.
+  intros. unfold choose.
+  simpl. destruct k.
+  - lia.
+  - destruct n.
+    -- lia.
+    -- simpl. destruct k.
+      --- simpl. repeat rewrite Nat.add_0_r. rewrite Nat.sub_0_r.

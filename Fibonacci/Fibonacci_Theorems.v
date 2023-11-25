@@ -38,6 +38,7 @@ Proof.
   apply fib_n_plus_2.
 Qed.
 
+
 Lemma fib_n_ge_1 : forall n, F n >= 1.
 Proof.
   apply strong_induction.
