@@ -1,4 +1,5 @@
-Require Import Reals Lra Lia ZArith.ZArith Coq.Logic.FunctionalExtensionality.
+Require Import Reals Lra Lia ZArith.ZArith Coq.Logic.FunctionalExtensionality List.
+Import ListNotations.
 Open Scope R_scope.
 
 Lemma lemma_1_1_i : forall (a x : R),
@@ -504,6 +505,69 @@ Lemma lemma_1_4_xiv : forall x : R,
 Proof.
 
 Abort.
+
+Open Scope nat_scope.
+
+Fixpoint fold_right' (l: list nat) : nat :=
+  match l with
+  | [] => 0
+  | [x] => x
+  | x :: xs => x + fold_right' xs
+  end.
+
+Inductive expr : Type :=
+| Num (n : nat)
+| Sum (e1 e2 : expr).
+
+Fixpoint eval (e : expr) : nat :=
+  match e with
+  | Num n => n
+  | Sum e1 e2 => (eval e1) + (eval e2)
+  end.
+
+Fixpoint elements (e : expr) : list nat :=
+  match e with
+  | Num n => [n]
+  | Sum e1 e2 => elements e1 ++ elements e2
+  end.
+
+Lemma length_elements_e : forall (e : expr), 
+  length (elements e) > 0.
+Proof.
+  intros e. induction e.
+  - simpl. lia.
+  - simpl.  rewrite app_length. lia.  
+Qed.
+
+Lemma lemma_1_24_a : forall (l : list nat) (a : nat),
+  fold_right' l + a  = fold_right' (l ++ [a]).
+Proof.
+  intros l a. induction l as [| a' l' IH].
+  - simpl. reflexivity.
+  - simpl. rewrite <- IH. destruct l' as [| a'' l''] eqn:El.
+    -- simpl. reflexivity.
+    -- simpl. lia.
+Qed.
+
+Lemma lemma_1_24_b : forall l1 l2,
+  fold_right' (l1 ++ l2) = fold_right' l1 + fold_right' l2.
+Proof.
+  intros l1 l2. generalize dependent l1.
+  induction l2 as [| a l2' IH].
+  - intros l1. rewrite app_nil_r. simpl. lia.
+  - intros l1. replace (fold_right' (a :: l2')) with (a + fold_right' l2'). 
+    2 : { simpl. destruct l2'. simpl. lia. simpl. reflexivity.  } 
+    rewrite Nat.add_comm. rewrite <- Nat.add_assoc.
+    replace (l1 ++ a :: l2') with ((l1 ++ [a]) ++ l2') by (rewrite <- app_assoc; reflexivity).
+    rewrite IH. rewrite <- lemma_1_24_a. lia.
+Qed.
+
+Lemma lemma_1_24_c : forall (e : expr),
+  eval e = fold_right' (elements e).
+Proof.
+  intros e. induction e as [n | e1 IH1 e2 IH2].
+  - simpl. reflexivity.
+  -
 
 Inductive number : Type :=
   | zero
