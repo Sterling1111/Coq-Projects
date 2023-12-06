@@ -423,23 +423,21 @@ Proof.
   assert (0 <= Rsqr x) by apply Rle_0_sqr. lra.
 Qed.
 
-Lemma O_lt_7 : 0 <= 7. lra. Qed.
 
 Lemma lemma_1_4_iii : forall x : R,
-  x > Rsqrt (mknonnegreal 7 O_lt_7) \/ x < - Rsqrt (mknonnegreal 7 O_lt_7) <-> 5 - x^2 < - 2.
+  x > sqrt 7 \/ x < - sqrt 7 <-> 5 - x^2 < - 2.
 Proof.
-  intros. split.
+  intros. split. 
   - intros [H1 | H2].
-    -- 
-Admitted.
-Proof.
-  intro x. split.
-  - intros [H1 | H2].
-    -- apply Rplus_lt_reg_l with (r := 2).
-  replace (2 + (5 - x ^ 2)) with (7 - x ^ 2) by lra. replace (2 + -2) with 0 by lra.
-  apply Rplus_lt_reg_l with (r := -7). rewrite Rplus_0_r.
-  replace (-7 + (7 - x ^ 2)) with (-x^2) by lra.
-Abort.
+    -- assert (H2 : 0 <= sqrt 7) by (apply sqrt_positivity; lra). assert (H3 : x > 0) by lra.
+       assert (H4 : x * x > sqrt 7 * sqrt 7). nra.
+       rewrite sqrt_sqrt in H4. assert (H5: x * x > 7) by apply H4. lra. lra.
+    -- assert (H3 : 0 <= sqrt 7) by (apply sqrt_positivity; lra). assert (H4 : -x > 0) by lra.
+       assert (H5 : (-x) * (-x) > sqrt 7 * sqrt 7) by nra.
+       rewrite sqrt_sqrt in H5. replace (-x * -x) with (x * x) in H5 by lra. 
+       assert (H6 : x * x > 7) by apply H5. lra. lra.
+  - intro H1. assert (H2 : x^2 > 7) by nra. rewrite <- sqrt_sqrt in H2. 2 : { lra. } nra.
+Qed.
 
 Lemma lemma_1_4_iv : forall x : R,
   (x - 1) * (x - 3) > 0.
@@ -507,6 +505,37 @@ Proof.
 
 Abort.
 
+Inductive number : Type :=
+  | zero
+  | one.
+
+Definition plus' (a b : number) : number :=
+  match a, b with
+  | zero, zero => zero
+  | one, one => zero
+  | _, _ => one
+  end.
+
+Definition mult' (a b : number) : number :=
+  match a, b with
+  | one, one => one
+  | _, _ => zero
+  end.
+
+Notation "x + y" := (plus' x y) (at level 50, left associativity).
+Notation "x * y" := (mult' x y) (at level 40, left associativity).
+
+Lemma lemma_1_25_P1 : forall a b c : number,
+  a + (b + c) = (a + b) + c.
+Proof.
+  destruct a, b, c; reflexivity.
+Qed.
+
+Lemma lemma_1_25_P2 : forall a : number, 
+  exists i : number, a + i = a.
+Proof.
+  intros a. destruct a.
+
 Theorem sum_n_nat : forall n : nat,
   sum_f 0 n (fun i => INR i) = (INR n * (INR n + 1)) / 2.
 Proof.
@@ -557,24 +586,58 @@ Qed.
 
 Open Scope nat_scope.
 
-Fixpoint factorial (n : nat) : nat :=
-  match n with
-  | O => 1
-  | S n' => n * factorial n'
-  end.
+ Definition choose (n k : nat) : nat :=
+  if n <? k then 0 else
+  (fact n) / (fact k * fact (n - k)).
+
+Lemma n_choose_n : forall (n : nat),
+  choose n n = 1.
+Proof.
+  intro n. unfold choose. replace (n - n) with 0 by lia.
+  simpl. rewrite Nat.mul_1_r. rewrite Nat.ltb_irrefl.
+  apply Nat.div_same. apply fact_neq_0.
+Qed.
+
+Lemma k_gt_n_n_choose_k : forall n k : nat, 
+  n < k -> choose n k = 0.
+Proof.
+  intros. assert (H2 : n <? k = true).
+  { apply Nat.ltb_lt. apply H. }
+  unfold choose. rewrite H2. reflexivity.
+Qed.
+
+Lemma nat_div_evenly : forall a b c: nat,
+  b <> 0 -> c * b = a -> a / b = c.
+Proof.
+  intros a b c H1 H2. rewrite <- H2. apply Nat.div_mul. apply H1.
+Qed.
 
 
-Definition choose (n k : nat) : nat :=
-  (factorial n) / (factorial k * factorial (n - k)).
+
+Lemma n_choose_k_is_nat : forall n k : nat,
+  n >= k ->
+  exists a : nat, a * (fact k * fact (n - k)) = fact n.
+Proof.
+  intros n k H. induction n as [| n' IH].
+  - inversion H. simpl. exists 1%nat. simpl. reflexivity.
+  - assert (H2 : (n' < k \/ n' >= k)%nat) by lia. destruct H2 as [H2 | H2].
+    -- replace (S n' - k)%nat with 0%nat by lia. simpl. rewrite Nat.mul_1_r. 
+       replace k with (S n') by lia. exists 1%nat. simpl. lia.
+    -- pose proof H2 as H3. apply IH in H2. destruct H2 as [a H2]. apply nat_div_evenly in H2.
+       2 : { assert (H4 : (fact k <> 0 /\ fact (n' - k) <> 0)) by (split; repeat apply fact_neq_0). lia. }
+       exists ((a * (n' + 1)) / (n' - k + 1)).
+       rewrite <- H2.
+       replace (fact (S n')) with ((S n') * (fact n'))%nat by (simpl; lia). rewrite <- H2.
+       replace (S n' - k)%nat with (S (n' - k))%nat by lia.
+       replace (fact (S (n' - k))) with ((S (n' - k)) * (fact (n' - k)))%nat by (simpl; lia).
+       
 
 Lemma lemma_2_3 : forall n k : nat,
-  (k >= 1)%nat -> (n >= k) ->
+  (k >= 1)%nat ->
   choose (S n) k = choose n (k-1) + choose n k.
 Proof.
-  intros. unfold choose.
-  simpl. destruct k.
-  - lia.
-  - destruct n.
-    -- lia.
-    -- simpl. destruct k.
-      --- simpl. repeat rewrite Nat.add_0_r. rewrite Nat.sub_0_r.
+  intros. assert (H2 : (S n < k \/ S n = k \/ S n > k)%nat) by lia. destruct H2 as [H2 | [H2 | H2]].
+  - repeat rewrite k_gt_n_n_choose_k. lia. lia. lia. lia.
+  - assert (H3 : n = k - 1) by lia. rewrite <- H3. rewrite H2. repeat rewrite n_choose_n. 
+    rewrite k_gt_n_n_choose_k. lia. lia.
+  - 

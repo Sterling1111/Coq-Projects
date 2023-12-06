@@ -158,6 +158,8 @@ refine (Fix lengthOrder_wf (fun _ => list expr)
 Defined.
 
 Compute length (map (eval plus) (parenthesize [1])).
+
+Compute (map (eval plus) (parenthesize [1;2;3;4;5;6;7])).
 Compute length (map (eval plus) (parenthesize [1;2])).
 Compute length (map (eval plus) (parenthesize [1;2;3])).
 Compute length (map (eval plus) (parenthesize [1;2;3;4])).
