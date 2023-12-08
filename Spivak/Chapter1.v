@@ -441,45 +441,76 @@ Proof.
 Qed.
 
 Lemma lemma_1_4_iv : forall x : R,
-  (x - 1) * (x - 3) > 0.
+  x < 1 \/ x > 3 <-> (x - 1) * (x - 3) > 0.
 Proof.
-
-Abort.
+  intros x. split.
+  - intros [H1 | H2].
+    -- assert (H3 : x - 1 < 0) by lra. assert (H4 : x - 3 < 0) by lra. nra.
+    -- assert (H3 : x - 1 > 0) by lra. assert (H4 : x - 3 > 0) by lra. nra.
+  - intro H. nra.
+Qed.
 
 Lemma lemma_1_4_v : forall x : R,
   x^2 - 2 * x + 2 > 0.
 Proof.
-
-Abort.
+  intros x. nra.
+Qed.
 
 Lemma lemma_1_4_vi : forall x : R,
-  x^2 + x + 1 > 2.
+  x > (-1 + sqrt 5) / 2 \/ x < (-1 - sqrt 5) / 2 <-> x^2 + x + 1 > 2.
 Proof.
-
+  intros x. split.
+  - intros [H1 | H2].
+    -- 
 Abort.
 
 Lemma lemma_1_4_vii : forall x : R,
-  x^2 - x + 10 > 16.
+  x < -2 \/ x > 3 <-> x^2 - x + 10 > 16.
 Proof.
-
-Abort.
+  intros x. split.
+  - intros [H1 | H2].
+    -- apply Rplus_gt_reg_r with (r := -16). replace (x^2 - x + 10 + -16) with (x^2 - x - 6) by lra.
+       replace (16 + -16) with 0 by lra. replace (x^2 - x - 6) with ((x - 3) * (x + 2)) by lra.
+       assert (H3 : x - 3 < 0) by lra. assert (H4 : x + 2 < 0) by lra. nra.
+    -- apply Rplus_gt_reg_r with (r := -16). replace (x^2 - x + 10 + -16) with (x^2 - x - 6) by lra.
+       replace (16 + -16) with 0 by lra. replace (x^2 - x - 6) with ((x - 3) * (x + 2)) by lra.
+       assert (H3 : x - 3 > 0) by lra. assert (H4 : x + 2 > 0) by lra. nra.
+  - intro H. assert (H2 : (x - 3) * (x + 2) > 0) by nra. nra.
+Qed.
 
 Lemma lemma_1_4_viii : forall x : R,
   x^2 + x + 1 > 0.
 Proof.
+  intros x. nra.
+Qed.
 
-Abort.
+Axiom PI_gt_3 : PI > 3.
 
 Lemma lemma_1_4_ix : forall x : R,
-  (x - PI) * (x + 5) * (x - 3) > 0.
+  (x > -5 /\ x < 3) \/ (x > PI) <-> (x - PI) * (x + 5) * (x - 3) > 0.
 Proof.
-
-Abort.
+  intros x. split.
+  - intros [[H1 H2] | H3].
+    -- assert (x < PI). { pose proof PI_gt_3 as H6. lra. } assert ((x - PI) * (x + 5) < 0) by nra. nra.
+    -- assert (x > 3). { pose proof PI_gt_3 as H6. lra. } assert ((x - PI) * (x - 3) > 0) by nra. nra.
+  - intro H. pose proof PI_gt_3 as H1. assert (x <=PI \/ x >= PI) by lra. destruct H0 as [H0 | H0].
+    -- left. split. assert (x <= -5 \/ x > -5) by lra. destruct H2 as [H2 | H2].
+       --- assert ((x - PI) * (x + 5) < 0) by nra. nra.
+       --- assert (x < 3 \/ x >= 3) by lra. destruct H3 as [H3 | H3].
+           ---- assert ((x - PI) * (x + 5) < 0) by nra. nra.
+           ---- apply H2.
+      --- assert (x <= 3 \/ x > 3) by lra. destruct H2 as [H2 | H2].
+           ---- destruct H2. apply H2. nra.
+           ---- destruct H0. assert (H3 : (x - PI) * (x - 3) > 0) by nra. nra. nra.
+    -- right. assert (x <= 3 \/ x > 3) by lra. destruct H2 as [H2 | H2].
+      --- assert ((x - PI) * (x - 3) < 0) by nra. nra.
+           --- destruct H0. auto. nra.
+Qed.
 
 Lemma lemma_1_4_x : forall x : R,
   (x - Rpower 2 (1/3)) * (x - Rpower 2 (1/2)) > 0.
 Proof.
-
+  intros x.  
 Abort.
 
 Lemma lemma_1_4_xi : forall x : R,
@@ -685,19 +716,16 @@ Proof.
     -- apply H2. apply IH. lia.
 Qed.
 
-
-Open Scope nat_scope.
-
- Definition choose (n k : nat) : nat :=
+Definition choose (n k : nat) : R :=
   if n <? k then 0 else
-  (fact n) / (fact k * fact (n - k)).
+  (INR (fact n)) / (INR (fact k) * INR (fact (n - k))).
 
 Lemma n_choose_n : forall (n : nat),
   choose n n = 1.
 Proof.
-  intro n. unfold choose. replace (n - n) with 0 by lia.
-  simpl. rewrite Nat.mul_1_r. rewrite Nat.ltb_irrefl.
-  apply Nat.div_same. apply fact_neq_0.
+  intro n. unfold choose. replace (n - n)%nat with 0%nat by lia.
+  simpl. rewrite Rmult_1_r. rewrite Nat.ltb_irrefl.
+  field. apply INR_fact_neq_0.
 Qed.
 
 Lemma k_gt_n_n_choose_k : forall n k : nat, 
