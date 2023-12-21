@@ -159,6 +159,13 @@ Proof.
   intros. unfold sum_f. rewrite Nat.sub_diag. simpl. lra.
 Qed.
 
+Lemma sum_f_Sn_n : forall n1 n2 f,
+  (n1 > n2)%nat -> sum_f n1 n2 f = f n1%nat.
+Proof.
+  intros. unfold sum_f. replace (n2 - n1)%nat with 0%nat by lia.
+  unfold sum_f_R0. simpl. reflexivity.
+Qed.
+
 Lemma r_mult_sum_f_i_n_f :
   forall f i n r,
     r * (sum_f i n f) = sum_f i n (fun i => f i * r).
@@ -169,6 +176,23 @@ Proof.
   - simpl. lra.
   - simpl. rewrite <- IH. lra. 
 Qed.
+
+Lemma sum_f_sum :
+  forall f g i n, 
+    sum_f i n f + sum_f i n g = sum_f i n (fun x : nat => f x + g x).
+Proof.
+  intros. induction n as [| k IH].
+  - unfold sum_f. simpl. reflexivity.
+  - assert (H: (i < k)%nat \/ (i = k)%nat \/ (i > k)%nat) by lia. destruct H as [H | [H | H]].
+    -- repeat rewrite sum_f_i_Sn_f. 2 : { lia. } 2 : { lia. } 2 : { lia. }
+       replace (sum_f i k f + f (S k) + (sum_f i k g + g (S k))) with (sum_f i k f + sum_f i k g + f (S k) + g (S k)) by lra.
+       rewrite IH. lra.
+    -- rewrite H. unfold sum_f. replace (S k - k)%nat with 1%nat by lia. simpl. lra.
+    -- assert (H2 : (i > S k)%nat \/ (i = S k)%nat) by lia. destruct H2 as [H2 | H2].
+       --- repeat rewrite sum_f_Sn_n. 2 : { lia. } 2 : { lia. } 2 : { lia. } lra.
+       --- rewrite <- H2. repeat rewrite sum_f_n_n. lra.
+Qed.
+        
 
 Lemma sum_f_congruence: forall (f1 f2 : nat -> R) (i n : nat),
 (i <= n)%nat ->
@@ -222,6 +246,27 @@ Proof.
            unfold f2. rewrite sum_f_R0_fSxplusa_n. simpl. replace (S (n - s + i')%nat) with n%nat by lia. lra.
 Qed.
 
+Theorem sum_f_reindex' : forall (f : nat -> R) (i n s : nat),
+  sum_f i n f = sum_f (i + s) (n + s) (fun x => f (x - s)%nat).
+Proof.
+  intros f i n s.
+  induction i as [| i' IH].
+  - simpl. unfold sum_f. replace (fun x : nat => f (x + s - s)%nat) with (fun x : nat => (f x%nat)).
+    2 : { apply functional_extensionality. intros x. replace (x + s - s)%nat with x%nat by lia. reflexivity. }
+    replace (n + s - s)%nat with n%nat by lia. 
+    replace (fun x : nat => f (x + 0)%nat) with (fun x : nat => (f x)).
+    2 : { apply functional_extensionality. intro x. rewrite Nat.add_0_r. reflexivity. }
+    rewrite Nat.sub_0_r. reflexivity.
+  - replace (S i' + s)%nat with (S (i' + s)) by lia.
+    assert (H2 : (i' < n)%nat \/ (i' = n)%nat \/ (i' > n)%nat) by lia. destruct H2 as [H2 | [H2 | H2]].
+    -- rewrite sum_f_Si_n_f. 2 : { lia. } rewrite sum_f_Si_n_f. 2 : { lia. } rewrite IH.
+       replace (i' + s - s)%nat with (i')%nat by lia. reflexivity.
+    -- rewrite H2. rewrite sum_f_Sn_n by lia. rewrite sum_f_Sn_n by lia. replace ((S (n + s) - s)%nat) with (S n) by lia.
+       reflexivity.
+    -- repeat rewrite sum_f_Sn_n by lia. replace (S (i' + s) - s)%nat with (S i') by lia.
+       reflexivity.
+Qed.
+
 Theorem pow_equ : forall (r: R) (a : nat),
   (a > 0)%nat -> r ^ a = r * r ^ (a - 1).
 Proof.
@@ -229,6 +274,14 @@ Proof.
   - lia.
   - simpl. rewrite Nat.sub_0_r. reflexivity.
 Qed.
+
+Lemma pow_equ' : forall r a,
+  r ^ (a) * r = r ^ (a + 1).
+Proof.
+    intros r a. induction a as [| k IH].
+    - simpl. lra.
+    - simpl. rewrite <- IH. lra.
+Qed. 
 
 Lemma lemma_1_1_v : forall (x y : R) (n : nat),
   (n >= 1)%nat ->
@@ -537,6 +590,29 @@ Proof.
 
 Abort.
 
+Definition XOR (P Q : Prop) : Prop :=
+  (P \/ Q) /\ (~P \/ ~Q).
+
+Definition P10' := forall r1 r2 : R, XOR (r1 = r2) (XOR (r1 < r2) (r2 < r1)).
+Definition P11' := forall r1 r2 r3 : R, r1 < r2 /\ r2 < r3 -> r1 < r2.
+Definition P12' := forall r1 r2 r3 : R, r1 < r2 -> r1 + r3 < r2 + r3.
+Definition P13' := forall r1 r2 r3 : R, r1 < r2 /\ 0 < r3 -> r1 * r3 < r2 * r3.
+
+Definition P10 := forall (P : R -> Prop) (r : R),
+  (P r -> r > 0) -> XOR (r = 0) (XOR (P r) (P (-r))).
+
+Definition P11 := forall (P : R -> Prop) (r1 r2 : R),
+  (forall r : R, P r -> r > 0) -> (P r1 /\ P r2) -> P (r1 + r2).
+
+Definition P12 := forall (P : R -> Prop) (r1 r2 : R),
+  (forall r : R, P r -> r > 0) -> (P r1 /\ P r2) -> P (r1 * r2).
+
+Lemma lemma_1_8_P10 : P10' -> P10.
+Proof.
+  intros H. unfold P10' in H. unfold P10. unfold XOR in *.
+  intros P r H1. split.
+  - Abort. 
+
 Fixpoint fold_right' (l: list R) : R :=
   match l with
   | [] => 0
@@ -597,6 +673,8 @@ Proof.
   intros e1 e2 H. repeat rewrite lemma_1_24_c. rewrite H. reflexivity.
 Qed.
 
+Module module_1_25.
+
 Inductive number : Type :=
   | zero
   | one.
@@ -614,8 +692,8 @@ Definition mult' (a b : number) : number :=
   | _, _ => zero
   end.
 
-Notation "x + y" := (plus' x y) (at level 50, left associativity).
-Notation "x * y" := (mult' x y) (at level 40, left associativity).
+Notation "x + y" := (plus' x y).
+Notation "x * y" := (mult' x y).
 
 Lemma lemma_1_25_P1 : forall a b c : number,
   a + (b + c) = (a + b) + c.
@@ -668,6 +746,8 @@ Lemma lemma_1_25_P9 : forall a b c : number,
 Proof.
   destruct a, b, c; reflexivity.
 Qed.
+
+End module_1_25.
 
 Theorem sum_n_nat : forall n : nat,
   sum_f 0 n (fun i => INR i) = (INR n * (INR n + 1)) / 2.
@@ -728,46 +808,125 @@ Proof.
   field. apply INR_fact_neq_0.
 Qed.
 
+Lemma n_choose_0 : forall (n : nat),
+  choose n 0 = 1.
+Proof.
+  intro n. unfold choose. simpl. rewrite Nat.sub_0_r. rewrite Rmult_1_l.
+  field. apply INR_fact_neq_0.
+Qed.
+
+
 Lemma k_gt_n_n_choose_k : forall n k : nat, 
-  n < k -> choose n k = 0.
+  (n < k)%nat -> choose n k = 0.
 Proof.
   intros. assert (H2 : n <? k = true).
   { apply Nat.ltb_lt. apply H. }
   unfold choose. rewrite H2. reflexivity.
 Qed.
 
-Lemma nat_div_evenly : forall a b c: nat,
-  b <> 0 -> c * b = a -> a / b = c.
+Lemma nltb_gt : forall a b : nat, (a > b)%nat -> (a <? b) = false.
 Proof.
-  intros a b c H1 H2. rewrite <- H2. apply Nat.div_mul. apply H1.
+  intros a b H. induction b.
+  - auto.
+  - unfold "<?". apply leb_correct_conv. lia.
 Qed.
 
-
-
-Lemma n_choose_k_is_nat : forall n k : nat,
-  n >= k ->
-  exists a : nat, a * (fact k * fact (n - k)) = fact n.
+Lemma nltb_ge : forall a b : nat, (a >= b)%nat -> (a <? b) = false.
 Proof.
-  intros n k H. induction n as [| n' IH].
-  - inversion H. simpl. exists 1%nat. simpl. reflexivity.
-  - assert (H2 : (n' < k \/ n' >= k)%nat) by lia. destruct H2 as [H2 | H2].
-    -- replace (S n' - k)%nat with 0%nat by lia. simpl. rewrite Nat.mul_1_r. 
-       replace k with (S n') by lia. exists 1%nat. simpl. lia.
-    -- pose proof H2 as H3. apply IH in H2. destruct H2 as [a H2]. apply nat_div_evenly in H2.
-       2 : { assert (H4 : (fact k <> 0 /\ fact (n' - k) <> 0)) by (split; repeat apply fact_neq_0). lia. }
-       exists ((a * (n' + 1)) / (n' - k + 1)).
-       rewrite <- H2.
-       replace (fact (S n')) with ((S n') * (fact n'))%nat by (simpl; lia). rewrite <- H2.
-       replace (S n' - k)%nat with (S (n' - k))%nat by lia.
-       replace (fact (S (n' - k))) with ((S (n' - k)) * (fact (n' - k)))%nat by (simpl; lia).
-       
+  intros a b H. induction b.
+  - auto.
+  - unfold "<?". apply leb_correct_conv. lia.
+Qed.
+
+Lemma fact_div : forall m n k,
+  (k >= 1)%nat -> (m <> 0) -> n / ((INR (fact (k - 1))) * m)  = (n * INR (k)) / (INR (fact k) * m).
+Proof.
+  intros m n k H1 H2. destruct k.
+  - lia.
+  - destruct k.
+    -- simpl. lra.
+    -- replace (fact (S (S k))) with ((S (S k)) * fact (S k))%nat. 2 : { simpl. lia. }
+       replace (S (S k) - 1)%nat with (S ((S k) - 1))%nat. 2 : { simpl. lia. }
+    replace (S (S k - 1))%nat with (S k) by lia. unfold Rdiv. 
+    replace (n * INR (S (S k)) * / (INR (S (S k) * fact (S k)) * m)) with (n * / (INR (fact (S k)) * m)). 
+    2 : { rewrite mult_INR. field. split. pose proof fact_neq_0 as H3. apply H2. split. apply not_0_INR. apply fact_neq_0. apply not_0_INR. lia. }
+    reflexivity.
+Qed.
 
 Lemma lemma_2_3 : forall n k : nat,
   (k >= 1)%nat ->
-  choose (S n) k = choose n (k-1) + choose n k.
+  choose (S n) k = choose n (k - 1) + choose n k.
 Proof.
   intros. assert (H2 : (S n < k \/ S n = k \/ S n > k)%nat) by lia. destruct H2 as [H2 | [H2 | H2]].
-  - repeat rewrite k_gt_n_n_choose_k. lia. lia. lia. lia.
-  - assert (H3 : n = k - 1) by lia. rewrite <- H3. rewrite H2. repeat rewrite n_choose_n. 
-    rewrite k_gt_n_n_choose_k. lia. lia.
-  - 
+  - repeat rewrite k_gt_n_n_choose_k. lra. lia. lia. lia.
+  - assert (H3 : (n = k - 1)%nat) by lia. rewrite <- H3. rewrite H2. repeat rewrite n_choose_n. 
+    rewrite k_gt_n_n_choose_k. lra. lia.
+  - unfold choose at 2.
+    assert (H3 : (n > k - 1)%nat) by lia. pose proof H3 as H4. apply nltb_gt in H4.
+    rewrite H4. unfold choose at 2. assert (H5 : (n >= k)%nat) by lia. pose proof H5 as H6.
+    apply nltb_ge in H6. rewrite H6. rewrite fact_div. 2 : { lia. } 2 : { apply not_0_INR. apply fact_neq_0. }
+    assert (H7: (n = k)%nat \/ (n > k)%nat) by lia. destruct H7 as [H7 | H7].
+    -- rewrite H7. replace ((k - k)%nat) with 0%nat by lia. replace (k - (k - 1))%nat with (1)%nat by lia.
+       simpl. repeat rewrite Rmult_1_r. unfold choose. assert (H8 : S k <? k = false). apply nltb_gt. lia.
+       rewrite H8. replace (S k - k)%nat with 1%nat by lia. simpl. rewrite Rmult_1_r. rewrite plus_INR.
+       rewrite mult_INR. nra.
+    -- replace (n - k)%nat with (S (n - k) - 1)%nat by lia. rewrite Rmult_comm with (r2 := INR (fact (S (n - k) - 1))).
+       rewrite fact_div with (n := INR (fact n)).
+       2 : { lia. } 2 : { apply not_0_INR. apply fact_neq_0. }
+       replace (S (n - k))%nat with (n - (k - 1))%nat at 2 by lia.
+       rewrite Rmult_comm with (r2 := INR (fact k)).
+       replace (INR (fact n) * INR k / (INR (fact k) * INR (fact (n - (k - 1)))) + INR (fact n) * INR (S (n - k)) / (INR (fact k) * INR (fact (n - (k - 1))))) with
+       ((INR (fact n) * INR k + INR (fact n) * INR (S (n - k))) / (INR (fact k) * INR (fact (n - (k - 1))))).
+       2 : { nra. }
+       rewrite <- Rmult_plus_distr_l. rewrite <- plus_INR. replace (k + S (n - k))%nat with (S n)%nat by lia.
+       replace (INR (fact n) * INR (S n)) with (INR (fact (S n))). 2 : { rewrite <- mult_INR. simpl. replace (fact n * S n)%nat with (fact n + n * fact n)%nat by lia.
+       reflexivity. }
+       unfold choose. assert (H8 : S n <? k = false). apply nltb_gt. lia. rewrite H8.
+       replace (n - (k - 1))%nat with (S n - k)%nat by lia. reflexivity.
+Qed.
+
+Lemma lemma_2_d : forall a b n,
+  (a + b) ^ n = sum_f 0 n (fun i => (choose n i) * a ^ (n - i) * b ^ i).
+Proof.
+  intros a b n. induction n as [| k IH].
+  - compute; lra.
+  - replace ((a + b) ^ (S k)) with ((a + b) * (a + b) ^ k) by (simpl; lra).
+    rewrite Rmult_plus_distr_r. repeat rewrite IH. repeat rewrite r_mult_sum_f_i_n_f.
+    replace (fun i : nat => choose k i * a ^ (k - i) * b ^ i * a) with (fun i : nat => choose k i * a ^ (k - i + 1) * b ^ i).
+    2 : { apply functional_extensionality. intros x. replace (choose k x * a ^ (k - x) * b ^ x * a) with (choose k x * (a ^ (k - x) * a) * b ^ x) by lra.
+    rewrite pow_equ'. lra. }
+
+    replace (fun i : nat => choose k i * a ^ (k - i) * b ^ i * b) with (fun i : nat => choose k i * a ^ (k - i) * b ^ (i + 1)).
+    2 : { apply functional_extensionality. intros x. replace (choose k x * a ^ (k - x) * b ^ x * b) with (choose k x * a ^ (k - x) * (b ^ x * b)) by lra.
+    rewrite pow_equ'. lra. } replace (sum_f 0 k (fun i : nat => choose k i * a ^ (k - i) * b ^ (i + 1))) with
+    (sum_f 1 (k + 1) (fun i : nat => choose k (i-1) * a ^ (k - (i-1)) * b ^ (i))).
+    2 : { rewrite sum_f_reindex' with (i := 0%nat) (n := k%nat) (s := 1%nat). simpl.
+    set (f := fun i : nat => choose k (i - 1) * a ^ (k - (i - 1)) * b ^ i).
+    set (g := fun x : nat => choose k (x - 1) * a ^ (k - (x - 1)) * b ^ (x - 1 + 1)).
+    apply sum_f_equiv.
+    - lia.
+    - intros k0 H. unfold f, g. replace (k0 - 1 + 1)%nat with (k0) by lia. reflexivity. }
+    destruct k as [| k'] eqn:Ek.
+    -- compute. lra.
+    -- rewrite sum_f_Si. 2 : { lia. } 
+       replace (S k' + 1)%nat with (S (k' + 1))%nat by lia.
+       destruct k' as [| k''] eqn:Ek''.
+       --- compute. lra.
+       --- rewrite sum_f_i_Sn_f with (n := (S (k'' + 1))%nat). 2 : { lia. }
+           repeat rewrite <- Ek. repeat replace ((S (k'' + 1))%nat) with (k)%nat by lia.
+           replace (sum_f 1 k (fun i : nat => choose k i * a ^ (k - i + 1) * b ^ i) + choose k 0 * a ^ (k - 0 + 1) * b ^ 0 + (sum_f 1 k (fun i : nat => choose k (i - 1) * a ^ (k - (i - 1)) * b ^ i) + choose k (S k - 1) * a ^ (k - (S k - 1)) * b ^ S k))
+           with (sum_f 1 k (fun i : nat => choose k i * a ^ (k - i + 1) * b ^ i) + sum_f 1 k (fun i : nat => choose k (i - 1) * a ^ (k - (i - 1)) * b ^ i) + choose k 0 * a ^ (k - 0 + 1) * b ^ 0 + choose k (S k - 1) * a ^ (k - (S k - 1)) * b ^ S k) by lra.
+           rewrite sum_f_sum. assert (H2 : sum_f 1 k (fun x : nat => choose k x * a ^ (k - x + 1) * b ^ x + choose k (x - 1) * a ^ (k - (x - 1)) * b ^ x)
+           = sum_f 1 k (fun x : nat => choose (S k) x * a ^ (k - x + 1) * b ^ x)).
+           { apply sum_f_equiv. lia. intros k0 H2. replace (k - (k0 - 1))%nat with (k - k0 + 1)%nat by lia. 
+           rewrite Rmult_assoc. rewrite Rmult_assoc with (r1 := choose k (k0 - 1)) at 1.
+           rewrite <- Rmult_plus_distr_r with (r3 := a ^ (k - k0 + 1) * b ^ k0). rewrite Rplus_comm. rewrite lemma_2_3. 2 : { lia. } lra. }
+           rewrite H2. rewrite sum_f_Si_n_f. 2 : { lia. } rewrite sum_f_i_Sn_f. 2 : { lia. } replace (choose (S k) (S k)) with 1. 2 : { rewrite n_choose_n. auto. }
+           replace (choose (S k) 0%nat) with 1. 2 : { rewrite n_choose_0. reflexivity. }
+           repeat rewrite Rmult_1_l. replace (k - (S k - 1))%nat with 0%nat by lia. replace (S k - S k)%nat with 0%nat by lia.
+           replace (b ^ 0) with 1 by auto. replace (a ^ 0) with 1 by auto. rewrite Rmult_1_l. repeat rewrite Rmult_1_r.
+           replace (k - 0 + 1)%nat with (S k) by lia. replace (S k - 1)%nat with k%nat by lia. rewrite n_choose_n. rewrite Rmult_1_l. rewrite n_choose_0. 
+           rewrite Rmult_1_l. replace (sum_f 0 k (fun x : nat => choose (S k) x * a ^ (k - x + 1) * b ^ x)) with (sum_f 0 k (fun i : nat => choose (S k) i * a ^ (S k - i) * b ^ i)).
+           2 : { apply sum_f_equiv. lia. intros k0 H3. replace (S k - k0)%nat with (k - k0 + 1)%nat by lia. reflexivity. }
+           nra.
+Qed.
