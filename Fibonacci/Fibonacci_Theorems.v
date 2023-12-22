@@ -446,3 +446,7 @@ Proof.
   destruct Hc_both as [Hc1 Hc2].
   unfold convergent_sequence. exists La. unfold limit_of_sequence in Hc1. apply Hc1.
 Qed.
+
+Set Printing All.
+
+Print c_convergent.

@@ -590,28 +590,36 @@ Proof.
 
 Abort.
 
-Definition XOR (P Q : Prop) : Prop :=
-  (P \/ Q) /\ (~P \/ ~Q).
+Definition one_and_only_one_3 (P1 P2 P3 : Prop) : Prop :=
+  (P1 /\ ~ P2 /\ ~ P3) \/ (~ P1 /\ P2 /\ ~ P3) \/ (~ P1 /\ ~ P2 /\ P3).
 
-Definition P10' := forall r1 r2 : R, XOR (r1 = r2) (XOR (r1 < r2) (r2 < r1)).
-Definition P11' := forall r1 r2 r3 : R, r1 < r2 /\ r2 < r3 -> r1 < r2.
-Definition P12' := forall r1 r2 r3 : R, r1 < r2 -> r1 + r3 < r2 + r3.
-Definition P13' := forall r1 r2 r3 : R, r1 < r2 /\ 0 < r3 -> r1 * r3 < r2 * r3.
+Definition P10' := forall a b : R, one_and_only_one_3 (a = b) (a < b) (b < a).
+Definition P11' := forall a b c : R, (a < b /\ b < c) -> a < c.
+Definition P12' := forall a b c : R, a < b -> a + c < b + c.
+Definition P13' := forall a b c : R, a < b /\ 0 < c -> a * c < b * c.
 
-Definition P10 := forall (P : R -> Prop) (r : R),
-  (P r -> r > 0) -> XOR (r = 0) (XOR (P r) (P (-r))).
+Definition P10 := forall (P : R -> Prop) (a : R),
+  one_and_only_one_3 (a = 0) (P a) (P (-a)).
 
-Definition P11 := forall (P : R -> Prop) (r1 r2 : R),
-  (forall r : R, P r -> r > 0) -> (P r1 /\ P r2) -> P (r1 + r2).
+Definition P11 := forall (P : R -> Prop) (a b : R),
+  (forall r : R, P r <-> 0 < r) -> (P a /\ P b) -> P (a + b).
 
-Definition P12 := forall (P : R -> Prop) (r1 r2 : R),
-  (forall r : R, P r -> r > 0) -> (P r1 /\ P r2) -> P (r1 * r2).
+Definition P12 := forall (P : R -> Prop) (a b : R),
+  (forall r : R, P r -> 0 < r) -> (P a /\ P b) -> P (a * b).
 
-Lemma lemma_1_8_P10 : P10' -> P10.
+Lemma lemma_1_8_P10 : (P11' /\ P12') -> P11.
 Proof.
-  intros H. unfold P10' in H. unfold P10. unfold XOR in *.
-  intros P r H1. split.
-  - Abort. 
+  intros [H1 H2]. unfold P11. intros P a b H3 [H4 H5].
+  unfold P11', P12' in H1, H2. apply H3 in H4. apply H3 in H5.
+  assert (H6 : forall r1 r2 r3 r4, r1 < r2 /\ r3 < r4 -> r1 + r3 < r2 + r3 < r2 + r4).
+  - intros r1 r2 r3 r4 [H6 H7]. split.
+    -- apply H2. apply H6.
+    -- rewrite Rplus_comm. rewrite Rplus_comm with (r1 := r2). apply H2. apply H7.
+  - specialize (H6 0 a 0 b). destruct H6 as [H6 H7]. (split; try apply H4; apply H5).
+    specialize (H1 (0 + 0) (a + 0) (a + b)). rewrite Rplus_0_l in*.
+    assert (H8 : 0 < a + b). { apply H1. split. apply H6. apply H7. }
+    apply H3. apply H8.
+Qed.
 
 Fixpoint fold_right' (l: list R) : R :=
   match l with
@@ -914,8 +922,10 @@ Proof.
        --- compute. lra.
        --- rewrite sum_f_i_Sn_f with (n := (S (k'' + 1))%nat). 2 : { lia. }
            repeat rewrite <- Ek. repeat replace ((S (k'' + 1))%nat) with (k)%nat by lia.
-           replace (sum_f 1 k (fun i : nat => choose k i * a ^ (k - i + 1) * b ^ i) + choose k 0 * a ^ (k - 0 + 1) * b ^ 0 + (sum_f 1 k (fun i : nat => choose k (i - 1) * a ^ (k - (i - 1)) * b ^ i) + choose k (S k - 1) * a ^ (k - (S k - 1)) * b ^ S k))
-           with (sum_f 1 k (fun i : nat => choose k i * a ^ (k - i + 1) * b ^ i) + sum_f 1 k (fun i : nat => choose k (i - 1) * a ^ (k - (i - 1)) * b ^ i) + choose k 0 * a ^ (k - 0 + 1) * b ^ 0 + choose k (S k - 1) * a ^ (k - (S k - 1)) * b ^ S k) by lra.
+           replace (sum_f 1 k (fun i : nat => choose k i * a ^ (k - i + 1) * b ^ i) + choose k 0 * a ^ (k - 0 + 1) * b ^ 0 + 
+           (sum_f 1 k (fun i : nat => choose k (i - 1) * a ^ (k - (i - 1)) * b ^ i) + choose k (S k - 1) * a ^ (k - (S k - 1)) * b ^ S k))
+           with (sum_f 1 k (fun i : nat => choose k i * a ^ (k - i + 1) * b ^ i) + sum_f 1 k (fun i : nat => choose k (i - 1) * a ^ (k - (i - 1)) * b ^ i) + 
+           choose k 0 * a ^ (k - 0 + 1) * b ^ 0 + choose k (S k - 1) * a ^ (k - (S k - 1)) * b ^ S k) by lra.
            rewrite sum_f_sum. assert (H2 : sum_f 1 k (fun x : nat => choose k x * a ^ (k - x + 1) * b ^ x + choose k (x - 1) * a ^ (k - (x - 1)) * b ^ x)
            = sum_f 1 k (fun x : nat => choose (S k) x * a ^ (k - x + 1) * b ^ x)).
            { apply sum_f_equiv. lia. intros k0 H2. replace (k - (k0 - 1))%nat with (k - k0 + 1)%nat by lia. 
