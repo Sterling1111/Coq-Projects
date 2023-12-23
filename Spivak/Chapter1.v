@@ -599,7 +599,7 @@ Definition P12' := forall a b c : R, a < b -> a + c < b + c.
 Definition P13' := forall a b c : R, a < b /\ 0 < c -> a * c < b * c.
 
 Definition P10 := forall (P : R -> Prop) (a : R),
-  one_and_only_one_3 (a = 0) (P a) (P (-a)).
+  (forall r : R, P r <-> 0 < r) -> one_and_only_one_3 (a = 0) (P a) (P (-a)).
 
 Definition P11 := forall (P : R -> Prop) (a b : R),
   (forall r : R, P r <-> 0 < r) -> (P a /\ P b) -> P (a + b).
@@ -607,7 +607,7 @@ Definition P11 := forall (P : R -> Prop) (a b : R),
 Definition P12 := forall (P : R -> Prop) (a b : R),
   (forall r : R, P r -> 0 < r) -> (P a /\ P b) -> P (a * b).
 
-Lemma lemma_1_8_P10 : (P11' /\ P12') -> P11.
+Lemma lemma_1_8_P11 : (P11' /\ P12') -> P11.
 Proof.
   intros [H1 H2]. unfold P11. intros P a b H3 [H4 H5].
   unfold P11', P12' in H1, H2. apply H3 in H4. apply H3 in H5.
@@ -620,6 +620,60 @@ Proof.
     assert (H8 : 0 < a + b). { apply H1. split. apply H6. apply H7. }
     apply H3. apply H8.
 Qed.
+
+Theorem Rplus_neg_neg : P11' -> P12' -> forall r1 r2 : R, r1 < 0 -> r2 < 0 -> r1 + r2 < 0.
+Proof.
+  intros H1 H2 r1 r2 H3 H4. unfold P11' in H1. specialize H1 with (a := 0) (b := r1) (c := r2).
+  
+  split.
+  - apply (P12 r1 0 r2). exact H1.
+  - exact H2.
+Qed.
+
+Lemma lemma_shit : forall a,
+  a < 0 -> P10' -> -a > 0.
+Proof.
+  intros a H1 H2. unfold P10' in H2. pose proof H2 as H2'. specialize H2 with (a := a + (-a)) (b := 0).
+  unfold one_and_only_one_3 in H2. destruct H2 as [[H3 [H4 H5]] | [[H3 [H4 H5]] | [H3 [H4 H5]]]].
+  - unfold not in *. assert (H6 : (-a < 0 -> False) /\ (-a = 0 -> False)). 
+    -- split.
+      --- intro H6. apply H4. apply Rplus_neg_neg; (try apply H1; apply H6).
+      --- intro H6. apply H4. rewrite H6. rewrite Rplus_0_r. apply H1.
+    -- destruct H6 as [H6 H7]. specialize H2' with (a := -a) (b := 0). unfold one_and_only_one_3 in H2'.
+       destruct H2' as [[H8 [H9 H10]] | [[H8 [H9 H10]] | [H8 [H9 H10]]]].
+       --- unfold not in *. apply H7 in H8. exfalso. apply H8.
+       --- apply H6 in H9. exfalso. apply H9.
+       --- apply H10.
+  - exfalso. rewrite Rplus_opp_r in H3. unfold not in H3. assert (H6 : 0 = 0) by reflexivity. apply H3 in H6. apply H6.
+  - exfalso. rewrite Rplus_opp_r in H3. unfold not in H3. assert (H6 : 0 = 0) by reflexivity. apply H3 in H6. apply H6.
+Qed.
+
+Lemma lemma_1_8_P10 : P10' -> P10.
+Proof.
+  intro H1. unfold P10. intros P a. unfold P10' in H1. intros H2.
+  unfold one_and_only_one_3 in *. specialize H1 with (a := a) (b := 0).
+  destruct H1 as [[H1 [H3 H4]] | [[H1 [H3 H4]] | [H1 [H3 H4]]]].
+  - left. split.
+    -- apply H1.
+    -- split.
+      --- unfold not. intro H5. specialize H2 with (r := a). apply H2 in H5. unfold not in H4. apply H4 in H5. apply H5.
+      --- unfold not. intro H5. specialize H2 with (r := -a). apply H2 in H5. unfold not in H3. apply Ropp_lt_gt_contravar in H5.
+          rewrite Ropp_involutive in H5. replace (- 0) with 0 in H5 by lra. apply Rgt_lt in H5. apply H3 in H5. apply H5.
+  - right. right. split.
+    -- apply H1.
+    -- split.
+      --- specialize H2 with (r := a). unfold not in *. intro H5. apply H2 in H5. apply H4 in H5. apply H5.
+      --- specialize H2 with (r := -a). apply Ropp_lt_gt_contravar in H3. replace (- 0) with 0 in H3 by lra. apply Rgt_lt in H3.
+          apply H2 in H3. apply H3.
+  - right. left. split.
+    -- apply H1.
+    -- split.
+      --- specialize H2 with (r := a). apply H2 in H4. apply H4.
+      --- specialize H2 with (r := -a). unfold not in *. intro H5. apply H2 in H5. apply Ropp_lt_gt_contravar in H5.
+          rewrite Ropp_involutive in H5. replace (- 0) with 0 in H5 by lra. apply Rgt_lt in H5. apply H3 in H5. apply H5.
+Qed.
+
+Lemma lemma_1_8_P
 
 Fixpoint fold_right' (l: list R) : R :=
   match l with
