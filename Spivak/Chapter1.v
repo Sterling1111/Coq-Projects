@@ -509,13 +509,33 @@ Proof.
   intros x. nra.
 Qed.
 
+Lemma two_less_sqrt_five : 2 < sqrt 5.
+Proof.
+  assert (sqrt (2 * 2) < sqrt (5)). { apply sqrt_lt_1. lra. lra. lra. }
+  rewrite sqrt_square in H. 2 : { lra. } apply H.
+Qed.
+
 Lemma lemma_1_4_vi : forall x : R,
   x > (-1 + sqrt 5) / 2 \/ x < (-1 - sqrt 5) / 2 <-> x^2 + x + 1 > 2.
 Proof.
-  intros x. split.
+  intros x. pose proof two_less_sqrt_five. split.
   - intros [H1 | H2].
-    -- 
-Abort.
+    -- assert (H2 : 2 * x + 1 > (sqrt 5)) by lra.
+       rewrite <- pow2_sqrt with (x := 2 * x + 1) in H2.
+       --- simpl in H2. rewrite Rmult_1_r in H2. rewrite <- sqrt_mult in H2.
+        ---- apply Rgt_lt in H2. apply sqrt_lt_0_alt in H2. lra.
+        ---- lra.
+        ---- lra.
+       --- lra.
+    -- assert (H3 : -2 * x - 1 > sqrt 5) by lra.
+       rewrite <- pow2_sqrt with (x := -2 * x - 1) in H3.
+       --- simpl in H3. rewrite Rmult_1_r in H3. rewrite <- sqrt_mult in H3.
+        ---- apply Rgt_lt in H3. apply sqrt_lt_0_alt in H3. lra.
+        ---- lra.
+        ---- lra.
+       --- lra.
+  - intros H1. assert (H2 : x^2 + x + 1 > 0) by lra.
+  Abort.
 
 Lemma lemma_1_4_vii : forall x : R,
   x < -2 \/ x > 3 <-> x^2 - x + 10 > 16.
@@ -590,10 +610,94 @@ Proof.
 
 Abort.
 
+Lemma Rpow_0 : forall k, 
+  (k >= 1)%nat -> 0 ^ k = 0.
+Proof.
+  intros k H1. destruct k.
+  - lia.
+  - simpl. lra.
+Qed.
+
+Lemma Rpow_gt_0 : forall k r,
+  r > 0 -> r ^ k > 0.
+Proof.
+  intros k r H1. induction k as [| k' IH].
+  - simpl. lra.
+  - simpl. nra.
+Qed.
+
+Lemma lemma_1_6_a : forall x y n,
+  0 <= x < y -> (0 < n)%nat -> x^n < y^n.
+Proof.
+  intros x y n [H1 H2] H3. induction n as [| k IH].
+  - inversion H3.
+  - simpl. destruct k as [| k'] eqn:Ek.
+    -- simpl. repeat rewrite Rmult_1_r. apply H2.
+    -- destruct H1 as [H1 | H1]. 2 : { apply Rmult_ge_0_gt_0_lt_compat. rewrite <- H1. simpl. lra. lra. lra. apply IH. lia. }
+       { apply Rmult_gt_0_lt_compat. apply Rpow_gt_0. lra. lra. lra. apply IH. lia. }
+Qed.
+
+Lemma Rpow_odd_lt_0 : forall x n,
+  x < 0 -> (Nat.Odd n -> x^n < 0) /\ (Nat.Even n -> x^n > 0).
+Proof.
+  intros x n H1. induction n as [| k IH].
+  - split.
+    -- intro H2. destruct H2 as [k H2]. lia.
+    -- intro H2. simpl. lra.
+  - destruct IH as [IH1 IH2]. split.
+    -- intro H2. simpl. rewrite Nat.Odd_succ in H2. apply IH2 in H2. nra.
+    -- intro H2. simpl. rewrite Nat.Even_succ in H2. apply IH1 in H2. nra.
+Qed.
+
+Lemma abs_smaller_neg_larger : forall x y, x < 0 -> y < 0 -> Rabs y < Rabs x -> x < y.
+Proof.
+  intros x y Hx Hy Habs.
+  unfold Rabs in Habs.
+  destruct (Rcase_abs x) as [Hx_neg | Hx_pos].
+  - destruct (Rcase_abs y) as [Hy_neg | Hy_pos].
+    -- lra.
+    -- lra.
+  - destruct (Rcase_abs y) as [Hy_neg | Hy_pos].
+    -- lra.
+    -- lra.
+Qed.
+
+Lemma lemma_1_6_b : forall x y n,
+  x < y -> Nat.Odd n -> x^n < y^n.
+Proof.
+  intros x y n H1 H2. assert (H3 : x >= 0 \/ x < 0) by lra. destruct H3 as [H3 | H3].
+  - apply lemma_1_6_a. split. lra. lra. destruct H2 as [k H2]. lia.
+  - pose proof H3 as H3'. apply Rpow_odd_lt_0 with (n := n) in H3. destruct H3 as [H3 H4]. pose proof H2 as H2'.
+    apply H3 in H2. assert (H5 : y > 0 \/ y = 0 \/ y < 0) by lra. destruct H5 as [H5 | [H5 | H5]].
+    -- assert (H6 : y ^ n > 0). { apply Rpow_gt_0. lra. } nra.
+    -- rewrite H5. assert (H6 : (n = 0 \/ n >= 1)%nat) by lia. destruct H6 as [H6 | H6].    
+       --- rewrite H6 at 2. simpl. lra.
+       --- apply Rpow_0 in H6. rewrite H6. lra.
+    -- assert (H6 : (-y)^n < (-x)^n). { apply lemma_1_6_a. split. lra. lra. destruct H2' as [k H2']. lia. }
+       assert (H7 : (y)^n < 0). { apply Rpow_odd_lt_0. lra. apply H2'. } replace (-x) with (Rabs x) in H6. 2 : { apply Rabs_left. apply H3'. }
+       replace (-y) with (Rabs y) in H6. 2 : { apply Rabs_left. apply H5. } repeat rewrite RPow_abs in H6. 
+       apply abs_smaller_neg_larger; assumption.
+Qed.
+
+Lemma lemma_1_6_c : forall x y n,
+  x ^ n = y ^ n -> Nat.Odd n -> x = y.
+Proof.
+  intros x y n H1 H2. pose proof Rtotal_order x y as H3. destruct H3 as [H3 | [H3 | H3]].
+  - pose proof lemma_1_6_b x y n as H4. apply H4 in H3. 2 : { apply H2. } lra.
+  - apply H3.
+  - pose proof lemma_1_6_b y x n as H4. apply H4 in H3. 2 : { apply H2. } lra.
+Qed.
+
+Lemma lemma_1_6_d : forall x y n,
+  x ^ n = y ^ n -> Nat.Even n -> (x = y \/ x = -y).
+Proof.
+  intros x y n H1 H2. pose proof Rtotal_order x y as H3. destruct H3 as [H3 | [H3 | H3]].
+  - 
+
 Definition one_and_only_one_3 (P1 P2 P3 : Prop) : Prop :=
   (P1 /\ ~ P2 /\ ~ P3) \/ (~ P1 /\ P2 /\ ~ P3) \/ (~ P1 /\ ~ P2 /\ P3).
 
-Definition P10' := forall a b : R, one_and_only_one_3 (a = b) (a < b) (b < a).
+Definition P10' := forall a b : R, one_and_only_one_3 (a = b) (a < b) (b < a). 
 Definition P11' := forall a b c : R, (a < b /\ b < c) -> a < c.
 Definition P12' := forall a b c : R, a < b -> a + c < b + c.
 Definition P13' := forall a b c : R, a < b /\ 0 < c -> a * c < b * c.
@@ -695,7 +799,7 @@ Proof.
     apply H3. apply H8.
 Qed.
 
-Lemma lemma_1_8_P2 : P13' -> P12.
+Lemma lemma_1_8_P12 : P13' -> P12.
 Proof.
   intros H1. unfold P13', P12 in *. intros P a b H2 [H3 H4].
   apply H2 in H3. apply H2 in H4. specialize H1 with (a := 0) (b := a) (c := b).
