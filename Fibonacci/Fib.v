@@ -289,6 +289,13 @@ Compute a(1).
 Compute a(2).
 Compute a(3).
 Compute a(4).
+Compute a(5).
+Compute a(6).
+Compute a(7).
+Compute a(8).
+Compute a(9).
+Compute a(10).
+Compute a(15).
 
 Definition b (n : nat) : Q := (inject_Z (F(2*n + 1))) / (inject_Z (F(2*n))).
 
