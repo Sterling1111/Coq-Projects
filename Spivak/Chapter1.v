@@ -853,6 +853,56 @@ Proof.
            assert (H10 : (-x)^n = x^n). { pose proof Rpow_even_neg_eq_pos x n as H10. destruct H10 as [H10 H11]. apply H4. apply H10. apply H2. } lra.
 Qed.
 
+Lemma lemma_1_13_max : forall x y,
+  Rmax x y = (x + y + Rabs (x - y)) / 2.
+Proof.
+  intros x y. unfold Rmax. destruct (Rle_dec x y) as [H1 | H1].
+  - unfold Rabs. destruct (Rcase_abs (x - y)) as [H2 | H2].
+    -- lra.
+    -- assert (H3 : x = y) by lra. rewrite H3. lra.
+  - unfold Rabs. destruct (Rcase_abs (x - y)) as [H2 | H2].
+    -- assert (H3 : x < y) by lra. assert (H4 : x > y) by lra. lra.
+    -- lra.
+Qed.
+
+Lemma lemma_1_13_min : forall x y,
+  Rmin x y = (x + y - Rabs (x - y)) / 2.
+Proof.
+  intros x y. unfold Rmin. destruct (Rle_dec x y) as [H1 | H1].
+  - unfold Rabs. destruct (Rcase_abs (x - y)) as [H2 | H2].
+    -- lra.
+    -- assert (H3 : x = y) by lra. rewrite H3. lra.
+  - unfold Rabs. destruct (Rcase_abs (x - y)) as [H2 | H2].
+    -- assert (H3 : x < y) by lra. assert (H4 : x > y) by lra. lra.
+    -- lra.
+Qed.
+
+Definition Rmax_3 (x y z : R) : R :=
+  Rmax (Rmax x y) z.
+
+Definition Rmin_3 (x y z : R) : R :=
+  Rmin (Rmin x y) z.
+
+Lemma lemma_1_13_max' : forall x y z,
+  Rmax_3 x y z = (x + ((y + z + Rabs (y - z)) / 2) + Rabs (((y + z + Rabs (y - z)) / 2) - x)) / 2.
+Proof.
+  intros x y z.
+  unfold Rmax_3, Rabs, Rmax;
+  repeat destruct Rle_dec;
+  repeat destruct Rcase_abs;
+  try lra.
+Qed.
+
+Lemma lemma_1_13_min' : forall x y z,
+  Rmin_3 x y z = (x + ((y + z - Rabs (y - z)) / 2) - Rabs (((y + z - Rabs (y - z)) / 2) - x)) / 2.
+Proof.
+  intros x y z.
+  repeat unfold Rmin_3, Rabs, Rmin;
+  repeat destruct Rle_dec;
+  repeat destruct Rcase_abs;
+  try lra.
+Qed.
+
 Lemma lemma_1_7 : forall a b : R,
   (0 < a < b) -> a < sqrt (a * b) < (a + b) / 2 /\ (a + b) / 2 < b.
 Proof.
@@ -975,6 +1025,123 @@ Proof.
   assert (H5 : 0 < a /\ 0 < b) by (split; assumption). apply H1 in H5. 
   rewrite Rmult_0_l in H5. apply H2 in H5. apply H5.
 Qed.
+
+Lemma lemma_1_9_i : Rabs (sqrt 2 + sqrt 3 - sqrt 5 + sqrt 7) = sqrt 2 + sqrt 3 - sqrt 5 + sqrt 7.
+Proof.
+  unfold Rabs. repeat destruct Rcase_abs; try nra.
+  assert (H1 : sqrt 7 > sqrt 5) by (apply sqrt_lt_1; lra).
+  assert (H2 : sqrt 2 > 0) by (apply sqrt_lt_R0; lra).
+  assert (H3 : sqrt 3 > 0) by (apply sqrt_lt_R0; lra).
+  assert (H4 : sqrt 5 > 0) by (apply sqrt_lt_R0; lra).
+  lra.
+Qed.
+
+Lemma lemma_1_9_ii : forall a b,
+  Rabs (Rabs (a + b) - Rabs a - Rabs b) = Rabs a + Rabs b - Rabs (a + b).
+Proof.
+  intros a b. unfold Rabs. repeat destruct Rcase_abs; try lra.
+Qed.
+
+Lemma lemma_1_9_iii : forall a b c,
+  Rabs (Rabs (a + b) + Rabs c - Rabs (a + b + c)) = Rabs (a + b) + Rabs c - Rabs (a + b + c).
+Proof.
+  intros a b c. unfold Rabs. repeat destruct Rcase_abs; try lra.
+Qed.
+
+Lemma lemma_1_9_iv : forall x y,
+  Rabs (x^2 - 2 * x * y + y^2) = x^2 - 2 * x * y + y^2.
+Proof.
+  intros x y. unfold Rabs. repeat destruct Rcase_abs; try nra.
+  assert (x * x + y * y > 2 * x * y) by (pose proof Rtotal_order x y as [H1 | [H1 | H1]]; nra); nra.
+Qed.
+
+Lemma sqrt_inequality: sqrt 3 + sqrt 5 > sqrt 7.
+Proof.
+  apply Rlt_gt.
+  assert (H1 : sqrt 7 > 0) by (apply sqrt_lt_R0; lra).
+  assert (H2 : sqrt 5 > 0) by (apply sqrt_lt_R0; lra).
+  assert (H3 : sqrt 3 > 0) by (apply sqrt_lt_R0; lra).
+  assert (H: (sqrt 3 + sqrt 5) ^ 2 > (sqrt 7) ^ 2).
+  - simpl. repeat rewrite Rmult_1_r. rewrite sqrt_def. 2 : { lra. }
+    replace ((sqrt 3 + sqrt 5) * (sqrt 3 + sqrt 5)) with (sqrt 3 * sqrt 3 + 2 * sqrt 3 * sqrt 5 + sqrt 5 * sqrt 5) by lra.
+    repeat rewrite sqrt_def; try nra.
+  - nra.
+Qed.
+
+Lemma lemma_1_9_v : Rabs (Rabs (sqrt 2 + sqrt 3) - Rabs (sqrt 5 - sqrt 7)) = sqrt 2 + sqrt 3 + sqrt 5 - sqrt 7.
+Proof.
+  assert (H1 : sqrt 7 > sqrt 5) by (apply sqrt_lt_1; lra).
+  assert (H2 : sqrt 2 > 0) by (apply sqrt_lt_R0; lra).
+  assert (H3 : sqrt 3 > 0) by (apply sqrt_lt_R0; lra).
+  assert (H4 : sqrt 5 > 0) by (apply sqrt_lt_R0; lra).
+  pose proof sqrt_inequality as H5.
+  unfold Rabs. repeat destruct Rcase_abs; try nra.
+Qed.
+
+Lemma lemma_1_12_i : forall x y,
+  Rabs (x * y) = Rabs x * Rabs y.
+Proof.
+  intros x y.
+  repeat unfold Rabs;
+  repeat destruct Rcase_abs;
+  try nra.
+Qed.
+
+Lemma lemma_1_12_ii : forall x,
+  Rabs (1 / x) = 1 / Rabs x.
+Proof.
+  intros x. pose proof Rinv_neg x. pose proof Rinv_pos x.
+  repeat unfold Rabs;
+  repeat destruct Rcase_abs;
+  try nra.
+  unfold Rdiv. field. nra. destruct r0. nra.
+  rewrite H1. unfold Rdiv. rewrite Rinv_0. nra.
+Qed.
+
+Lemma lemma_1_12_iii : forall x y,
+  y <> 0 -> Rabs x / Rabs y = Rabs (x / y).
+Proof.
+  intros x y H1. pose proof Rinv_neg y. pose proof Rinv_pos y.
+  repeat unfold Rabs;
+  repeat destruct Rcase_abs;
+  try field; try nra.
+  destruct r. nra. nra.
+Qed.
+
+Lemma lemma_1_12_iv : forall x y,
+  Rabs (x - y) <= Rabs x + Rabs y.
+Proof.
+  intros x y. repeat unfold Rabs; repeat destruct Rcase_abs; try nra.
+Qed.
+
+Lemma lemma_1_12_v : forall x y,
+  Rabs x - Rabs y <= Rabs (x - y).
+Proof.
+  intros x y. repeat unfold Rabs; repeat destruct Rcase_abs; try nra.
+Qed.
+
+Lemma lemma_1_12_vi : forall x y,
+  Rabs ((Rabs x) - (Rabs y)) <= Rabs (x - y).
+Proof.
+  intros x y. repeat unfold Rabs; repeat destruct Rcase_abs; try nra.
+Qed.
+
+Lemma lemma_1_12_vii : forall x y z,
+  Rabs (x + y + z) <= Rabs x + Rabs y + Rabs z.
+Proof.
+  intros x y z. repeat unfold Rabs; repeat destruct Rcase_abs; try nra.
+Qed.
+
+Lemma lemma_1_12_viii' : forall x y z,
+  Rabs (x + y + z) = Rabs x + Rabs y + Rabs z <-> (x >= 0 /\ y >= 0 /\ z >= 0) \/ (x <= 0 /\ y <= 0 /\ z <= 0).
+Proof.
+  intros x y z. split.
+  - intros H1. repeat unfold Rabs in H1; repeat destruct Rcase_abs in H1; try nra.
+  - intros H1. repeat unfold Rabs; repeat destruct Rcase_abs; try nra.
+Qed.
+
+Lemma lemma_1_12_viii : forall x y z,
+  Rabs (x * y * z) = Rabs x * Rabs y * Rabs z.
 
 Fixpoint fold_right' (l: list R) : R :=
   match l with
@@ -1296,7 +1463,7 @@ Proof.
            nra.
 Qed.
 
-Lemma even_or_odd : forall n : nat,
+Lemma Even_or_Odd' : forall n : nat,
   Nat.Even n \/ Nat.Odd n.
 Proof.
   intros n. induction n as [| k IH].

@@ -136,7 +136,7 @@ Lemma lemma1 : forall (n : nat),
   F(n+2) * F n - (F(n+1))^2 = (-1)^n.
 Proof.
   induction n as [| k IH].
-  - simpl. lra.
+  - compute. lra.
   - replace ( ((S k + 2)%nat) ) with ( (k+3)%nat ) by lia.
     replace ( (S k) ) with ( (k+1)%nat ) by lia.
     replace ( (k + 1 + 1)%nat ) with ( (k + 2)%nat ) by lia.
@@ -150,7 +150,7 @@ Proof.
             ( F(k+2) * (F k + F(k+1) - F(k+2)) - (-1)^k) by lra.
     rewrite Rplus_comm.
     replace ( F(k+1) + F k ) with ( F(k+2) ) by (rewrite <- fib_n_plus_2; reflexivity).
-    rewrite pow_neg1_n_plus_1. lra.
+    rewrite pow_neg1_n_plus_1 with (n := k). lra.
 Qed.
 
 Lemma lemma2 : forall (n : nat), 
@@ -237,7 +237,7 @@ Qed.
 
 Lemma b_increasing : increasing b.
 Proof.
-  intros n. unfold b.
+  unfold increasing. intros n. unfold b.
   apply Rge_le. apply Rgt_ge.
   replace ( (2 * S n + 1) )%nat with ( (2*n + 3)%nat ) by lia.
   replace ( (2 * S n) )%nat with ( (2*n+2)%nat ) by lia.
