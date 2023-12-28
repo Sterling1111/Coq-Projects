@@ -1140,8 +1140,19 @@ Proof.
   - intros H1. repeat unfold Rabs; repeat destruct Rcase_abs; try nra.
 Qed.
 
-Lemma lemma_1_12_viii : forall x y z,
-  Rabs (x * y * z) = Rabs x * Rabs y * Rabs z.
+Lemma lemma_1_20 : forall x x0 y y0 eps,
+  Rabs (x - x0) < eps / 2 -> Rabs (y - y0) < eps / 2 -> (Rabs ((x + y) - (x0 + y0)) < eps /\ Rabs ((x - y) - (x0 - y0)) < eps).
+Proof.
+  intros x x0 y y0 eps H1 H2. split.
+  - repeat unfold Rabs in *; repeat destruct Rcase_abs in *; try nra.
+  - repeat unfold Rabs in *; repeat destruct Rcase_abs in *; try nra.
+Qed.
+
+Lemma lemma_1_21 : forall x x0 y y0 eps,
+  Rabs (x - x0) < Rmin (eps / (2 * (Rabs (y0) + 1))) 1 -> Rabs (y - y0) < eps / (2 * ((Rabs x0) + 1)) -> Rabs (x * y - x0 * y0) < eps.
+Proof.
+  intros x x0 y y0 eps H1 H2.
+Abort. 
 
 Fixpoint fold_right' (l: list R) : R :=
   match l with
