@@ -853,56 +853,6 @@ Proof.
            assert (H10 : (-x)^n = x^n). { pose proof Rpow_even_neg_eq_pos x n as H10. destruct H10 as [H10 H11]. apply H4. apply H10. apply H2. } lra.
 Qed.
 
-Lemma lemma_1_13_max : forall x y,
-  Rmax x y = (x + y + Rabs (x - y)) / 2.
-Proof.
-  intros x y. unfold Rmax. destruct (Rle_dec x y) as [H1 | H1].
-  - unfold Rabs. destruct (Rcase_abs (x - y)) as [H2 | H2].
-    -- lra.
-    -- assert (H3 : x = y) by lra. rewrite H3. lra.
-  - unfold Rabs. destruct (Rcase_abs (x - y)) as [H2 | H2].
-    -- assert (H3 : x < y) by lra. assert (H4 : x > y) by lra. lra.
-    -- lra.
-Qed.
-
-Lemma lemma_1_13_min : forall x y,
-  Rmin x y = (x + y - Rabs (x - y)) / 2.
-Proof.
-  intros x y. unfold Rmin. destruct (Rle_dec x y) as [H1 | H1].
-  - unfold Rabs. destruct (Rcase_abs (x - y)) as [H2 | H2].
-    -- lra.
-    -- assert (H3 : x = y) by lra. rewrite H3. lra.
-  - unfold Rabs. destruct (Rcase_abs (x - y)) as [H2 | H2].
-    -- assert (H3 : x < y) by lra. assert (H4 : x > y) by lra. lra.
-    -- lra.
-Qed.
-
-Definition Rmax_3 (x y z : R) : R :=
-  Rmax (Rmax x y) z.
-
-Definition Rmin_3 (x y z : R) : R :=
-  Rmin (Rmin x y) z.
-
-Lemma lemma_1_13_max' : forall x y z,
-  Rmax_3 x y z = (x + ((y + z + Rabs (y - z)) / 2) + Rabs (((y + z + Rabs (y - z)) / 2) - x)) / 2.
-Proof.
-  intros x y z.
-  unfold Rmax_3, Rabs, Rmax;
-  repeat destruct Rle_dec;
-  repeat destruct Rcase_abs;
-  try lra.
-Qed.
-
-Lemma lemma_1_13_min' : forall x y z,
-  Rmin_3 x y z = (x + ((y + z - Rabs (y - z)) / 2) - Rabs (((y + z - Rabs (y - z)) / 2) - x)) / 2.
-Proof.
-  intros x y z.
-  repeat unfold Rmin_3, Rabs, Rmin;
-  repeat destruct Rle_dec;
-  repeat destruct Rcase_abs;
-  try lra.
-Qed.
-
 Lemma lemma_1_7 : forall a b : R,
   (0 < a < b) -> a < sqrt (a * b) < (a + b) / 2 /\ (a + b) / 2 < b.
 Proof.
@@ -1139,6 +1089,133 @@ Proof.
   - intros H1. repeat unfold Rabs in H1; repeat destruct Rcase_abs in H1; try nra.
   - intros H1. repeat unfold Rabs; repeat destruct Rcase_abs; try nra.
 Qed.
+
+Lemma lemma_1_13_max : forall x y,
+  Rmax x y = (x + y + Rabs (x - y)) / 2.
+Proof.
+  intros x y. unfold Rmax. destruct (Rle_dec x y) as [H1 | H1].
+  - unfold Rabs. destruct (Rcase_abs (x - y)) as [H2 | H2].
+    -- lra.
+    -- assert (H3 : x = y) by lra. rewrite H3. lra.
+  - unfold Rabs. destruct (Rcase_abs (x - y)) as [H2 | H2].
+    -- assert (H3 : x < y) by lra. assert (H4 : x > y) by lra. lra.
+    -- lra.
+Qed.
+
+Lemma lemma_1_13_min : forall x y,
+  Rmin x y = (x + y - Rabs (x - y)) / 2.
+Proof.
+  intros x y. unfold Rmin. destruct (Rle_dec x y) as [H1 | H1].
+  - unfold Rabs. destruct (Rcase_abs (x - y)) as [H2 | H2].
+    -- lra.
+    -- assert (H3 : x = y) by lra. rewrite H3. lra.
+  - unfold Rabs. destruct (Rcase_abs (x - y)) as [H2 | H2].
+    -- assert (H3 : x < y) by lra. assert (H4 : x > y) by lra. lra.
+    -- lra.
+Qed.
+
+Definition Rmax_3 (x y z : R) : R :=
+  Rmax (Rmax x y) z.
+
+Definition Rmin_3 (x y z : R) : R :=
+  Rmin (Rmin x y) z.
+
+Lemma lemma_1_13_max' : forall x y z,
+  Rmax_3 x y z = (x + ((y + z + Rabs (y - z)) / 2) + Rabs (((y + z + Rabs (y - z)) / 2) - x)) / 2.
+Proof.
+  intros x y z.
+  unfold Rmax_3, Rabs, Rmax;
+  repeat destruct Rle_dec;
+  repeat destruct Rcase_abs;
+  try lra.
+Qed.
+
+Lemma lemma_1_13_min' : forall x y z,
+  Rmin_3 x y z = (x + ((y + z - Rabs (y - z)) / 2) - Rabs (((y + z - Rabs (y - z)) / 2) - x)) / 2.
+Proof.
+  intros x y z.
+  repeat unfold Rmin_3, Rabs, Rmin;
+  repeat destruct Rle_dec;
+  repeat destruct Rcase_abs;
+  try lra.
+Qed.
+
+Lemma lemma_1_14_a : forall a,
+  Rabs a = Rabs (-a).
+Proof.
+  intros a. unfold Rabs. repeat destruct Rcase_abs; try lra.
+Qed.
+
+Lemma lemma_1_14_b : forall a b,
+  -b <= a <= b <-> Rabs a <= b.
+Proof.
+  intros a b. split.
+  - intros [H1 H2]. unfold Rabs. repeat destruct Rcase_abs; try lra.
+  - intros H1. unfold Rabs in H1. repeat destruct Rcase_abs; try lra.
+Qed.
+
+Lemma lemma_1_14_b' : forall a,
+  - Rabs a <= a <= Rabs a.
+Proof.
+  intros a. unfold Rabs. repeat destruct Rcase_abs; try lra.
+Qed.
+
+Lemma lemma_1_14_c : forall a b,
+  Rabs (a + b) <= Rabs a + Rabs b.
+Proof.
+  intros a b. pose proof lemma_1_14_b' a as H1. pose proof lemma_1_14_b' b as H2.
+  assert (H3 : -(Rabs a + Rabs b) <= a + b <= Rabs a + Rabs b) by lra.
+  pose proof lemma_1_14_b (a + b) (Rabs a + Rabs b) as [H4 H5]. apply H4. apply H3.
+Qed.
+
+Lemma lemma_1_15' : forall x y,
+  x <> 0 -> x^2 + x * y + y^2 > 0 /\ x^4 + x^3 * y + x^2 * y^2 + x * y^3 + y^4 > 0.
+Proof.
+  intros x y H1. split.
+  - pose proof Req_dec x y as [H2 | H2].
+    -- rewrite H2 in *. rewrite <- Rsqr_def. pose proof Rsqr_pos_lt y as H3.
+       apply H3 in H1. nra.
+    -- assert (H3 : x^2 + x * y + y^2 = (x^3 - y^3) / (x - y)) by (field; lra).
+       assert (H4 : (x - y) > 0 -> x^3 - y^3 > 0). 
+       {
+         intro H4. apply Rplus_gt_reg_r with (r := y^3). 
+         replace (x^3 - y^3 + y^3) with (x^3) by lra. rewrite Rplus_0_l.
+         apply lemma_1_6_b. lra. exists 1%nat. lia.
+       } 
+       assert (H5 : (x - y) < 0 -> x^3 - y^3 < 0). 
+       {
+         intro H5. apply Rplus_lt_reg_r with (r := y^3). 
+         replace (x^3 - y^3 + y^3) with (x^3) by lra. rewrite Rplus_0_l.
+         apply lemma_1_6_b. lra. exists 1%nat. lia.
+       }
+       nra.
+  - pose proof Req_dec x y as [H2 | H2].
+    -- rewrite H2 in *. replace (y ^ 4 + y ^ 3 * y + y ^ 2 * y ^ 2 + y * y ^ 3 + y ^ 4) with (5 * y^2 * y^2) by nra.
+       assert (H3 : 0 < y^2) by nra. nra.
+    -- assert (H3 : x^4 + x^3 * y + x^2 * y^2 + x * y^3 + y^4 = (x^5 - y^5) / (x - y)) by (field; lra).
+       assert (H4 : (x - y) > 0 -> x^5 - y^5 > 0). 
+       {
+         intro H4. apply Rplus_gt_reg_r with (r := y^5). 
+         replace (x^5 - y^5 + y^5) with (x^5) by lra. rewrite Rplus_0_l.
+         apply lemma_1_6_b. lra. exists 2%nat. lia.
+       } 
+       assert (H5 : (x - y) < 0 -> x^5 - y^5 < 0). 
+       {
+         intro H5. apply Rplus_lt_reg_r with (r := y^5). 
+         replace (x^5 - y^5 + y^5) with (x^5) by lra. rewrite Rplus_0_l.
+         apply lemma_1_6_b. lra. exists 2%nat. lia.
+       }
+       nra.
+Qed.
+
+Lemma lemma_1_15 : forall x y,
+  (x <> 0 \/ y <> 0) -> x^2 + x * y + y^2 > 0 /\ x^4 + x^3 * y + x^2 * y^2 + x * y^3 + y^4 > 0.
+Proof.
+  intros x y [H1 | H1].
+  - apply lemma_1_15'. apply H1.
+  - pose proof lemma_1_15' y x as H2. nra.
+Qed.
+  
 
 Lemma lemma_1_20 : forall x x0 y y0 eps,
   Rabs (x - x0) < eps / 2 -> Rabs (y - y0) < eps / 2 -> (Rabs ((x + y) - (x0 + y0)) < eps /\ Rabs ((x - y) - (x0 - y0)) < eps).
