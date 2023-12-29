@@ -1,5 +1,4 @@
 Require Import Lia Lra FunctionalExtensionality.
-Require Import Cpdt.CpdtTactics.
 
 From Fibonacci Require Import 
   Fibonacci_Definitions Miscellaneous_Lemmas 
@@ -445,4 +444,3 @@ Proof.
   destruct Hc_both as [Hc1 Hc2].
   unfold convergent_sequence. exists La. unfold limit_of_sequence in Hc1. apply Hc1.
 Qed.
-

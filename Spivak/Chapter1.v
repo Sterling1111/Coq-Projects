@@ -1148,11 +1148,56 @@ Proof.
   - repeat unfold Rabs in *; repeat destruct Rcase_abs in *; try nra.
 Qed.
 
+Lemma Rdiv_lt_1: forall a b : R, a < b -> b > 0 -> a / b < 1.
+Proof.
+  intros a b H1 H2.
+  apply Rmult_lt_compat_r with (r := 1/b) in H1.
+  - replace (a * (1 / b)) with (a / b) in H1 by lra.
+    replace (b * (1 / b)) with 1 in H1 by (field; lra).
+    apply H1.
+  - apply Rdiv_pos_pos. lra. apply H2.
+Qed.  
+
 Lemma lemma_1_21 : forall x x0 y y0 eps,
   Rabs (x - x0) < Rmin (eps / (2 * (Rabs (y0) + 1))) 1 -> Rabs (y - y0) < eps / (2 * ((Rabs x0) + 1)) -> Rabs (x * y - x0 * y0) < eps.
 Proof.
-  intros x x0 y y0 eps H1 H2.
-Abort. 
+  intros x x0 y y0 eps H1 H2. assert (H3 : (Rabs (x - x0)) < 1). { apply Rlt_gt in H1. apply Rmin_Rgt_l in H1. lra. }
+  assert (H4 : Rabs x - Rabs x0 < 1). { pose proof lemma_1_12_v x x0. lra. }
+  assert (H5 : Rabs (y - y0) >= 0) by (apply Rle_ge; apply Rabs_pos).
+  assert (H6 : Rabs x0 >= 0) by (apply Rle_ge; apply Rabs_pos).
+  assert (H7 : eps > 0).
+  { 
+    pose proof Rtotal_order eps 0 as [H7 | [H7 | H7]].
+    - assert (H8 : eps / (2 * (Rabs x0 + 1)) < 0). { apply Rdiv_neg_pos. lra. lra. } lra.
+    - nra.
+    - apply H7.
+  }
+  assert (H8 : Rabs x < 1 + Rabs x0) by lra. replace (x * y - x0 * y0) with (x * (y - y0) + y0 * (x - x0)) by lra.
+  assert (H9 : Rabs (x * (y - y0) + y0 * (x - x0)) <= Rabs x * Rabs (y - y0) + Rabs y0 * Rabs (x - x0)). 
+  { repeat rewrite <- lemma_1_12_i. apply Rabs_triang. }
+  assert (H10 : (1 + Rabs x0) * (eps / (2 * (Rabs x0 + 1))) = eps / 2). { field; try unfold Rabs; try destruct Rcase_abs; try nra. }
+
+  assert (H : forall x, x >= 0 -> x / (2 * (x + 1)) < 1 / 2).
+  {
+    intros x1 H11. apply Rmult_lt_reg_l with (r := 2). lra. unfold Rdiv.
+  replace (2 * (1 * / 2)) with (1) by lra. replace (2 * (x1 * / (2 * (x1 + 1)))) with ((x1) * (2 * / (2 * (x1 + 1)))) by lra.
+  rewrite Rinv_mult. replace (2 * (/ 2 * / (x1 + 1))) with (2 * / 2 * / (x1 + 1)) by nra. rewrite Rinv_r. 2 : lra.
+  rewrite Rmult_1_l. rewrite <- Rdiv_def. apply Rdiv_lt_1. lra. lra.
+  }
+  assert (H11 : (Rabs y0 * (eps / (2 * ((Rabs y0) + 1)))) < eps / 2). 
+  { 
+    replace (Rabs y0 * (eps / (2 * (Rabs y0 + 1)))) with (eps * (Rabs y0 * / (2 * (Rabs y0 + 1)))) by lra.
+    pose proof H (Rabs y0) as H12. unfold Rdiv. apply Rmult_lt_compat_l. lra. unfold Rdiv in H12. rewrite Rmult_1_l in H12.
+    apply H12. apply Rle_ge. apply Rabs_pos.
+  }
+  replace (eps) with (eps / 2 + eps / 2) by lra. 
+  assert (H12 : Rabs x * Rabs (y - y0) < ((1 + Rabs x0) * (eps / (2 * (Rabs x0 + 1))))) by nra.
+  assert (H13 : Rabs (x - x0) < (eps / (2 * (Rabs y0 + 1)))). { apply Rlt_gt in H1. apply Rmin_Rgt_l in H1. lra. }
+  assert (H14 : Rabs y0 >= 0) by (apply Rle_ge; apply Rabs_pos).
+  assert (H15 : Rabs (x - x0) >= 0) by (apply Rle_ge; apply Rabs_pos).
+  assert (H16 : Rabs y0 * Rabs (x - x0) <= (Rabs y0 * (eps / (2 * ((Rabs y0 + 1)))))) by nra.
+  nra.
+Qed.
 
 Fixpoint fold_right' (l: list R) : R :=
   match l with
