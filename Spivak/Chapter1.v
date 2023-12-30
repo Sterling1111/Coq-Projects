@@ -976,9 +976,12 @@ Proof.
   rewrite Rmult_0_l in H5. apply H2 in H5. apply H5.
 Qed.
 
+Ltac solve_abs := 
+  try intros; repeat unfold Rabs in *; repeat destruct Rcase_abs in *; try nra; try field; try nia.
+
 Lemma lemma_1_9_i : Rabs (sqrt 2 + sqrt 3 - sqrt 5 + sqrt 7) = sqrt 2 + sqrt 3 - sqrt 5 + sqrt 7.
 Proof.
-  unfold Rabs. repeat destruct Rcase_abs; try nra.
+  solve_abs.
   assert (H1 : sqrt 7 > sqrt 5) by (apply sqrt_lt_1; lra).
   assert (H2 : sqrt 2 > 0) by (apply sqrt_lt_R0; lra).
   assert (H3 : sqrt 3 > 0) by (apply sqrt_lt_R0; lra).
@@ -989,19 +992,19 @@ Qed.
 Lemma lemma_1_9_ii : forall a b,
   Rabs (Rabs (a + b) - Rabs a - Rabs b) = Rabs a + Rabs b - Rabs (a + b).
 Proof.
-  intros a b. unfold Rabs. repeat destruct Rcase_abs; try lra.
+  solve_abs.
 Qed.
 
 Lemma lemma_1_9_iii : forall a b c,
   Rabs (Rabs (a + b) + Rabs c - Rabs (a + b + c)) = Rabs (a + b) + Rabs c - Rabs (a + b + c).
 Proof.
-  intros a b c. unfold Rabs. repeat destruct Rcase_abs; try lra.
+  solve_abs.
 Qed.
 
 Lemma lemma_1_9_iv : forall x y,
   Rabs (x^2 - 2 * x * y + y^2) = x^2 - 2 * x * y + y^2.
 Proof.
-  intros x y. unfold Rabs. repeat destruct Rcase_abs; try nra.
+  solve_abs.
   assert (x * x + y * y > 2 * x * y) by (pose proof Rtotal_order x y as [H1 | [H1 | H1]]; nra); nra.
 Qed.
 
@@ -1028,23 +1031,144 @@ Proof.
   unfold Rabs. repeat destruct Rcase_abs; try nra.
 Qed.
 
+Lemma Rminus_neg : forall a b,
+  a - - b = a + b.
+Proof.
+  intros a b. lra.
+Qed.
+
+Lemma Rplus_neg : forall a b,
+  a + - b = a - b.
+Proof. 
+  intros a b. lra.
+Qed.
+
+Lemma lemma_1_10_i : forall a b,
+  ((a >= -b /\ b >= 0) -> Rabs (a + b) - Rabs b = a) /\
+  ((a <= -b /\ b <= 0) -> Rabs (a + b) - Rabs b = -a) /\
+  ((a >= -b /\ b <= 0) -> Rabs (a + b) - Rabs b = a + 2 * b) /\
+  ((a <= -b /\ b >= 0) -> Rabs (a + b) - Rabs b = -a - 2 * b).
+Proof.
+  solve_abs.
+Qed.
+
+Lemma lemma_1_10_ii : forall x,
+  (x >= 1 <-> Rabs (Rabs x - 1) = x - 1) /\
+  (0 <= x <= 1 <-> Rabs (Rabs x - 1) = 1 - x) /\
+  (-1 <= x <= 0 <-> Rabs (Rabs x - 1) = 1 + x) /\
+  (x <= -1 <-> Rabs (Rabs x - 1) = -1 - x).
+Proof.
+  solve_abs.
+Qed.
+
+Lemma lemma_1_10_iii : forall x,
+  (x >= 0 <-> Rabs x - Rabs (x^2) = x - x^2) /\
+  (x <= 0 <-> Rabs x - Rabs (x^2) = -x - x^2).
+Proof.
+  solve_abs.
+Qed.
+
+Lemma lemma_1_10_iv : forall a,
+  (a >= 0 <-> a - Rabs (a - Rabs a) = a) /\
+  (a <= 0 <-> a - Rabs (a - Rabs a) = 3 * a).
+Proof.
+  solve_abs.
+Qed.
+
+Lemma lemma_1_11_i : forall x, 
+  (x = 11 \/ x = -5) <-> Rabs (x - 3) = 8.
+Proof.
+  solve_abs.
+Qed.
+
+Lemma lemma_1_11_ii : forall x,
+  (-5 < x < 11) <-> Rabs (x - 3) < 8.
+Proof.
+  solve_abs.
+Qed.
+
+Lemma lemma_1_11_iii : forall x,
+  (-6 < x < -2) <-> Rabs (x + 4) < 2.
+Proof.
+  solve_abs.
+Qed.
+
+Lemma lemma_1_11_iv : forall x,
+  (x < 1 \/ x > 2) <-> Rabs (x - 1) + Rabs (x - 2) > 1.
+Proof.
+  solve_abs.
+Qed.
+
+Lemma lemma_1_11_v : forall x, Rabs (x - 1) + Rabs (x + 1) < 2 -> False.
+Proof.
+  solve_abs.
+Qed.
+
+Lemma lemma_1_11_vi : forall x, Rabs (x - 1) + Rabs (x + 1) < 1 -> False.
+Proof.
+  solve_abs.
+Qed.
+
+Lemma lemma_1_11_vii : forall x, 
+  (x = 1 \/ x = -1) <-> Rabs (x - 1) * Rabs (x + 1) = 0.
+Proof.
+  solve_abs.
+Qed.
+
+Lemma lemma_1_11_viii : forall x,
+ (x = (-1 + sqrt 21) / 2 \/ x = (-1 - sqrt 21) / 2) <-> Rabs (x - 1) * Rabs (x + 2) = 3.
+Proof.
+  intros x. assert (H1 : x^2 + x - 5 = 0 <-> x = (-1 + sqrt 21) / 2 \/ x = (-1 - sqrt 21) / 2).
+  {
+    split.
+    {
+    intros H1. replace (x^2 + x - 5) with ((x - (-1 + sqrt 21) / 2) * (x - (-1 - sqrt 21) / 2)) in H1. 2 :
+       {
+         set (r1 := (-1 + sqrt 21) / 2). set (r2 := (-1 - sqrt 21) / 2). replace ((x - r1) * (x - r2)) with (x^2 - x * (r2 + r1) + r1 * r2) by lra.
+         assert (H2 : r1 + r2 = -1).
+        { unfold r1, r2. apply Rmult_eq_reg_r with (r := 2). 2 : { lra. } nra. }
+         assert (H3 : r1 * r2 = -5). 
+         {
+            unfold r1, r2. apply Rmult_eq_reg_r with (r := 4). 2 : { lra. }
+            replace (((-1 + sqrt 21) / 2) * ((-1 - sqrt 21) / 2) * 4) with ((-1 - sqrt 21) * (-1 + sqrt 21)) by nra.
+            replace (-5 * 4) with (-20) by lra. replace ((-1 - sqrt 21) * (-1 + sqrt 21)) with (1^2 - (sqrt 21)^2) by lra.
+            rewrite pow2_sqrt. lra. lra.
+         } nra.
+       } nra. 
+    }
+    {
+     intros H1. destruct H1 as [H1 | H1].
+     {
+       rewrite H1. apply Rplus_eq_reg_r with (r := 5). rewrite Rplus_0_l.
+       replace (((-1 + sqrt 21) / 2) ^ 2 + (-1 + sqrt 21) / 2 - 5 + 5) with (((-1 + sqrt 21) / 2) * (((-1 + sqrt 21) / 2) + 1)) by nra.
+       apply Rmult_eq_reg_r with (r := 4). 2 : { lra. } replace ((-1 + sqrt 21) / 2 * ((-1 + sqrt 21) / 2 + 1) * 4) with ((-1 + sqrt 21) * (-1 + sqrt 21 + 2)) by nra.
+       replace (5 * 4) with 20 by lra. replace (-1 + sqrt 21 + 2) with (1 + sqrt 21) by lra. replace ((-1 + sqrt 21) * (1 + sqrt 21)) with (-1 + (sqrt 21)^2) by nra.
+       rewrite pow2_sqrt. lra. lra.
+     }
+     {
+      rewrite H1. apply Rplus_eq_reg_r with (r := 5). rewrite Rplus_0_l.
+      replace (((-1 - sqrt 21) / 2) ^ 2 + (-1 - sqrt 21) / 2 - 5 + 5) with (((-1 - sqrt 21) / 2) * (((-1 - sqrt 21) / 2) + 1)) by nra.
+      apply Rmult_eq_reg_r with (r := 4). 2 : { lra. } replace ((-1 - sqrt 21) / 2 * ((-1 - sqrt 21) / 2 + 1) * 4) with ((-1 - sqrt 21) * (-1 - sqrt 21 + 2)) by nra.
+      replace (5 * 4) with 20 by lra. replace (-1 - sqrt 21 + 2) with (1 - sqrt 21) by lra. replace ((-1 - sqrt 21) * (1 - sqrt 21)) with (-1 + (sqrt 21)^2) by nra.
+      rewrite pow2_sqrt. lra. lra.
+     }
+    } 
+     
+  } solve_abs. 
+Qed.
+
 Lemma lemma_1_12_i : forall x y,
   Rabs (x * y) = Rabs x * Rabs y.
 Proof.
-  intros x y.
-  repeat unfold Rabs;
-  repeat destruct Rcase_abs;
-  try nra.
+  solve_abs.
 Qed.
 
 Lemma lemma_1_12_ii : forall x,
   Rabs (1 / x) = 1 / Rabs x.
 Proof.
-  intros x. pose proof Rinv_neg x. pose proof Rinv_pos x.
-  repeat unfold Rabs;
-  repeat destruct Rcase_abs;
-  try nra.
-  unfold Rdiv. field. nra. destruct r0. nra.
+  intros x. pose proof Rinv_neg x. pose proof Rinv_pos x. 
+  solve_abs. nra.  
+  unfold Rdiv. destruct r0. nra.
   rewrite H1. unfold Rdiv. rewrite Rinv_0. nra.
 Qed.
 
@@ -1052,42 +1176,37 @@ Lemma lemma_1_12_iii : forall x y,
   y <> 0 -> Rabs x / Rabs y = Rabs (x / y).
 Proof.
   intros x y H1. pose proof Rinv_neg y. pose proof Rinv_pos y.
-  repeat unfold Rabs;
-  repeat destruct Rcase_abs;
-  try field; try nra.
-  destruct r. nra. nra.
+  solve_abs. nra. nra. destruct r. nra. nra. 
 Qed.
 
 Lemma lemma_1_12_iv : forall x y,
   Rabs (x - y) <= Rabs x + Rabs y.
 Proof.
-  intros x y. repeat unfold Rabs; repeat destruct Rcase_abs; try nra.
+  solve_abs.
 Qed.
 
 Lemma lemma_1_12_v : forall x y,
   Rabs x - Rabs y <= Rabs (x - y).
 Proof.
-  intros x y. repeat unfold Rabs; repeat destruct Rcase_abs; try nra.
+  solve_abs.
 Qed.
 
 Lemma lemma_1_12_vi : forall x y,
   Rabs ((Rabs x) - (Rabs y)) <= Rabs (x - y).
 Proof.
-  intros x y. repeat unfold Rabs; repeat destruct Rcase_abs; try nra.
+  solve_abs.
 Qed.
 
 Lemma lemma_1_12_vii : forall x y z,
   Rabs (x + y + z) <= Rabs x + Rabs y + Rabs z.
 Proof.
-  intros x y z. repeat unfold Rabs; repeat destruct Rcase_abs; try nra.
+  solve_abs.
 Qed.
 
 Lemma lemma_1_12_viii' : forall x y z,
   Rabs (x + y + z) = Rabs x + Rabs y + Rabs z <-> (x >= 0 /\ y >= 0 /\ z >= 0) \/ (x <= 0 /\ y <= 0 /\ z <= 0).
 Proof.
-  intros x y z. split.
-  - intros H1. repeat unfold Rabs in H1; repeat destruct Rcase_abs in H1; try nra.
-  - intros H1. repeat unfold Rabs; repeat destruct Rcase_abs; try nra.
+  solve_abs.
 Qed.
 
 Lemma lemma_1_13_max : forall x y,
@@ -1124,40 +1243,32 @@ Lemma lemma_1_13_max' : forall x y z,
   Rmax_3 x y z = (x + ((y + z + Rabs (y - z)) / 2) + Rabs (((y + z + Rabs (y - z)) / 2) - x)) / 2.
 Proof.
   intros x y z.
-  unfold Rmax_3, Rabs, Rmax;
-  repeat destruct Rle_dec;
-  repeat destruct Rcase_abs;
-  try lra.
+  repeat unfold Rmax_3; repeat unfold Rmax; repeat destruct Rle_dec; solve_abs.
 Qed.
 
 Lemma lemma_1_13_min' : forall x y z,
   Rmin_3 x y z = (x + ((y + z - Rabs (y - z)) / 2) - Rabs (((y + z - Rabs (y - z)) / 2) - x)) / 2.
 Proof.
   intros x y z.
-  repeat unfold Rmin_3, Rabs, Rmin;
-  repeat destruct Rle_dec;
-  repeat destruct Rcase_abs;
-  try lra.
+  repeat unfold Rmin_3, Rmin; repeat destruct Rle_dec; solve_abs.
 Qed.
 
 Lemma lemma_1_14_a : forall a,
   Rabs a = Rabs (-a).
 Proof.
-  intros a. unfold Rabs. repeat destruct Rcase_abs; try lra.
+  solve_abs.
 Qed.
 
 Lemma lemma_1_14_b : forall a b,
   -b <= a <= b <-> Rabs a <= b.
 Proof.
-  intros a b. split.
-  - intros [H1 H2]. unfold Rabs. repeat destruct Rcase_abs; try lra.
-  - intros H1. unfold Rabs in H1. repeat destruct Rcase_abs; try lra.
+  solve_abs.
 Qed.
 
 Lemma lemma_1_14_b' : forall a,
   - Rabs a <= a <= Rabs a.
 Proof.
-  intros a. unfold Rabs. repeat destruct Rcase_abs; try lra.
+  solve_abs.
 Qed.
 
 Lemma lemma_1_14_c : forall a b,
