@@ -1406,7 +1406,7 @@ Proof.
   - nra.
 Qed.
 
-Lemma lemma_1_17_a' : forall x,
+Lemma lemma_1_17_a : forall x,
   (x = 3 / 4 -> 2 * x^2 - 3 * x + 4 = 23 / 8) /\ 23 / 8 <= 2 * x^2 - 3 * x + 4.
 Proof.
   intros x. split.
