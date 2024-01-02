@@ -1606,6 +1606,50 @@ Proof.
        nra.
 Qed. 
 
+Lemma lemma_1_23 : forall x y x0 y0 eps,
+  (y0 <> 0) -> (Rabs (x - x0) < Rmin (eps / (2 * (1 / Rabs y0 + 1))) 1) -> (Rabs (y - y0) < Rmin (Rabs (y0 / 2)) ((eps * (Rabs y0)^2) / (4 * ((Rabs x0) + 1)))) -> (y <> 0 /\ Rabs (x / y - x0 / y0) < eps).
+Proof.
+  intros x y x0 y0 eps H1 H2 H3. 
+  assert (H4 : 4 * ((Rabs x0) + 1) > 2) by solve_abs.
+  assert (H5 : eps >= 0).
+  { 
+    pose proof Rtotal_order eps 0 as [H5 | [H5 | H5]].
+    - assert (H6 : eps / (2 * (1 / Rabs y0 + 1)) < 0). 
+      {
+         apply Rdiv_neg_pos. nra.
+         assert (1 / Rabs y0 >= 0). 
+         {
+            assert (Rabs y0 = 0 \/ Rabs y0 > 0) as [H7 | H7] by solve_abs.
+            - rewrite H7. unfold Rdiv. rewrite Rmult_1_l. rewrite Rinv_0. nra.
+            - unfold Rdiv. rewrite Rmult_1_l. apply Rgt_ge. apply Rinv_0_lt_compat. apply H7.
+         } 
+         nra.
+      }
+      assert (H7 : Rabs (x - x0) >= 0) by solve_abs. apply Rlt_gt in H2. apply Rmin_Rgt_l in H2. lra.
+    - nra.
+    - nra.
+  }
+  split.
+  - assert (H6 : forall a b c : R, a >= 0 -> b > 0 -> c > 0 -> b >= c -> a / b <= a / c).
+    { intros a b c H6 H7 H8 H9. apply Rmult_le_reg_r with (r := b). nra.
+      replace (a / b * b) with a by (field; lra). apply Rmult_le_reg_r with (r := c). lra.
+      replace (a / c * b * c) with (a * b) by (field; lra). nra.
+    }
+    assert (H7 : eps * Rabs y0 ^ 2 / (4 * (Rabs x0 + 1)) <= eps * Rabs y0 ^ 2 / 2).
+    { apply H6. nra. nra. nra. nra. }
+    assert (H8 : Rabs (y - y0) < eps * Rabs y0 ^ 2 / (4 * (Rabs x0 + 1))).
+    { apply Rlt_gt in H3. apply Rmin_Rgt_l in H3. lra. } 
+    assert (H9 : Rabs (y - y0) < Rabs (y0 / 2)).
+    { apply Rlt_gt in H3. apply Rmin_Rgt_l in H3. lra. }
+    apply lemma_1_22 with (y0 := y0) (eps := eps). 2 : { apply Rmin_glb_lt. nra. nra. } nra.
+  - assert (H6 : 1 / Rabs y0 = Rabs (/ y0)). { unfold Rdiv. rewrite Rmult_1_l. rewrite Rabs_inv. reflexivity. }
+    unfold Rdiv. apply lemma_1_21.
+    -- rewrite H6 in H2. apply Rlt_gt in H2. apply Rmin_Rgt_l in H2. apply Rmin_glb_lt. nra. nra.
+    -- repeat rewrite <- Rdiv_1_l. apply lemma_1_22. nra. 
+       replace (eps / (2 * (Rabs x0 + 1)) * Rabs y0 ^ 2 / 2) with (eps * Rabs y0 ^ 2 / (4 * (Rabs x0 + 1))) by (field; nra).
+       nra.
+Qed.
+
 Fixpoint fold_right' (l: list R) : R :=
   match l with
   | [] => 0
