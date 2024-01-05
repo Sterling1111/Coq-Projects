@@ -534,8 +534,20 @@ Proof.
         ---- lra.
         ---- lra.
        --- lra.
-  - intros H1. assert (H2 : x^2 + x + 1 > 0) by lra.
-Abort.
+  - intros H1. assert (H2 : x^2 + x - 1 > 0) by nra.
+    replace (x^2 + x - 1) with ((x - (-1 + sqrt 5) / 2) * (x - (-1 - sqrt 5) / 2)) in H2. 2 :
+       {
+         set (r1 := (-1 + sqrt 5) / 2). set (r2 := (-1 - sqrt 5) / 2). replace ((x - r1) * (x - r2)) with (x^2 - x * (r2 + r1) + r1 * r2) by lra.
+         assert (H3 : r1 + r2 = -1) by (unfold r1, r2; lra).
+         assert (H4 : r1 * r2 = -1).
+         {
+            unfold r1, r2. apply Rmult_eq_reg_r with (r := 4). 2 : { lra. }
+            replace (((-1 + sqrt 5) / 2) * ((-1 - sqrt 5) / 2) * 4) with ((-1 - sqrt 5) * (-1 + sqrt 5)) by nra.
+            replace (-1 * 4) with (-4) by lra. replace ((-1 - sqrt 5) * (-1 + sqrt 5)) with (1^2 - (sqrt 5)^2) by lra.
+            rewrite pow2_sqrt. lra. lra.
+         } nra.
+       } nra. 
+Qed.
 
 Lemma lemma_1_4_vii : forall x : R,
   x < -2 \/ x > 3 <-> x^2 - x + 10 > 16.
@@ -581,34 +593,111 @@ Proof.
 Qed.
 
 Lemma lemma_1_4_x : forall x : R,
-  (x - Rpower 2 (1/3)) * (x - Rpower 2 (1/2)) > 0.
+  (x > Rpower 2 (1/2) \/ x < Rpower 2 (1/3)) <-> (x - Rpower 2 (1/3)) * (x - Rpower 2 (1/2)) > 0.
 Proof.
-  intros x.  
-Abort.
+  intros x. split.
+  - intros [H1 | H2].
+    -- assert (H3 : Rpower 2 (1 / 3) < Rpower 2 (1 / 2)) by (apply Rpower_lt; lra). nra.
+    -- assert (H3 : Rpower 2 (1 / 3) < Rpower 2 (1 / 2)) by (apply Rpower_lt; lra). nra.
+  - intro H1. assert (H2 : Rpower 2 (1 / 3) < Rpower 2 (1 / 2)) by (apply Rpower_lt; lra).
+    pose proof Rtotal_order x (Rpower 2 (1 / 3)) as [H3 | [H3 | H3]].
+    -- pose proof Rtotal_order x (Rpower 2 (1 / 2)) as [H4 | [H4 | H4]].
+       --- nra.
+       --- nra.
+       --- nra.
+    -- nra.
+    -- nra.
+Qed.
 
 Lemma lemma_1_4_xi : forall x : R,
-  Rpower 2 x < 8.
+  x < 3 <-> Rpower 2 x < 8.
 Proof.
-
-Abort.
+  intro x. split.
+  - intro H1.  pose proof Rtotal_order x 0 as [H2 | [H2 | H2]].
+    -- replace 8 with (Rpower 2 (INR 3%nat)). 2 : { rewrite Rpower_pow. 2 : { nra. } nra. }
+       apply Rpower_lt. lra. (simpl; lra).
+    -- rewrite H2. rewrite Rpower_O. lra. lra.
+    -- replace 8 with (Rpower 2 (INR 3%nat)). 2 : { rewrite Rpower_pow. 2 : { nra. } nra. }
+       apply Rpower_lt. lra. (simpl; lra).
+  - intro H1. pose proof Rtotal_order x 3 as [H2 | [H2 | H2]].
+    -- apply H2.
+    -- rewrite H2 in H1. replace 3 with (INR 3%nat) in H1, H2 by (simpl; lra).
+        rewrite Rpower_pow in H1. 2 : { nra. } nra.
+    -- assert (8 < Rpower 2 x).
+       { replace (8) with (Rpower 2 (INR 3%nat)). 2 : { rewrite Rpower_pow. 2 : { nra. } nra. }
+         apply Rpower_lt. lra. (simpl; lra). } nra.
+Qed.
 
 Lemma lemma_1_4_xii : forall x : R,
-  x + Rpower 3 x < 4.
+  x < 1 <-> x + Rpower 3 x < 4.
 Proof.
-
-Abort.
+  intro x. split.
+  - intro H1. pose proof Rtotal_order x 0 as [H2 | [H2 | H2]].
+    -- assert (H3 : Rpower 3 (x) < 1). 
+       { replace 1 with (Rpower 3 0). 2 : { rewrite Rpower_O. lra. lra. } apply Rpower_lt. lra. lra. } nra.
+    -- rewrite H2. rewrite Rpower_O. lra. lra.
+    -- assert (H3 : Rpower 3 (x) < 3).
+       { replace 3 with (Rpower 3 (INR 1%nat)) at 2. 2 : { rewrite Rpower_pow. 2 : { nra. } nra. }
+         apply Rpower_lt. lra. (simpl; lra). } nra.
+  - intro H1. pose proof Rtotal_order x 1 as [H2 | [H2 | H2]].
+    -- apply H2.
+    -- rewrite H2 in H1. replace 1 with (INR 1%nat) in H1, H2 by (simpl; lra).
+        rewrite Rpower_pow in H1. 2 : { nra. } nra.
+    -- assert (3 < Rpower 3 x).
+       { replace (3) with (Rpower 3 (INR 1%nat)) at 1. 2 : { rewrite Rpower_pow. 2 : { nra. } nra. }
+         apply Rpower_lt. lra. (simpl; lra). } nra.
+Qed.
 
 Lemma lemma_1_4_xiii : forall x : R,
-  1 / x + 1 / (1 - x) > 0.
+  0 <= x <= 1 <-> 1 / x + 1 / (1 - x) > 0.
 Proof.
-
-Abort.
+  intro x. split.
+  - intro H1. destruct H1 as [[H1|H1] [H2|H2]].
+    -- assert (H3 : 1 / x > 0). { rewrite Rdiv_1_l. apply Rinv_pos. nra. }
+       assert (H4 : 1 / (1 - x) > 0). { rewrite Rdiv_1_l. apply Rinv_pos. nra. } nra.
+    -- rewrite H2. replace (1 - 1) with 0 by nra. rewrite Rdiv_0_r. nra.
+    -- rewrite <- H1. rewrite Rdiv_1_l. rewrite Rinv_0. nra.
+    -- nra.
+  - intro H1. pose proof Rtotal_order x 0 as [H2 | [H2 | H2]].
+    -- pose proof Rtotal_order (1 - x) 0 as [H3 | [H3 | H3]].
+       --- nra.
+       --- nra.
+       --- assert (H4 : 1 / x < 0). { rewrite Rdiv_1_l. apply Rinv_neg. nra. }
+           assert (H5 : 1 / (1 - x) > 0). { rewrite Rdiv_1_l. apply Rinv_pos. nra. }
+           replace (1 / x + 1 / (1 - x)) with (1 / (x * (1 - x))) in H1 by (field; nra).
+           assert (H6 : x * (1 - x) < 0) by nra. assert (H7 : 1 / (x * (1 - x)) < 0). 
+           { rewrite Rdiv_1_l. apply Rinv_neg. nra. } nra.
+    -- nra.
+    -- pose proof Rtotal_order (1 - x) 0 as [H3 | [H3 | H3]].
+       --- assert (H4 : 1 / x > 0). { rewrite Rdiv_1_l. apply Rinv_pos. nra. }
+           assert (H5 : 1 / (1 - x) < 0). { rewrite Rdiv_1_l. apply Rinv_neg. nra. }
+           replace (1 / x + 1 / (1 - x)) with (1 / (x * (1 - x))) in H1 by (field; nra). 
+           assert (H6 : x * (1 - x) < 0) by nra. assert (H7 : 1 / (x * (1 - x)) < 0). 
+           { rewrite Rdiv_1_l. apply Rinv_neg. nra. } nra.
+       --- nra.
+       --- nra.
+Qed.
 
 Lemma lemma_1_4_xiv : forall x : R,
-  (x - 1) / (x + 1) > 0.
+  (x > 1 \/ x < -1) <-> (x - 1) / (x + 1) > 0.
 Proof.
-
-Abort.
+  intros x. split.
+  - intros [H1 | H2].
+    -- assert (H2 : x - 1 > 0) by lra. assert (H3 : x + 1 > 0) by lra. apply Rdiv_pos_pos. nra. nra.
+    -- assert (H3 : x - 1 < 0) by lra. assert (H4 : x + 1 < 0) by lra. apply Rdiv_neg_neg. nra. nra.
+  - intro H1. pose proof Rtotal_order x 1 as [H2 | [H2 | H2]].
+    -- pose proof Rtotal_order x (-1) as [H3 | [H3 | H3]].
+       --- nra.
+       --- rewrite H3 in H1. replace (-1 + 1) with (0) in H1 by lra. rewrite Rdiv_0_r in H1. nra.
+       --- assert (H4 : x - 1 < 0) by nra. assert (H5 : x + 1 > 0) by nra. assert (H6 : (x - 1) / (x + 1) < 0).
+           { apply Rdiv_neg_pos. nra. nra. } nra.
+    -- rewrite H2 in H1. replace (1 - 1) with (0) in H1 by lra. rewrite Rdiv_0_l in H1. nra.
+    -- pose proof Rtotal_order x (-1) as [H3 | [H3 | H3]].
+       --- assert (H4 : x - 1 > 0) by nra. assert (H5 : x + 1 < 0) by nra. assert (H6 : (x - 1) / (x + 1) < 0).
+           { apply Rdiv_pos_neg. nra. nra. } nra.
+       --- nra.
+       --- nra.
+Qed.
 
 Lemma lemma_1_5_i : forall a b c d,
   a < b -> c < d -> a + c < b + d.
@@ -1509,12 +1598,68 @@ Proof.
   - intro H2. rewrite H2. field; nra.
 Qed.
 
+Lemma lemma_1_19_a : forall x1 y1 x2 y2 lam,
+  x1 = lam * y1 -> x2 = lam * y2 -> lam >= 0 -> x1 * y1 + x2 * y2 <= sqrt (x1^2 + x2^2) * sqrt (y1^2 + y2^2).
+Proof.
+  intros x1 y1 x2 y2 lam H1 H2 H3. assert (H4 : (x1 * y1 + x2 * y2)^2 <= (sqrt (x1^2 + x2^2) * sqrt (y1^2 + y2^2))^2).
+  { rewrite Rpow_mult_distr. repeat rewrite pow2_sqrt. 2 : { nra. } 2 : { nra. } rewrite H1. rewrite H2. nra. }
+  apply Rsqr_incr_0. 2 : { nra. } repeat rewrite Rsqr_def. nra. assert (H5 : 0 <= sqrt (x1^2 + x2^2)). { apply sqrt_positivity. nra. }
+  assert (H6 : 0 <= sqrt (y1^2 + y2^2)). { apply sqrt_positivity. nra. } nra.
+Qed.
+
+Lemma lemma_1_19_a' : forall x1 y1 x2 y2,
+  (y1 = 0 /\ y2 = 0) -> x1 * y1 + x2 * y2 <= sqrt (x1^2 + x2^2) * sqrt (y1^2 + y2^2).
+Proof.
+  intros x1 y1 x2 y2 [H1 H2]. rewrite H1, H2. replace (x1 * 0 + x2 * 0) with 0 by nra. replace (0^2 + 0^2) with 0 by nra.
+  rewrite sqrt_0. nra.
+Qed.
+
+Lemma lemma_1_19_a'' : forall x1 y1 x2 y2 lam,
+  (y1 <> 0 \/ y2 <> 0) -> lam >= 0 -> ((x1 = lam * y1 /\ x2 = lam * y2) -> False) -> 0 < (lam * y1 - x1)^2 + (lam * y2 - x2)^2.
+Proof.
+  intros x1 y1 x2 y2 lam [H1 | H1] H2 H3. assert (x1 <> lam * y1 \/ x2 <> lam * y2) as [H4 | H4] by nra.
+  - assert (H5 : (lam * y2 - x2)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
+    assert (H6 : 0 < (lam * y1 - x1)^2). { rewrite <- Rsqr_pow2. apply Rsqr_pos_lt. nra. }
+    nra.
+  - assert (H5 : (lam * y1 - x1)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
+    assert (H6 : 0 < (lam * y2 - x2)^2). { rewrite <- Rsqr_pow2. apply Rsqr_pos_lt. nra. }
+    nra.
+  - assert (x1 <> lam * y1 \/ x2 <> lam * y2) as [H4 | H4] by nra.
+    -- assert (H5 : (lam * y2 - x2)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
+       assert (H6 : 0 < (lam * y1 - x1)^2). { rewrite <- Rsqr_pow2. apply Rsqr_pos_lt. nra. }
+       nra.
+    -- assert (H5 : (lam * y1 - x1)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
+       assert (H6 : 0 < (lam * y2 - x2)^2). { rewrite <- Rsqr_pow2. apply Rsqr_pos_lt. nra. }
+       nra.
+Qed.
+
+Lemma contra_3 : forall P Q R,
+  (P -> Q -> R) -> ~R -> ~P \/ ~Q.
+Proof.
+  intros. tauto.
+Qed.
+
+Lemma lemma_1_18_a_contra : forall b c x,
+  x^2 + b * x + c <> 0 -> (x <> (-b + sqrt (b^2 - 4 * c))/ 2 /\ x <> (-b - sqrt (b^2 - 4 * c))/ 2) \/ b^2 - 4 * c < 0.
+Proof.
+  intros b c x H1. pose proof lemma_1_18_a b c x as H2. apply contra_3 in H2. 2 : { intro H3. apply H1. apply H3. }
+  nra.
+Qed.
+
+Lemma lemma_1_19_a''' : forall x1 y1 x2 y2 lam,
+  (y1 <> 0 \/ y2 <> 0) -> lam >= 0 -> ((x1 = lam * y1 /\ x2 = lam * y2) -> False) -> x1 * y1 + x2 * y2 < sqrt (x1^2 + x2^2) * sqrt (y1^2 + y2^2).
+Proof.
+  intros x1 y1 x2 y2 lam [H1 | H1] H2 H3. assert (x1 <> lam * y1 \/ x2 <> lam * y2) as [H4 | H4] by nra.
+  - assert (H5 : 0 < (lam * y1 - x1)^2 + (lam * y2 - x2)^2) by (apply lemma_1_19_a''; nra).
+    replace ((lam * y1 - x1) ^ 2 + (lam * y2 - x2) ^ 2) with (lam^2 * (y1^2 + y2^2) + -2 * lam * (x1 * y1 + x2 * y2) + x1^2 + x2^2) in H5 by nra.
+    assert (H6 : lam ^ 2 * (y1 ^ 2 + y2 ^ 2) + -2 * lam * (x1 * y1 + x2 * y2) + x1 ^ 2 + x2 ^ 2 <> 0) by nra.
+    assert (H7 : lam^2 + (-2 * (x1 * y1 + x2 * y2)) / (y1^2 + y2^2) * lam + (x1^2 + y1^2)/ (y1^2 + y2^2) < 0).
+Abort.
+    
 Lemma lemma_1_20 : forall x x0 y y0 eps,
   Rabs (x - x0) < eps / 2 -> Rabs (y - y0) < eps / 2 -> (Rabs ((x + y) - (x0 + y0)) < eps /\ Rabs ((x - y) - (x0 - y0)) < eps).
 Proof.
-  intros x x0 y y0 eps H1 H2. split.
-  - repeat unfold Rabs in *; repeat destruct Rcase_abs in *; try nra.
-  - repeat unfold Rabs in *; repeat destruct Rcase_abs in *; try nra.
+  solve_abs.
 Qed.
 
 Lemma Rdiv_lt_1: forall a b : R, a < b -> b > 0 -> a / b < 1.
@@ -1690,9 +1835,10 @@ Proof.
   induction l2 as [| a l2' IH].
   - intros l1. rewrite app_nil_r. simpl. lra.
   - intros l1. replace (fold_right' (a :: l2')) with (a + fold_right' l2'). 
-    2 : { simpl. destruct l2'. simpl. lra. simpl. reflexivity.  } 
+    2 : { simpl. destruct l2'. simpl. lra. reflexivity. } 
     rewrite Rplus_comm. rewrite Rplus_assoc.
     replace (l1 ++ a :: l2') with ((l1 ++ [a]) ++ l2') by (rewrite <- app_assoc; reflexivity).
+    specialize IH with (l1 ++ [a]).
     rewrite IH. rewrite <- lemma_1_24_a. lra.
 Qed.
 
