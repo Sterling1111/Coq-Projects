@@ -1537,6 +1537,24 @@ Proof.
     simpl. repeat rewrite Rmult_1_r. rewrite sqrt_sqrt. 2 : { lra. } nra.
 Qed.
 
+Lemma lemma_1_18_a' : forall b c,
+  b^2 - 4 * c >= 0 -> (exists x, x^2 + b * x + c = 0).
+Proof.
+  intros b c H1.
+  exists ((-b + sqrt (b^2 - 4 * c)) / 2).
+  apply lemma_1_18_a; auto.
+Qed.
+
+Lemma lemma_1_18_a'' : forall b c,
+  (forall x, x^2 + b * x + c <> 0) -> b^2 - 4 * c < 0.
+Proof.
+  intros b c H1.
+  assert (H2 : b^2 - 4 * c >= 0 \/ b^2 - 4 * c < 0) by nra. destruct H2 as [H2 | H2].
+  - exfalso. apply lemma_1_18_a' in H2. destruct H2 as [x H2]. unfold not in H1. specialize (H1 x). 
+    apply H1. apply H2.
+  - apply H2.
+Qed.
+
 Lemma lemma_1_18_b : forall b c x,
   (b^2 - 4 * c < 0) -> x^2 + b * x + c > 0.
 Proof.
@@ -1615,47 +1633,169 @@ Proof.
 Qed.
 
 Lemma lemma_1_19_a'' : forall x1 y1 x2 y2 lam,
-  (y1 <> 0 \/ y2 <> 0) -> lam >= 0 -> ((x1 = lam * y1 /\ x2 = lam * y2) -> False) -> 0 < (lam * y1 - x1)^2 + (lam * y2 - x2)^2.
+  (y1 <> 0 \/ y2 <> 0) -> ((x1 = lam * y1 /\ x2 = lam * y2) -> False) -> 0 < (lam * y1 - x1)^2 + (lam * y2 - x2)^2.
 Proof.
-  intros x1 y1 x2 y2 lam [H1 | H1] H2 H3. assert (x1 <> lam * y1 \/ x2 <> lam * y2) as [H4 | H4] by nra.
-  - assert (H5 : (lam * y2 - x2)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
-    assert (H6 : 0 < (lam * y1 - x1)^2). { rewrite <- Rsqr_pow2. apply Rsqr_pos_lt. nra. }
+  intros x1 y1 x2 y2 lam [H1 | H1] H2. assert (x1 <> lam * y1 \/ x2 <> lam * y2) as [H3 | H3] by nra.
+  - assert (H4 : (lam * y2 - x2)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
+    assert (H5 : 0 < (lam * y1 - x1)^2). { rewrite <- Rsqr_pow2. apply Rsqr_pos_lt. nra. }
     nra.
-  - assert (H5 : (lam * y1 - x1)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
-    assert (H6 : 0 < (lam * y2 - x2)^2). { rewrite <- Rsqr_pow2. apply Rsqr_pos_lt. nra. }
+  - assert (H4 : (lam * y1 - x1)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
+    assert (H5 : 0 < (lam * y2 - x2)^2). { rewrite <- Rsqr_pow2. apply Rsqr_pos_lt. nra. }
     nra.
-  - assert (x1 <> lam * y1 \/ x2 <> lam * y2) as [H4 | H4] by nra.
-    -- assert (H5 : (lam * y2 - x2)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
-       assert (H6 : 0 < (lam * y1 - x1)^2). { rewrite <- Rsqr_pow2. apply Rsqr_pos_lt. nra. }
+  - assert (x1 <> lam * y1 \/ x2 <> lam * y2) as [H3 | H3] by nra.
+    -- assert (H4 : (lam * y2 - x2)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
+       assert (H5 : 0 < (lam * y1 - x1)^2). { rewrite <- Rsqr_pow2. apply Rsqr_pos_lt. nra. }
        nra.
-    -- assert (H5 : (lam * y1 - x1)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
-       assert (H6 : 0 < (lam * y2 - x2)^2). { rewrite <- Rsqr_pow2. apply Rsqr_pos_lt. nra. }
+    -- assert (H4 : (lam * y1 - x1)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
+       assert (H5 : 0 < (lam * y2 - x2)^2). { rewrite <- Rsqr_pow2. apply Rsqr_pos_lt. nra. }
        nra.
 Qed.
 
-Lemma contra_3 : forall P Q R,
-  (P -> Q -> R) -> ~R -> ~P \/ ~Q.
+Lemma cauchy_schwarz_inequality : forall x1 y1 x2 y2,
+  y1 <> 0 \/ y2 <> 0 ->
+  (forall lam, x1 <> lam * y1 \/ x2 <> lam * y2) ->
+  x1 * y1 + x2 * y2 <= sqrt (x1^2 + x2^2) * sqrt (y1^2 + y2^2).
 Proof.
-  intros. tauto.
+  intros x1 y1 x2 y2 H1 H2.
+  assert (H3 : forall lam, lam ^ 2 + -2 * (x1 * y1 + x2 * y2) / (y1 ^ 2 + y2 ^ 2) * lam + (x1 ^ 2 + x2 ^ 2) / (y1 ^ 2 + y2 ^ 2) <> 0).
+  {
+    intros lam. specialize (H2 lam).
+    assert (H3 : 0 < (lam * y1 - x1)^2 + (lam * y2 - x2)^2) by (apply lemma_1_19_a''; nra).
+    replace ((lam * y1 - x1) ^ 2 + (lam * y2 - x2) ^ 2) with (lam^2 * (y1^2 + y2^2) + -2 * lam * (x1 * y1 + x2 * y2) + x1^2 + x2^2) in H3 by nra.
+    assert (H4 : lam ^ 2 * (y1 ^ 2 + y2 ^ 2) + -2 * lam * (x1 * y1 + x2 * y2) + x1 ^ 2 + x2 ^ 2 <> 0) by nra.
+    assert (H5 : lam^2 + ((-2 * (x1 * y1 + x2 * y2)) / (y1^2 + y2^2)) * lam + (x1^2 + x2^2)/ (y1^2 + y2^2) > 0).
+    { 
+      apply Rmult_lt_compat_r with (r := 1 / (y1^2 + y2^2)) in H3. 2 : { apply Rdiv_pos_pos. nra. nra. } rewrite Rmult_0_l in H3.
+      replace ((lam ^ 2 * (y1 ^ 2 + y2 ^ 2) + -2 * lam * (x1 * y1 + x2 * y2) + x1 ^ 2 + x2 ^ 2) * (1 / (y1 ^ 2 + y2 ^ 2))) with
+              ((lam ^ 2 * (y1 ^ 2 + y2 ^ 2) * (1 / (y1 ^ 2 + y2 ^ 2)) + -2 * lam * (x1 * y1 + x2 * y2) * (1 / (y1 ^ 2 + y2 ^ 2)) + (x1 ^ 2 + x2 ^ 2) * (1 / (y1 ^ 2 + y2 ^ 2)))) in H3 by nra.
+      replace ((lam ^ 2 * (y1 ^ 2 + y2 ^ 2) * (1 / (y1 ^ 2 + y2 ^ 2)))) with (lam^2) in H3 by (field; nra).
+      replace ((-2 * lam * (x1 * y1 + x2 * y2) * (1 / (y1 ^ 2 + y2 ^ 2)))) with ((-2 * (x1 * y1 + x2 * y2)) / (y1^2 + y2^2) * lam) in H3 by nra. nra.
+    }
+    assert (H6 : lam ^ 2 + -2 * (x1 * y1 + x2 * y2) / (y1 ^ 2 + y2 ^ 2) * lam + (x1 ^ 2 + x2 ^ 2) / (y1 ^ 2 + y2 ^ 2) <> 0) by nra.
+    nra.
+  }
+  apply lemma_1_18_a'' in H3. replace ((-2 * (x1 * y1 + x2 * y2) / (y1 ^ 2 + y2 ^ 2)) ^ 2) with ((4 * (x1 * y1 + x2 * y2) ^ 2) / ((y1 ^ 2 + y2 ^ 2) ^ 2)) in H3 by (field; nra).
+  assert (H4 : (x1 * y1 + x2 * y2) ^ 2 / (y1 ^ 2 + y2 ^ 2) ^ 2 - ((x1 ^ 2 + x2 ^ 2) / (y1 ^ 2 + y2 ^ 2)) < 0) by nra.
+  assert (H5 : (x1 * y1 + x2 * y2) ^ 2 / (y1 ^ 2 + y2 ^ 2) ^ 2  < (x1 ^ 2 + x2 ^ 2) / (y1 ^ 2 + y2 ^ 2)) by nra.
+  assert (H6 : (y1^2 + y2^2 = 0) \/ (y1^2 + y2^2 <> 0)) by lra. destruct H6 as [H6 | H6].
+  - nra.
+  - apply Rmult_lt_compat_r with (r := (y1 ^ 2 + y2 ^ 2) ^ 2) in H5. 2 : { nra. }
+    assert (0 < sqrt (y1 ^ 2 + y2 ^ 2)) as H7. { apply sqrt_lt_R0. nra. }
+    replace ((x1 * y1 + x2 * y2) ^ 2 / (y1 ^ 2 + y2 ^ 2) ^ 2 * (y1 ^ 2 + y2 ^ 2) ^ 2) with ((x1 * y1 + x2 * y2) ^ 2) in H5 by (field; nra).
+    replace ((x1 ^ 2 + x2 ^ 2) / (y1 ^ 2 + y2 ^ 2) * (y1 ^ 2 + y2 ^ 2) ^ 2) with ((x1 ^ 2 + x2 ^ 2) * (y1 ^ 2 + y2 ^ 2)) in H5 by (field; nra).
+    apply sqrt_lt_1 in H5. 2 : { rewrite <- Rsqr_pow2. apply Rle_0_sqr. } 2 : { nra. }
+    pose proof Rtotal_order (x1 * y1 + x2 * y2) 0 as [H8 | [H8 | H8]].
+    2 : {
+        assert (H9 : (x1^2 + x2^2 = 0) \/ (x1^2 + x2^2 <> 0)) by lra. destruct H9 as [H9 | H9].
+        - rewrite H9 in H5. rewrite H8 in H4. replace (0^2) with 0 in H5 by nra. rewrite Rmult_0_l in H5. rewrite sqrt_0 in H5.
+          assert (H10 : 0 <= sqrt ((x1 * y1 + x2 * y2)^2)) by (apply sqrt_pos). nra.
+        - rewrite H8. rewrite <- sqrt_mult. 2 : { nra. } 2 : { nra. } apply sqrt_pos. 
+    }
+    2 : {
+      assert (H9 : (x1^2 + x2^2 = 0) \/ (x1^2 + x2^2 <> 0)) by lra. destruct H9 as [H9 | H9].
+      - rewrite H9 in H5. rewrite Rmult_0_l in H5. rewrite sqrt_0 in H5.
+        assert (H10 : 0 <= sqrt ((x1 * y1 + x2 * y2)^2)) by (apply sqrt_pos). nra.
+      - rewrite <- sqrt_mult. 2 : { nra. } 2 : { nra. } rewrite sqrt_pow2 in H5. 2 : { nra. } nra.
+    }
+    rewrite <- sqrt_mult. 2 : { nra. } 2 : { nra. } 
+    assert (H9 : 0 <= sqrt ((x1 ^ 2 + x2 ^ 2) * (y1 ^ 2 + y2 ^ 2))) by (apply sqrt_pos). nra.
 Qed.
 
-Lemma lemma_1_18_a_contra : forall b c x,
-  x^2 + b * x + c <> 0 -> (x <> (-b + sqrt (b^2 - 4 * c))/ 2 /\ x <> (-b - sqrt (b^2 - 4 * c))/ 2) \/ b^2 - 4 * c < 0.
+Lemma lemma_1_19_b : forall x y x1 y1 x2 y2,
+  x = x1 / (sqrt (x1^2 + x2^2)) -> y = y1 / (sqrt (y1^2 + y2^2)) -> x = x2 / (sqrt (x1^2 + x2^2)) -> 
+  y = y2 / (sqrt (y1^2 + y2^2))-> x1 * y1 + x2 * y2 <= sqrt (x1^2 + x2^2) * sqrt (y1^2 + y2^2).
 Proof.
-  intros b c x H1. pose proof lemma_1_18_a b c x as H2. apply contra_3 in H2. 2 : { intro H3. apply H1. apply H3. }
+  intros x y x1 y1 x2 y2 H1 H2 H3 H4.
+  assert (H5 : 0 <= x^2 - 2*x*y + y^2).
+  { replace (x^2 - 2*x*y + y^2) with ((x - y)^2) by field. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
+  assert (2*x*y <= x^2 + y^2) as H6 by nra. pose proof H6 as H7.
+  rewrite H1 in H6. rewrite H2 in H6. rewrite H3 in H7. rewrite H4 in H7. 
+  replace ((x1 / sqrt (x1 ^ 2 + x2 ^ 2)) ^ 2) with
+          ((x1 ^ 2 / (sqrt (x1 ^ 2 + x2 ^ 2)^2))) in H6.
+          2 : { assert (x1^2 + x2^2 = 0 \/ x1^2 + x2^2 <> 0) as [H8 | H9] by lra. 
+                - rewrite H8. rewrite sqrt_0. simpl. repeat rewrite Rmult_0_l. unfold Rdiv. rewrite Rinv_0. nra.
+                - field. assert (0 < sqrt (x1 ^ 2 + x2 ^ 2)) as H10. { apply sqrt_lt_R0. nra. } nra.
+              }
+  rewrite pow2_sqrt in H6. 2 : { nra. }
+  replace ((y1 / sqrt (y1 ^ 2 + y2 ^ 2)) ^ 2) with
+          ((y1 ^ 2 / (sqrt (y1 ^ 2 + y2 ^ 2)^2))) in H6.
+          2 : { assert (y1^2 + y2^2 = 0 \/ y1^2 + y2^2 <> 0) as [H8 | H9] by lra. 
+                - rewrite H8. rewrite sqrt_0. simpl. repeat rewrite Rmult_0_l. unfold Rdiv. rewrite Rinv_0. nra.
+                - field. assert (0 < sqrt (y1 ^ 2 + y2 ^ 2)) as H10. { apply sqrt_lt_R0. nra. } nra.
+              }
+  rewrite pow2_sqrt in H6. 2 : { nra. }
+  replace ((x2 / sqrt (x1 ^ 2 + x2 ^ 2)) ^ 2) with
+          ((x2 ^ 2 / (sqrt (x1 ^ 2 + x2 ^ 2)^2))) in H7.
+          2 : { assert (x1^2 + x2^2 = 0 \/ x1^2 + x2^2 <> 0) as [H8 | H9] by lra. 
+                - rewrite H8. rewrite sqrt_0. simpl. repeat rewrite Rmult_0_l. unfold Rdiv. rewrite Rinv_0. nra.
+                - field. assert (0 < sqrt (x1 ^ 2 + x2 ^ 2)) as H10. { apply sqrt_lt_R0. nra. } nra.
+              }
+  rewrite pow2_sqrt in H7. 2 : { nra. }
+  replace ((y2 / sqrt (y1 ^ 2 + y2 ^ 2)) ^ 2) with
+          ((y2 ^ 2 / (sqrt (y1 ^ 2 + y2 ^ 2)^2))) in H7.
+          2 : { assert (y1^2 + y2^2 = 0 \/ y1^2 + y2^2 <> 0) as [H8 | H9] by lra. 
+                - rewrite H8. rewrite sqrt_0. simpl. repeat rewrite Rmult_0_l. unfold Rdiv. rewrite Rinv_0. nra.
+                - field. assert (0 < sqrt (y1 ^ 2 + y2 ^ 2)) as H10. { apply sqrt_lt_R0. nra. } nra.
+              }
+  rewrite pow2_sqrt in H7. 2 : { nra. }
+  replace (2 * (x1 / sqrt (x1 ^ 2 + x2 ^ 2)) * (y1 / sqrt (y1 ^ 2 + y2 ^ 2))) with 
+          ((2 * x1 * y1) / (sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2))) in H6.
+          2 : 
+          {
+            assert ((sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2)) = 0 \/ (sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2)) <> 0) as [H8 | H9] by lra.
+            - rewrite H8. unfold Rdiv. rewrite Rinv_0. rewrite Rmult_0_r. assert (H9 : sqrt (x1 ^ 2 + x2 ^ 2) = 0 \/ sqrt (y1 ^ 2 + y2 ^ 2) = 0) by nra.
+              destruct H9 as [H9 | H9].
+              -- rewrite H9. rewrite Rinv_0. nra.
+              -- rewrite H9. rewrite Rinv_0. nra.
+            - field. nra.
+          }
+  replace (2 * (x2 / sqrt (x1 ^ 2 + x2 ^ 2)) * (y2 / sqrt (y1 ^ 2 + y2 ^ 2))) with 
+          ((2 * x2 * y2) / (sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2))) in H7.
+          2 : 
+          {
+            assert ((sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2)) = 0 \/ (sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2)) <> 0) as [H8 | H9] by lra.
+            - rewrite H8. unfold Rdiv. rewrite Rinv_0. rewrite Rmult_0_r. assert (H9 : sqrt (x1 ^ 2 + x2 ^ 2) = 0 \/ sqrt (y1 ^ 2 + y2 ^ 2) = 0) by nra.
+              destruct H9 as [H9 | H9].
+              -- rewrite H9. rewrite Rinv_0. nra.
+              -- rewrite H9. rewrite Rinv_0. nra.
+            - field. nra.
+          }
+  assert (H8 : 2 * x1 * y1 / (sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2)) + 2 * x2 * y2 / (sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2)) <= 
+              x1 ^ 2 / (x1 ^ 2 + x2 ^ 2) + y1 ^ 2 / (y1 ^ 2 + y2 ^ 2) + x2 ^ 2 / (x1 ^ 2 + x2 ^ 2) + y2 ^ 2 / (y1 ^ 2 + y2 ^ 2)) by nra.
+  replace (2 * x1 * y1 / (sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2)) + 2 * x2 * y2 / (sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2))) with 
+          ( (2 * x1 * y1 + 2 * x2 * y2) / (sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2))) in H8 by nra.
+  assert ((x1^2 + x2^2 = 0) \/ (x1^2 + x2^2 <> 0) /\ (y1^2 + y2^2 = 0) \/ (y1^2 + y2^2 <> 0)) as [H9 | H10] by lra.
+  - assert (x1 = 0 /\ x2 = 0) as [H10 H11] by nra. rewrite H10, H11. replace (0^2 + 0^2) with 0 by nra. rewrite sqrt_0. nra.
+  - destruct H10 as [[H10 H11] | H10].
+    -- assert (y1 = 0 /\ y2 = 0) as [H12 H13] by nra. rewrite H12, H13. replace (0^2 + 0^2) with 0 by nra. rewrite sqrt_0. nra.
+    -- assert (H11 : (x1^2 + x2^2 = 0) \/ (x1^2 + x2^2 <> 0)) by lra. destruct H11 as [H11 | H11].
+       --- assert (x1 = 0 /\ x2 = 0) as [H12 H13] by nra. rewrite H12, H13. replace (0^2 + 0^2) with 0 by nra. rewrite sqrt_0. nra.
+       --- replace (x1 ^ 2 / (x1 ^ 2 + x2 ^ 2) + y1 ^ 2 / (y1 ^ 2 + y2 ^ 2) + x2 ^ 2 / (x1 ^ 2 + x2 ^ 2) + y2 ^ 2 / (y1 ^ 2 + y2 ^ 2)) with
+           2 in H8 by (field; nra). assert (H12 : sqrt (x1 ^ 2 + x2 ^ 2) > 0). { apply sqrt_lt_R0. nra. }
+           assert (H13 : sqrt (y1 ^ 2 + y2 ^ 2) > 0). { apply sqrt_lt_R0. nra. }
+           apply Rmult_le_compat_r with (r := (sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2))) in H8. 2 : { nra. }
+           replace ((2 * x1 * y1 + 2 * x2 * y2) / (sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2)) * (sqrt (x1 ^ 2 + x2 ^ 2) * sqrt (y1 ^ 2 + y2 ^ 2))) with
+                   (2 * x1 * y1 + 2 * x2 * y2) in H8 by (field; nra). nra.
+Qed.
+
+Lemma lemma_1_19_c : forall x1 y1 x2 y2,
+  x1 * y1 + x2 * y2 <= sqrt (x1^2 + x2^2) * sqrt (y1^2 + y2^2).
+Proof.
+  intros x1 y1 x2 y2. assert (H1 : (x1^2 + x2^2) * (y1^2 + y2^2) = (x1*y1 + x2*y2)^2 + (x1*y2 - x2*y1)^2) by nra.
+  assert (H2 : (x1*y2 - x2*y1)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
+  assert (H3 : (x1 * y1 + x2 * y2) ^ 2 <= (x1 ^ 2 + x2 ^ 2) * (y1 ^ 2 + y2 ^ 2)) by nra.
+  assert (H4 : (x1 * y1 + x2 * y2)^2 >= 0). { apply Rle_ge. rewrite <- Rsqr_pow2. apply Rle_0_sqr. }
+  apply sqrt_le_1 in H3. 2 : { nra. } 2 : { nra. } 
+  pose proof Rtotal_order (x1 * y1 + x2 * y2) 0 as [H5 | [H5 | H5]].
+  2 : { 
+        rewrite H5. assert (H6 : 0 <= sqrt (x1^2 + x2^2)). { apply sqrt_positivity. nra. } 
+        assert (H7 : 0 <= sqrt (y1^2 + y2^2)). { apply sqrt_positivity. nra. } nra. 
+      }
+  2 : { rewrite sqrt_pow2 in H3. 2 : { nra. } rewrite <- sqrt_mult. 2 : { nra. } 2 : { nra. } apply H3. }
+  assert (H6 : sqrt (x1^2 + x2^2) > 0). { apply sqrt_lt_R0. nra. } assert (H7 : sqrt (y1^2 + y2^2) > 0). { apply sqrt_lt_R0. nra. }
   nra.
 Qed.
 
-Lemma lemma_1_19_a''' : forall x1 y1 x2 y2 lam,
-  (y1 <> 0 \/ y2 <> 0) -> lam >= 0 -> ((x1 = lam * y1 /\ x2 = lam * y2) -> False) -> x1 * y1 + x2 * y2 < sqrt (x1^2 + x2^2) * sqrt (y1^2 + y2^2).
-Proof.
-  intros x1 y1 x2 y2 lam [H1 | H1] H2 H3. assert (x1 <> lam * y1 \/ x2 <> lam * y2) as [H4 | H4] by nra.
-  - assert (H5 : 0 < (lam * y1 - x1)^2 + (lam * y2 - x2)^2) by (apply lemma_1_19_a''; nra).
-    replace ((lam * y1 - x1) ^ 2 + (lam * y2 - x2) ^ 2) with (lam^2 * (y1^2 + y2^2) + -2 * lam * (x1 * y1 + x2 * y2) + x1^2 + x2^2) in H5 by nra.
-    assert (H6 : lam ^ 2 * (y1 ^ 2 + y2 ^ 2) + -2 * lam * (x1 * y1 + x2 * y2) + x1 ^ 2 + x2 ^ 2 <> 0) by nra.
-    assert (H7 : lam^2 + (-2 * (x1 * y1 + x2 * y2)) / (y1^2 + y2^2) * lam + (x1^2 + y1^2)/ (y1^2 + y2^2) < 0).
-Abort.
-    
 Lemma lemma_1_20 : forall x x0 y y0 eps,
   Rabs (x - x0) < eps / 2 -> Rabs (y - y0) < eps / 2 -> (Rabs ((x + y) - (x0 + y0)) < eps /\ Rabs ((x - y) - (x0 - y0)) < eps).
 Proof.

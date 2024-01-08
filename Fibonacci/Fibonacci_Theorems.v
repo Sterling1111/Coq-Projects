@@ -40,14 +40,14 @@ Qed.
 Lemma fib_n_ge_1 : forall n, F n >= 1.
 Proof.
   apply strong_induction.
-  - intros n IH. destruct n as [| n'] eqn:En.
+  intros n IH. destruct n as [| n'] eqn:En.
+  - simpl. lra.
+  - destruct n' as [| n''] eqn:En'.
     -- simpl. lra.
-    -- destruct n' as [| n''] eqn:En'.
-       --- simpl. lra.
-       --- assert (H1 : F (S n'') >= 1) by (apply IH; lia).
-           assert (H2 : F n'' >= 1) by (apply IH; lia).
-           rewrite fib_S_S_n.
-           lra.
+    -- assert (H1 : F (S n'') >= 1) by (apply IH; lia).
+       assert (H2 : F n'' >= 1) by (apply IH; lia).
+       rewrite fib_S_S_n.
+       lra.
 Qed.
 
 Lemma fib_n_gt_0 : forall n, F n > 0.
