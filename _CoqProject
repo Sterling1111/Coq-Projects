@@ -2,6 +2,7 @@
 -Q Fibonacci Fibonacci
 -Q Foundations2 Foundations2
 -Q Cpdt Cpdt
+-Q Spivak Spivak
 
 Foundations/Basics.v
 Foundations/Induction.v
@@ -27,3 +28,5 @@ Fibonacci/WellOrdering.v
 Fibonacci/QRT.v
 
 Cpdt/CpdtTactics.v
+
+Spivak/Chapter1.v
