@@ -1,5 +1,7 @@
-Require Import ZArith Lia Classical.
+Require Import ZArith Lia Classical List.
 From Fibonacci Require Import WellOrdering.
+
+Import ListNotations.
 
 Open Scope Z_scope.
 

@@ -2106,31 +2106,38 @@ Proof.
        nra.
 Qed.
 
-Fixpoint fold_right' (l: list R) : R :=
+(* 1 2 3 4  - > 1 + (2 + (3 + 4)) *)
+
+Fixpoint standard_sum (l : list R) : R :=
   match l with
   | [] => 0
   | [x] => x
-  | x :: xs => x + fold_right' xs
+  | x :: xs => x + standard_sum xs
   end.
 
-Inductive expr : Type :=
-| Num (n : R)
-| Sum (e1 e2 : expr).
+(* 1 2 3 4 *)
+(* 1 | 2 3 4 -> 1 + (2 + (3 + 4)), 1 + ((2 + 3) + 4)*)
+(* 1 2 | 3 4 -> (1 + 2) + (3 + 4)*)
+(* 1 2 3 | 4 -> (1 + (2 + 3)) + 4, ((1 + 2) + 3) + 4 *)
 
-Fixpoint eval (e : expr) : R :=
+Inductive add_expr : Type :=
+| Num (a : R)
+| Sum (e1 e2 : add_expr).
+
+Fixpoint eval_add_expr (e : add_expr) : R :=
   match e with
-  | Num n => n
-  | Sum e1 e2 => (eval e1) + (eval e2)
+  | Num a => a
+  | Sum e1 e2 => (eval_add_expr e1) + (eval_add_expr e2)
   end.
 
-Fixpoint elements (e : expr) : list R :=
+Fixpoint elements (e : add_expr) : list R :=
   match e with
-  | Num n => [n]
+  | Num a => [a]
   | Sum e1 e2 => elements e1 ++ elements e2
   end.
 
 Lemma lemma_1_24_a : forall (l : list R) (a : R),
-  fold_right' l + a  = fold_right' (l ++ [a]).
+  standard_sum l + a  = standard_sum (l ++ [a]).
 Proof.
   intros l a. induction l as [| a' l' IH].
   - simpl. lra.
@@ -2140,12 +2147,12 @@ Proof.
 Qed.
 
 Lemma lemma_1_24_b : forall l1 l2,
-  fold_right' (l1 ++ l2) = fold_right' l1 + fold_right' l2.
+  standard_sum (l1 ++ l2) = standard_sum l1 + standard_sum l2.
 Proof.
   intros l1 l2. generalize dependent l1.
   induction l2 as [| a l2' IH].
   - intros l1. rewrite app_nil_r. simpl. lra.
-  - intros l1. replace (fold_right' (a :: l2')) with (a + fold_right' l2'). 
+  - intros l1. replace (standard_sum (a :: l2')) with (a + standard_sum l2'). 
     2 : { simpl. destruct l2'. simpl. lra. reflexivity. } 
     rewrite Rplus_comm. rewrite Rplus_assoc.
     replace (l1 ++ a :: l2') with ((l1 ++ [a]) ++ l2') by (rewrite <- app_assoc; reflexivity).
@@ -2153,16 +2160,75 @@ Proof.
     rewrite IH. rewrite <- lemma_1_24_a. lra.
 Qed.
 
-Lemma lemma_1_24_c : forall (e : expr),
-  eval e = fold_right' (elements e).
+Set Printing Parentheses.
+
+Example eval_add_expr_1234_1 : eval_add_expr (Sum (Num 1) (Sum (Num 2) (Sum (Num 3) (Num 4)))) = 10.
 Proof.
-  intros e. induction e as [n | e1 IH1 e2 IH2].
+  simpl. lra.
+Qed.
+
+Example eval_add_expr_1234_2 : eval_add_expr (Sum (Num 1) (Sum (Sum (Num 2) (Num 3)) (Num 4))) = 10.
+Proof.
+  simpl. lra.
+Qed.
+
+Example eval_add_expr_1234_3 : eval_add_expr (Sum (Sum (Num 1) (Num 2)) (Sum (Num 3) (Num 4))) = 10.
+Proof.
+  simpl. lra.
+Qed.
+
+Example eval_add_expr_1234_4 : eval_add_expr (Sum (Sum (Num 1) (Sum (Num 2) (Num 3))) (Num 4)) = 10.
+Proof.
+  simpl. lra.
+Qed.
+
+Example eval_add_expr_1234_5 : eval_add_expr (Sum (Sum (Sum (Num 1) (Num 2)) (Num 3)) (Num 4)) = 10.
+Proof.
+  simpl. lra.
+Qed.
+
+Unset Printing Parentheses.
+
+Example elements_add_expr_1234_1 : 
+  elements (Sum (Num 1) (Sum (Num 2) (Sum (Num 3) (Num 4)))) = [1;2;3;4].
+Proof.
+  simpl. reflexivity.
+Qed.
+
+Example elements_add_expr_1234_2 : 
+  elements (Sum (Num 1) (Sum (Sum (Num 2) (Num 3)) (Num 4))) = [1;2;3;4].
+Proof.
+  simpl. reflexivity.
+Qed.
+
+Example elements_add_expr_1234_3 : 
+  elements (Sum (Sum (Num 1) (Num 2)) (Sum (Num 3) (Num 4))) = [1;2;3;4].
+Proof.
+  simpl. reflexivity.
+Qed.
+
+Example elements_add_expr_1234_4 : 
+  elements (Sum (Sum (Num 1) (Sum (Num 2) (Num 3))) (Num 4)) = [1;2;3;4].
+Proof.
+  simpl. reflexivity.
+Qed.
+
+Example elements_add_expr_1234_5 : 
+  elements (Sum (Sum (Sum (Num 1) (Num 2)) (Num 3)) (Num 4)) = [1;2;3;4].
+Proof.
+  simpl. reflexivity.
+Qed.
+
+Lemma lemma_1_24_c : forall (e : add_expr),
+  eval_add_expr e = standard_sum (elements e).
+Proof.
+  intros e. induction e as [a | e1 IH1 e2 IH2].
   - simpl. reflexivity.
   - simpl. rewrite IH1. rewrite IH2. rewrite lemma_1_24_b. reflexivity.
 Qed.
 
-Lemma addition_assoc_nat : forall e1 e2 : expr,
-  elements e1 = elements e2 -> eval e1 = eval e2.
+Lemma addition_assoc_R : forall e1 e2 : add_expr,
+  elements e1 = elements e2 -> eval_add_expr e1 = eval_add_expr e2.
 Proof.
   intros e1 e2 H. repeat rewrite lemma_1_24_c. rewrite H. reflexivity.
 Qed.

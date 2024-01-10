@@ -3,7 +3,6 @@ Import ListNotations.
 From Spivak Require Import Chapter1.
 Open Scope R_scope.
 
-
 Theorem sum_n_nat : forall n : nat,
   sum_f 0 n (fun i => INR i) = (INR n * (INR n + 1)) / 2.
 Proof.
