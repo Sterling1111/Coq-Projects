@@ -1820,7 +1820,7 @@ Qed.
 
 Lemma lemma_1_19_d_a : forall x1 y1 x2 y2,
   x1 * y1 + x2 * y2 = sqrt (x1^2 + x2^2) * sqrt (y1^2 + y2^2) ->
-  (y1 = 0 /\ y2 = 0) \/ exists lam, x1 = lam * y1 /\ x2 = lam * y2.
+  ((y1 = 0 /\ y2 = 0) \/ exists lam, x1 = lam * y1 /\ x2 = lam * y2).
 Proof.
   intros x1 y1 x2 y2 H1.
   pose proof contra_3 (y1 <> 0 \/ y2 <> 0) (forall lam, (x1 <> lam * y1 \/ x2 <> lam * y2)) (x1 * y1 + x2 * y2 < sqrt (x1^2 + x2^2) * sqrt (y1^2 + y2^2)) as H2.
@@ -1835,7 +1835,7 @@ Qed.
 Lemma lemma_1_19_d_b : forall x y x1 y1 x2 y2,
   x = x1 / (sqrt (x1^2 + x2^2)) -> y = y1 / (sqrt (y1^2 + y2^2)) -> x = x2 / (sqrt (x1^2 + x2^2)) -> 
   y = y2 / (sqrt (y1^2 + y2^2))-> x1 * y1 + x2 * y2 = sqrt (x1^2 + x2^2) * sqrt (y1^2 + y2^2) ->
-  (y1 = 0 /\ y2 = 0) \/ exists lam, x1 = lam * y1 /\ x2 = lam * y2.
+  ((y1 = 0 /\ y2 = 0) \/ exists lam, x1 = lam * y1 /\ x2 = lam * y2).
 Proof.
   intros x y x1 y1 x2 y2 H1 H2 H3 H4 H5.
   assert (H6 : x1^2 + x2^2 = 0 \/ x1^2 + x2^2 <> 0) by lra. destruct H6 as [H6 | H6].
