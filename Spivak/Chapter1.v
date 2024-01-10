@@ -2106,6 +2106,7 @@ Proof.
        nra.
 Qed.
 
+(* a1 + ... + ak *)
 (* 1 2 3 4  - > 1 + (2 + (3 + 4)) *)
 
 Fixpoint standard_sum (l : list R) : R :=
@@ -2113,27 +2114,6 @@ Fixpoint standard_sum (l : list R) : R :=
   | [] => 0
   | [x] => x
   | x :: xs => x + standard_sum xs
-  end.
-
-(* 1 2 3 4 *)
-(* 1 | 2 3 4 -> 1 + (2 + (3 + 4)), 1 + ((2 + 3) + 4)*)
-(* 1 2 | 3 4 -> (1 + 2) + (3 + 4)*)
-(* 1 2 3 | 4 -> (1 + (2 + 3)) + 4, ((1 + 2) + 3) + 4 *)
-
-Inductive add_expr : Type :=
-| Num (a : R)
-| Sum (e1 e2 : add_expr).
-
-Fixpoint eval_add_expr (e : add_expr) : R :=
-  match e with
-  | Num a => a
-  | Sum e1 e2 => (eval_add_expr e1) + (eval_add_expr e2)
-  end.
-
-Fixpoint elements (e : add_expr) : list R :=
-  match e with
-  | Num a => [a]
-  | Sum e1 e2 => elements e1 ++ elements e2
   end.
 
 Lemma lemma_1_24_a : forall (l : list R) (a : R),
@@ -2159,6 +2139,27 @@ Proof.
     specialize IH with (l1 ++ [a]).
     rewrite IH. rewrite <- lemma_1_24_a. lra.
 Qed.
+
+(* 1 2 3 4 *)
+(* 1 | 2 3 4 -> 1 + (2 + (3 + 4)), 1 + ((2 + 3) + 4)*)
+(* 1 2 | 3 4 -> (1 + 2) + (3 + 4)*)
+(* 1 2 3 | 4 -> (1 + (2 + 3)) + 4, ((1 + 2) + 3) + 4 *)
+
+Inductive add_expr : Type :=
+| Num (a : R)
+| Sum (e1 e2 : add_expr).
+
+Fixpoint eval_add_expr (e : add_expr) : R :=
+  match e with
+  | Num a => a
+  | Sum e1 e2 => (eval_add_expr e1) + (eval_add_expr e2)
+  end.
+
+Fixpoint elements (e : add_expr) : list R :=
+  match e with
+  | Num a => [a]
+  | Sum e1 e2 => elements e1 ++ elements e2
+  end.
 
 Set Printing Parentheses.
 
