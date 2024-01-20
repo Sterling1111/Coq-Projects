@@ -168,6 +168,14 @@ Proof.
        replace (n - (k - 1))%nat with (S n - k)%nat by lia. reflexivity.
 Qed.
 
+(* nat to real*)
+Check (IZR (Z.of_nat 3%nat)).
+
+(* real to nat *)
+Check (Z.to_nat (up 1.333)).
+
+Definition real_is_nat (r : R) : Prop := r = INR (Z.to_nat (up r)).
+
 Lemma lemma_2_d : forall a b n,
   (a + b) ^ n = sum_f 0 n (fun i => (choose n i) * a ^ (n - i) * b ^ i).
 Proof.
@@ -225,3 +233,24 @@ Proof.
     -- right. unfold Nat.Odd in *. destruct IH as [k0 H]. exists (k0). lia.
     -- left. unfold Nat.Even in *. destruct IH as [k0 H]. exists (S k0). lia.
 Qed.
+
+Lemma lemma_1_2_5 : forall n r,
+  r <> 1 -> sum_f 0 n (fun i => r ^ i) = (1 - r ^ (n+1)) / (1 - r).
+Proof.
+  intros n r H1. induction n as [| k IH].
+  - compute. field. nra.
+  - destruct k as [| k'] eqn : Ek.
+    -- compute. field. nra.
+    -- rewrite sum_f_i_Sn_f. 2 : { lia. }
+       rewrite IH. rewrite <- Ek. apply Rmult_eq_reg_l with (r := (1 - r)).
+       2 : { nra. }
+       replace ((1 - r) * ((1 - r ^ (k + 1)) / (1 - r) + r ^ S k)) with (1 - r^(k+1) + r^S k - r * r^S k) by (field; nra).
+       replace ((1 - r) * ((1 - r ^ (S k + 1)) / (1 - r))) with (1 - r^(S k + 1)) by (field; nra).
+       replace (r^(S k + 1)) with (r * r ^ (S k)). 2 : { replace (S k + 1)%nat with (S (S k)) by lia. simpl. auto. }
+       simpl. apply Rplus_eq_reg_r with (r := r * (r * r^k)).
+       replace (1 - r ^ (k + 1) + r * r ^ k - r * (r * r ^ k) + r * (r * r ^ k)) with 
+               (1 - r ^(k+1) + r * r^k) by nra.
+       replace (1 - r * (r * r ^ k) + r * (r * r ^ k)) with 1 by nra.
+       replace (k+1)%nat with (S k) by lia. simpl. lra.
+Qed.
+
