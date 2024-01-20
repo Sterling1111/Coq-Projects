@@ -1,4 +1,4 @@
-Require Import Reals List.
+Require Import Reals List Lra QArith Lia.
 Import ListNotations.
 
 Open Scope R_scope.
@@ -10,57 +10,24 @@ Fixpoint standard_sum (l : list R) : R :=
   | x :: xs => x + standard_sum xs
   end.
 
-Example ex_3 : forall a b c,
-  standard_sum [a;b;c] = a + (b + c).
-Proof.
-  intros a b c. simpl. reflexivity.
-Qed.
-
-Example ex_4 : forall a b c d,
-  standard_sum [a;b;c;d] = a + (b + (c + d)).
-Proof.
-  intros a b c d. simpl. reflexivity.
-Qed.
-
 Lemma lemma_1_24_a : forall l a,
   a + standard_sum l = standard_sum (a :: l).
 Proof.
-  intros l a. destruct l as [| a' l'] eqn : El.
-  - simpl. apply Rplus_0_r.
-  - simpl. reflexivity.
+  intros; destruct l; simpl; lra.
 Qed.
 
 Lemma lemma_1_24_b : forall l1 l2,
   standard_sum l1 + standard_sum l2 = standard_sum (l1 ++ l2).
 Proof.
   intros l1 l2. induction l1 as [| a' l1' IH].
-  - simpl. apply Rplus_0_l.
-  - replace ((a' :: l1') ++ l2) with (a' :: (l1' ++ l2)).
-    2 : { simpl. reflexivity. }
-    repeat rewrite <- lemma_1_24_a. rewrite <- IH. apply Rplus_assoc.
+  - (simpl; lra).
+  - replace ((a' :: l1') ++ l2) with (a' :: (l1' ++ l2)) by (simpl; reflexivity).
+    repeat rewrite <- lemma_1_24_a. lra.
 Qed.
 
 Inductive add_expr : Type := 
 | Num (a : R) 
 | Sum (e1 e2 : add_expr).
-
-(* a -> a*)
-(* a b -> a + b*)
-(* a b c -> a + (b + c), (a + b) + c*)
-
-Section LocalScope.
-  Variable a b c : R.
-
-  Check (Num a).
-  Check (Sum (Num a) (Num b)).
-  Check (Sum (Num a) (Sum (Num b) (Num c))).
-  Check (Sum (Sum (Num a) (Num b)) (Num c)).
-
-End LocalScope.
-
-(* a | b c d -> a + (b + (c + d)), a + ((b + c) + d)*)
-(* a b | c d -> (a + b) + (c + d)*)
-(* a b c | d -> (a + (b + c)) + d, ((a + b) + c) + d*)
 
 Fixpoint eval_add_expr (e : add_expr) : R := 
   match e with
@@ -79,8 +46,7 @@ Lemma lemma_1_24_c : forall e : add_expr,
 Proof.
   intros e. induction e as [a | e1 IH1 e2 IH2].
   - simpl. reflexivity.
-  - simpl. rewrite <- lemma_1_24_b. rewrite IH1. rewrite IH2.
-    reflexivity.
+  - simpl. rewrite <- lemma_1_24_b. lra.
 Qed.
 
 Lemma Rplus_assoc_general : forall e1 e2,

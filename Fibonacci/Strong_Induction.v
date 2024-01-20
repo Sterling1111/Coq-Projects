@@ -110,4 +110,3 @@ Proof.
     -- intros z H. intros k Hk. apply H1. intros k' Hk'. apply H. lia.
   - apply H1. intros k Hk. apply H3. lia.
 Qed.
-
