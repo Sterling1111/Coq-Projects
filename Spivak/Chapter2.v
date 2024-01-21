@@ -14,7 +14,7 @@ Proof.
        rewrite IH. rewrite S_INR. lra.
 Qed.
 
-Theorem sum_n_square_nat : forall n : nat,
+Lemma lemma_2_1_i : forall n : nat,
   sum_f 0 n (fun i => INR i ^ 2) = (INR n * (INR n + 1) * (2 * INR n + 1)) / 6.
 Proof.
   intros n. induction n as [| k IH].
@@ -25,7 +25,7 @@ Proof.
        rewrite IH. rewrite S_INR. lra.
 Qed.
 
-Theorem sum_n_cube_nat : forall n : nat,
+Lemma lemma_2_1_ii : forall n : nat,
   sum_f 0 n (fun i => INR i ^ 3) = (sum_f 0 n (fun i => INR i)) ^ 2.
 Proof.
   induction n as [| k IH].
@@ -38,7 +38,7 @@ Proof.
        repeat rewrite S_INR. rewrite sum_n_nat. lra.
 Qed.
 
-Lemma lemma_1_2_i : forall n : nat,
+Lemma lemma_2_2_i : forall n : nat,
   (n >= 1)%nat -> sum_f 1 n (fun i => 2 * (INR i) - 1) = INR (n^2).
 Proof.
   intros n H. induction n as [| k IH].
@@ -54,7 +54,7 @@ Proof.
        lra.
 Qed.
 
-Lemma lemma_1_2_ii : forall n : nat,
+Lemma lemma_2_2_ii : forall n : nat,
   (n >= 1)%nat -> sum_f 1 n (fun i => (2 * INR i - 1)^2) = INR n * (2 * INR n + 1) * (2 * INR n - 1) / 3.
 Proof.
   intros n H. induction n as [| k IH].
