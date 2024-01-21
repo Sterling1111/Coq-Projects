@@ -280,6 +280,38 @@ Qed.
 
 Close Scope nat_scope.
 
+Definition irrational (r : R) : Prop :=
+  forall (p q : Z), q <> 0%Z -> r <> (IZR p / IZR q).
+
+Open Scope Z_scope.
+
+Lemma Z_sq_gt_0 : forall z : Z, z <> 0 -> z * z > 0.
+Proof.
+  intros z H.
+  destruct (Z_lt_le_dec 0 z).
+  -  lia.
+  - lia.
+Qed.
+
+Close Scope Z_scope.
+
+
+Lemma sqrt_2_irrational : irrational (sqrt 2).
+Proof.
+  unfold irrational. intros p q H1 H2. assert (H3 : (q * q <> 0)%Z) by lia.
+  apply not_0_IZR in H3. replace (q * q)%Z with (q^2)%Z in H3 by lia.
+  assert (H4 : sqrt 2 * sqrt 2 = (IZR p / IZR q) * (IZR p / IZR q)) by nra.
+  rewrite sqrt_sqrt in H4. 2 : { lra. } assert (H5 : (p^2 >= 0)%Z) by lia. assert (H6 : (q^2 > 0)%Z).
+  { replace ((q^2)%Z) with ((q*q)%Z) by lia. apply Z_sq_gt_0. lia. }
+  replace (IZR p / IZR q * (IZR p / IZR q)) with ((IZR p)^2 / ((IZR q)^2)) in H4.
+  2 : { field. apply not_0_IZR in H1. lra. } simpl in H4. rewrite Rmult_1_r in H4. repeat rewrite <- mult_IZR in H4.
+  rewrite Zmult_1_r in H4. replace ((p * p)%Z) with ((p^2)%Z) in H4 by lia.
+  replace ((q * q)%Z) with ((q^2)%Z) in H4 by lia. assert (H7 : (q^2 <> 0)%Z) by lia.
+  apply not_0_IZR in H7.
+  apply Rmult_eq_compat_l with (r := IZR (q^2)) in H4.
+  replace (IZR (q ^ 2) * (IZR (p ^ 2) / IZR (q ^ 2))) with (IZR (p^2) * (IZR (q^2) / (IZR (q^2)))) in H4 by nra.
+  rewrite Rdiv_diag in H4. 2 : { auto. } rewrite Rmult_1_r in H4.
+
 Lemma lemma_2_23 : forall (a : R) (n m : nat),
   a ^ (n + m) = a^n * a^m.
 Proof.
