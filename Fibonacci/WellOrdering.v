@@ -42,6 +42,41 @@ Proof.
   - exfalso. apply H in C2. apply C2. exists x. apply Ex.
 Qed.
 
+Theorem induction_nat : forall P : nat -> Prop,
+  P 0 -> (forall k : nat, P k -> P (S k)) -> forall n, P n.
+Proof.
+  intros P H_base H_inductive n.
+  induction n as [| k IH].
+  - apply H_base.
+  - apply H_inductive. apply IH.
+Qed.
+
+Definition WI := forall P : nat -> Prop,
+  P 0 -> (forall k : nat, P k -> P (S k)) -> forall n, P n.
+
+Definition WO := forall E : nat -> Prop,
+  (exists x, E x) -> 
+  (exists n, E n /\ forall m, E m -> (n <= m)).
+
+Theorem WO_imp_WI : WO -> WI.
+Proof.
+  unfold WO, WI. intros WO P H_base H_inductive n.
+  set (E := fun m => ~ P m).
+  specialize (WO E). assert (H1 : forall n : nat, E n -> False).
+  - intros x H1. destruct x as [| x'] eqn:Ex.
+    -- auto.
+    -- destruct WO as [y Wo].
+      --- exists (S x'). apply H1.
+      --- destruct Wo as [H2 H3]. specialize (H_inductive (y-1)).
+          destruct y as [| y'].
+          ---- auto.
+          ---- assert (E y' -> False).
+          * intros H4. specialize (H3 y'). apply H3 in H4. lia.
+          * assert (~ (E y')) by auto. unfold E in H0. assert (P y') by tauto.
+            replace ((S y' - 1)%nat) with (y')%nat in H_inductive by lia. auto.
+  - specialize (H1 n). tauto.
+Qed.
+
 Open Scope Z_scope.
 
 Lemma well_ordering_principle_contrapositive_Z : forall E : Z -> Prop,

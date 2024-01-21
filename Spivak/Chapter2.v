@@ -234,7 +234,7 @@ Proof.
     -- left. unfold Nat.Even in *. destruct IH as [k0 H]. exists (S k0). lia.
 Qed.
 
-Lemma lemma_1_2_5 : forall n r,
+Lemma lemma_2_5 : forall n r,
   r <> 1 -> sum_f 0 n (fun i => r ^ i) = (1 - r ^ (n+1)) / (1 - r).
 Proof.
   intros n r H1. induction n as [| k IH].
@@ -252,5 +252,40 @@ Proof.
                (1 - r ^(k+1) + r * r^k) by nra.
        replace (1 - r * (r * r ^ k) + r * (r * r ^ k)) with 1 by nra.
        replace (k+1)%nat with (S k) by lia. simpl. lra.
+Qed.
+
+Open Scope nat_scope.
+
+Definition induction_nat := forall P : nat -> Prop,
+  P 0 -> (forall k : nat, P k -> P (S k)) -> forall n, P n.
+
+Definition well_ordering_nat := forall E : nat -> Prop,
+  (exists x, E x) -> 
+  (exists n, E n /\ forall m, E m -> (n <= m)).
+
+Theorem lemma_2_10 : well_ordering_nat -> induction_nat.
+Proof.
+  unfold well_ordering_nat, induction_nat. intros well_ordering_nat P H_base H_inductive n.
+  set (E := fun m => ~ P m).
+  specialize (well_ordering_nat E). assert (H1 : forall n : nat, E n -> False).
+  - intros x H1. assert (H3 : exists x, E x) by (exists x; auto). apply well_ordering_nat in H3.
+    destruct H3 as [least_elem_E H3]. destruct H3 as [H3 H4]. specialize (H_inductive (least_elem_E -1)).
+    destruct least_elem_E as [| least_elem_E'].
+    -- auto.
+    -- specialize (H4 least_elem_E'). assert (H5 : S least_elem_E' <= least_elem_E' -> False) by lia.
+       assert (H6 : ~(E least_elem_E')) by tauto. unfold E in H6. simpl in *. rewrite Nat.sub_0_r in *.
+       apply NNPP in H6. apply H_inductive in H6. unfold E in H3. tauto.
+  - specialize (H1 n). tauto.
+Qed.
+
+Close Scope nat_scope.
+
+Lemma lemma_2_23 : forall (a : R) (n m : nat),
+  a ^ (n + m) = a^n * a^m.
+Proof.
+  intros a n m. induction n as [| k IH].
+  - simpl. lra.
+  - replace (a ^ (S k + m)) with (a * (a ^ (k + m))) by (simpl; lra).
+    rewrite IH. replace (a ^ S k) with (a * a ^ k) by (simpl; lra). lra.
 Qed.
 
