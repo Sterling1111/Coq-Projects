@@ -1,7 +1,7 @@
 Require Import Reals Lra Lia ZArith FunctionalExtensionality List Classical Arith QArith.
 Import ListNotations.
 From Spivak Require Import Chapter1.
-Open Scope R_scope.
+Open Scope R_scope. 
 
 Theorem sum_n_nat : forall n : nat,
   sum_f 0 n (fun i => INR i) = (INR n * (INR n + 1)) / 2.
@@ -274,6 +274,14 @@ Definition strong_induction_nat := forall P : nat -> Prop,
 Definition well_ordering_nat := forall E : nat -> Prop,
   (exists x, E x) -> (exists n, E n /\ forall m, E m -> (n <= m)).
 
+Lemma induction_imp_induction_nat : induction_nat.
+Proof.
+  unfold induction_nat. intros P [H_base H_ind] n.
+  induction n as [| k IH].
+  - apply H_base.
+  - apply H_ind. apply IH.
+Qed.
+
 Lemma lemma_2_10 : well_ordering_nat -> induction_nat.
 Proof.
   unfold well_ordering_nat, induction_nat. intros well_ordering_nat P [Hbase H_inductive] n.
@@ -298,6 +306,16 @@ Proof.
     -- intros k Hk. intros k' Hk'. apply H1. intros k'' Hk''. apply Hk. lia.
   - apply H2. lia.
 Qed.
+
+Lemma strong_induction_N : strong_induction_nat.
+Proof.
+  apply lemma_2_11. apply induction_imp_induction_nat.
+Qed.
+
+Ltac strong_induction n :=
+  apply (strong_induction_N (fun n => _));
+  let n := fresh n in
+  intros n H.
 
 Close Scope nat_scope.
 
@@ -411,6 +429,30 @@ Proof.
        --- apply H5. unfold Z.divide. exists (k1). lia.
        --- apply H5. unfold Z.divide. exists (k2). lia.
 Qed.
+
+Open Scope R_scope.
+
+Fixpoint Fibonacci (n : nat) : R :=
+  match n with
+  | O => 0
+  | S n' => match n' with
+           | O => 1
+           | S n'' => Fibonacci n' + Fibonacci n''
+           end
+  end.
+
+Lemma lemma_2_20 : forall n,
+  Fibonacci n = (((1 + sqrt 5)/2)^n - ((1 - sqrt 5)/2)^n) / sqrt 5.
+Proof.
+  apply strong_induction_N.
+  intros n IH. destruct n as [| n'].
+  - simpl. lra.
+  - destruct n' as [| n''].
+    -- simpl. field. assert (0 < sqrt 5) by (apply sqrt_lt_R0; lra). lra.
+    -- replace (Fibonacci (S (S n''))) with (Fibonacci (S n'') + Fibonacci n'') by auto.
+       rewrite IH. 2 : { lia. } rewrite IH. 2 : { lia. }
+        
+       
        
 Lemma lemma_2_23 : forall (a : R) (n m : nat),
   a ^ (n + m) = a^n * a^m.
@@ -420,4 +462,3 @@ Proof.
   - replace (a ^ (S k + m)) with (a * (a ^ (k + m))) by (simpl; lra).
     rewrite IH. replace (a ^ S k) with (a * a ^ k) by (simpl; lra). lra.
 Qed.
-
