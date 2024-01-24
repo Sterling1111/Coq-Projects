@@ -86,7 +86,6 @@ Proof.
   field. apply INR_fact_neq_0.
 Qed.
 
-
 Lemma k_gt_n_n_choose_k : forall n k : nat, 
   (n < k)%nat -> choose n k = 0.
 Proof.
@@ -315,24 +314,232 @@ Qed.
 Ltac strong_induction n :=
   apply (strong_induction_N (fun n => _));
   let n := fresh n in
-  intros n H.
+  intros n IH.
+
+Lemma well_ordering_nat_contrapositive : forall E : nat -> Prop,
+  (~(exists m, E m /\ forall k, E k -> m <= k)) ->
+    (~(exists n, E n)).
+Proof.
+  intros E H.
+  set (E' := fun n => ~ E n).
+  assert (E 0 -> False).
+  { intros H2. apply H. exists 0. split. apply H2. intros k H3. lia. }
+  assert (H2: forall n, E' n).
+  {
+    strong_induction n. destruct n.
+    - unfold E'. unfold not. apply H0.
+    - assert (E (S n) -> False).
+      { intros H3. apply H. exists (S n). split. apply H3. intros k H4.
+        specialize (IH k). assert (E' k -> False). unfold E'. 
+        unfold not. intros H5. apply H5. apply H4. assert (k < S n -> False) by auto.
+        lia. 
+      }
+      unfold E'. unfold not. apply H1.
+  }
+  unfold E' in H2. unfold not in H2. unfold not. intros H3. destruct H3 as [n H3].
+  specialize (H2 n). apply H2. apply H3.
+Qed.
+
+Theorem well_ordering_N : well_ordering_nat.
+Proof.
+  intros E. 
+  assert (H :
+    ~(exists m, E m /\ forall k, E k -> m <= k) ->
+      ~(exists n, E n)) by apply well_ordering_nat_contrapositive.
+  
+  intros [x Ex].
+  destruct (classic (exists m, E m /\ forall k, E k -> m <= k)) as [C1|C2].
+  - apply C1.
+  - exfalso. apply H in C2. apply C2. exists x. apply Ex.
+Qed.
 
 Close Scope nat_scope.
 
-Definition rational (r : R) : Prop :=
-  exists z1 z2 : Z, r = (IZR z1) / (IZR z2).
-
-Definition irrational (r : R) : Prop :=
-  ~ rational r.
-
 Open Scope Z_scope.
 
-Lemma Z_sq_gt_0 : forall z : Z, z <> 0 -> z * z > 0.
+Lemma Z_ind_pos: 
+  forall (P: Z -> Prop),
+  P 0 ->
+  (forall z, z >= 0 -> P z -> P (z + 1)) ->
+  forall z, z >= 0 -> P z.
 Proof.
-  intros z H.
-  destruct (Z_lt_le_dec 0 z).
-  -  lia.
-  - lia.
+  intros P H0 Hstep z Hnonneg.
+  
+  (* Convert the problem to induction over natural numbers *)
+  remember (Z.to_nat z) as n eqn:Heq.
+  assert (Hnneg: forall n : nat, P (Z.of_nat n)).
+  {
+    intros n1. induction n1.
+    - simpl. apply H0.
+    - replace (S n1) with (n1 + 1)%nat by lia.
+      rewrite Nat2Z.inj_add. apply Hstep. lia. apply IHn1. 
+  }
+  
+  specialize(Hnneg n). rewrite Heq in Hnneg. 
+  replace (Z.of_nat (Z.to_nat z)) with (z) in Hnneg. apply Hnneg. 
+  rewrite Z2Nat.id. lia. lia.
+Qed.
+
+Lemma Z_induction_bidirectional :
+  forall P : Z -> Prop,
+  P 0 ->
+  (forall n : Z, P n -> P (n + 1)) ->
+  (forall n : Z, P n -> P (n - 1)) ->
+  forall n : Z, P n.
+Proof.
+  intros P H0 Hpos Hneg n.
+  
+  assert (Hnneg: forall n : nat, P (Z.of_nat n)).
+  {
+    intros n1. induction n1.
+    - simpl. apply H0.
+    - replace (S n1) with (n1 + 1)%nat by lia.
+      rewrite Nat2Z.inj_add. apply Hpos. apply IHn1.
+  }
+
+  destruct (Z_lt_le_dec n 0).
+  - replace n with (- Z.of_nat (Z.to_nat (- n))) by 
+      (rewrite Z2Nat.id; lia).
+    induction (Z.to_nat (-n)).
+    + simpl. apply H0.
+    + replace (S n0) with (n0 + 1)%nat by lia. rewrite Nat2Z.inj_add.
+      replace (- (Z.of_nat n0 + Z.of_nat 1)) with (-Z.of_nat n0 - 1) by lia. apply Hneg. apply IHn0.
+  - apply Z_ind_pos.
+    -- apply H0.
+    -- intros z H. apply Hpos.
+    -- lia.
+Qed.
+
+Lemma strong_induction_Z :
+  forall P : Z -> Prop,
+  (forall m, (forall k : Z, 0 <= k < m -> P k) -> P m) ->
+  forall n, 0 <= n -> P n.
+Proof.
+  intros P H1 n H2. assert (H3: forall k, 0 <= k < n -> P k).
+  - apply Z_induction_bidirectional with (n := n).
+    -- lia.
+    -- intros z H. intros k Hk. apply H1. intros k' Hk'. apply H. lia.
+    -- intros z H. intros k Hk. apply H1. intros k' Hk'. apply H. lia.
+  - apply H1. intros k Hk. apply H3. lia.
+Qed.
+
+Lemma well_ordering_principle_contrapositive_Z : forall E : Z -> Prop,
+  (forall n : Z, E n -> n >= 0) ->
+  (~(exists m, E m /\ forall k, k >= 0 -> E k -> m <= k)) ->
+    (~(exists n, E n)).
+Proof.
+  intros E Hnon_neg H.
+  set (E' := fun z => ~ E z).
+  assert (E 0 -> False).
+  { intros H2. apply H. exists 0. split; try split.
+    - apply H2.
+    - intros k _ H3. specialize (Hnon_neg k). apply Hnon_neg in H3. lia.
+  }
+  assert (H2: forall z, z >= 0 -> E' z).
+  { 
+    intros z Hz. apply strong_induction_Z. intros m H2. destruct (Z_le_dec m 0).
+    - unfold E'. unfold not. apply Z_le_lt_eq_dec in l. destruct l.
+      -- specialize (Hnon_neg m). intros H3. apply Hnon_neg in H3. lia.
+      -- rewrite e. apply H0.
+    - assert (E m -> False).
+      { intros H3. apply H. exists m. split; try split.
+        - apply H3.
+        - intros k H4 H5. specialize (H2 k). assert (E' k -> False). unfold E'. 
+          unfold not. intros H6. apply H6. apply H5. assert (0 <= k < m -> False) by auto.
+          lia. 
+      }
+      unfold E'. unfold not. apply H1.
+    - lia.
+  }
+  unfold E' in H2. unfold not in H2. unfold not. intros H3. destruct H3 as [n H3].
+  specialize (H2 n). apply H2. apply Hnon_neg in H3. apply H3. apply H3.
+Qed.
+
+Theorem well_ordering_Z : forall E : Z -> Prop,
+  (forall z, E z -> z >= 0) ->
+  (exists x, E x) -> 
+  (exists n, E n /\ forall m, m >= 0 -> E m -> (n <= m)).
+Proof.
+  intros E Hnon_neg [x Ex]. 
+  assert (H :
+    (forall n : Z, E n -> n >= 0) ->
+      (~(exists m, E m /\ forall k, k >= 0 -> E k -> m <= k)) ->
+      (~(exists n, E n))).
+    { apply well_ordering_principle_contrapositive_Z. }
+  
+  destruct (classic (exists m, E m /\ forall k, k >= 0 -> E k -> m <= k)) as [C1|C2].
+  - apply C1.
+  - exfalso. apply H in C2. apply C2. exists x. apply Ex. apply Hnon_neg. 
+Qed.
+
+Theorem QRTE : forall a d : Z,
+  (d >= 1) -> exists q r : Z, a = d * q + r /\ 0 <= r < d.
+Proof.
+  intros a d Hb.
+  set (S z := exists t : Z, z = a - t * d /\ z >= 0).
+  assert (Ht : exists t : Z, S t).
+  { 
+    destruct (Z_le_dec 0 a) as [Ha | Ha].
+    - exists a. unfold S. exists 0. split. simpl. rewrite Z.sub_0_r. reflexivity. apply Z.le_ge. apply Ha.
+    - unfold not in Ha. exists (a * (1 - d)). unfold S. exists a. split. lia.
+      assert (1 - d <= 0) by lia. destruct (Z.eq_dec (1 - d) 0) as [H2 | H2].
+      -- lia.
+      -- assert (H3 : 1 - d < 0) by lia. assert (H4 : a < 0) by lia. 
+         assert (H5 : forall z : Z, z > 0 -> z >= 0) by lia. apply H5. 
+         apply Z.lt_gt. apply Z.mul_neg_neg. lia. lia.
+  }
+  apply well_ordering_Z in Ht.
+  - destruct Ht as [r Ht]. destruct Ht as [Ht Ht'].
+    unfold S in Ht. destruct Ht as [t Ht]. destruct Ht as [Ht Ht'']. 
+    exists t. exists r. split. lia. destruct (classic (r < d)) as [H1 | H1].
+    -- lia.
+    -- assert (H2 : r >= d) by lia. assert (H3 : a - t * d >= d) by lia.
+       assert (H4 : a - d * (t - 1) >= 0) by lia.  assert (H5 : r - d >= 0) by lia.
+       assert (H6 : S (r - d)). { unfold S. exists (t + 1). split. lia. lia. }
+       assert (H7 : S (a - d * (t + 1))). { unfold S. exists (t + 1). split. lia. lia. }
+       assert (H8 : r <= r - d). { apply Ht'. lia. apply H6. } lia.
+    - intros z. unfold S. intros H. destruct H as [t H]. lia.
+Qed.
+
+Theorem QRTU : forall a d q1 q2 r1 r2 : Z,
+  (d >= 1) /\  a = d * q1 + r1 /\ a = d * q2 + r2 /\ 0 <= r1 < d /\ 0 <= r2 < d
+  -> q1 = q2 /\ r1 = r2.
+Proof.
+  intros a d q1 q2 r1 r2 [H1 [H2 [H3 [H4 H5]]]].
+  assert (H: q1 = q2).
+  {
+    assert (H6 : q1 * d + r1 = q2 * d + r2) by lia.
+    assert (H7 : (q1 - q2) * d = r2 - r1) by lia.
+    assert (H8 : -d < -r1 <= 0) by lia.
+    assert (H9 : 0 <= r2 < d) by lia.
+    assert (H10 : -d < r2 - r1 < d) by lia.
+    assert (H11 : -d < (q1 - q2) * d < d) by lia.
+    destruct H11 as [H11 H12].
+    assert (H13 : -1 < q1 - q2).
+    { apply Zmult_lt_reg_r with (p := d). lia. lia. }
+    assert (H14 : q1 - q2 < 1).
+    { apply Zmult_lt_reg_r with (p := d). lia. lia. } 
+    lia.
+  }
+  split.
+  - apply H.
+  - lia. 
+Qed.
+
+Theorem QRT : forall a d : Z,
+  d >= 1 -> 
+  exists! p : (Z * Z), let (q, r) := p in a = d * q + r /\ 0 <= r < d.
+Proof.
+  intros a d Hd.
+  apply unique_existence with (P := fun p : (Z * Z) => let (q, r) := p in a = d * q + r /\ 0 <= r < d).
+
+  split.
+  - destruct (QRTE a d Hd) as [q [r [H1 H2]]].
+    exists (q, r). auto.
+  
+  - intros [q1 r1] [q2 r2] [H1a H1b] [H2a H2b].
+    assert (H3 : q1 = q2 /\ r1 = r2) by (apply QRTU with (a := a) (d := d); auto).
+    destruct H3 as [H3a H3b]. rewrite H3a. rewrite H3b. reflexivity.
 Qed.
 
 Lemma gcd_0 : forall a b : Z, Z.gcd a b = 0 -> a = 0 /\ b = 0.
@@ -349,12 +556,11 @@ Proof.
   - auto.
 Qed.
 
-Lemma div_gcd_neq_0 : forall a b : Z, a <> 0 -> b <> 0 -> a / Z.gcd a b <> 0 /\ b / Z.gcd a b <> 0.
-Proof.
-  intros a b H1 H2. assert (Z.gcd a b > 0) as H3 by (apply gcd_gt_0; auto). split.
-  - destruct (Z.gcd_divide_l a b) as [k H4]. rewrite H4 at 1. rewrite Z_div_mult. 2 : { lia. } lia.
-  - destruct (Z.gcd_divide_r a b) as [k H4]. rewrite H4 at 1. rewrite Z_div_mult. 2 : { lia. } lia.
-Qed.
+Definition rational (r : R) : Prop :=
+  exists z1 z2 : Z, (r = (IZR z1) / (IZR z2))%R.
+
+Definition irrational (r : R) : Prop :=
+  ~ rational r.
 
 Lemma rational_representation : forall r z1 z2,
   z1 <> 0 -> z2 <> 0 ->
@@ -394,43 +600,137 @@ Proof.
   - destruct H1 as [k H1]. destruct H as [k' H]. nia. 
 Qed.
 
+Lemma sqrt_rational_neq_0 : forall r z1 z2,
+  (r > 0)%R -> sqrt r = (IZR z1 / IZR z2)%R -> (z1 <> 0 /\ z2 <> 0).
+Proof.
+  intros r z1 z2 H1 H2. split.
+  - intros H3. rewrite H3 in H2. rewrite Rdiv_0_l in H2. pose proof sqrt_lt_R0 r. nra.
+  - intros H3. rewrite H3 in H2. rewrite Rdiv_0_r in H2. pose proof sqrt_lt_R0 r. nra.
+Qed.
+
 Lemma sqrt_2_irrational : irrational (sqrt 2).
 Proof.
   unfold irrational. unfold rational. unfold not. intros [z1 [z2 H1]].
-  assert (z1 <> 0 /\ z2 <> 0) as [H2 H3].
-  - split.
-    -- assert (z1 = 0 -> False). intros H2. rewrite H2 in H1. unfold Rdiv in H1. rewrite Rmult_0_l in H1.
-       assert (sqrt 2 * sqrt 2 = 0 * 0)%R. { rewrite H1. reflexivity. } rewrite sqrt_sqrt in H. 2 : { lra. } lra.
-       tauto. 
-    -- assert (z2 = 0 -> False). intros H2. rewrite H2 in H1. unfold Rdiv in H1. rewrite Rinv_0 in H1. rewrite Rmult_0_r in H1.
-       assert (sqrt 2 * sqrt 2 = 0 * 0)%R. { rewrite H1. reflexivity. } rewrite sqrt_sqrt in H. 2 : { lra. } lra.
-       tauto.
-  - assert (H4 : exists z1' z2',
-    ((sqrt 2 = IZR z1' / IZR z2')%R /\ (forall x, x > 1 -> ~(x | z1') \/ ~(x | z2')))).
-    { apply rational_representation with (z1 := z1) (z2 := z2). apply H2. apply H3. apply H1. }
-    destruct H4 as [z1' [z2' [H4 H5]]]. assert (H6 : (sqrt 2 * sqrt 2 = (IZR z1' / IZR z2') * (IZR z1' / IZR z2'))%R) by nra.
-    rewrite sqrt_sqrt in H6. 2 : { lra. } assert (H7 : (z1' <> 0 /\ z2' <> 0)).
-    -- split.
-      --- intros H7. rewrite H7 in H6. unfold Rdiv in H6. rewrite Rmult_0_l in H6. rewrite Rmult_0_r in H6.
-          assert (sqrt 2 * sqrt 2 = 0 * 0)%R. { rewrite H6. rewrite sqrt_0. reflexivity. } rewrite sqrt_sqrt in H. 2 : { lra. } lra.
-      --- intros H7. rewrite H7 in H6. unfold Rdiv in H6. rewrite Rinv_0 in H6. rewrite Rmult_0_r in H6.
-          assert (sqrt 2 * sqrt 2 = 0 * 0)%R. { rewrite <- H6. rewrite sqrt_sqrt. reflexivity. lra. }
-          rewrite sqrt_sqrt in H. 2 : { lra. } lra.
-    -- destruct H7 as [H7 H8]. assert (H9 : (IZR z1' <> 0)%R) by (apply not_0_IZR; auto). assert (H10 : (IZR z2' <> 0)%R) by (apply not_0_IZR; auto).
-       replace (IZR z1' / IZR z2' * (IZR z1' / IZR z2'))%R with ((IZR z1')^2 / (IZR z2')^2)%R in H6.
-       2 : { field. auto. } apply Rmult_eq_compat_r with (r := ((IZR z2')^2)%R) in H6.
-       replace ((IZR z1' ^ 2 / IZR z2' ^ 2 * IZR z2' ^ 2)%R) with ((IZR z1')^2)%R in H6.
-       2 : { field. auto. } simpl in H6. repeat rewrite Rmult_1_r in H6. repeat rewrite <- mult_IZR in H6.
-       apply eq_IZR in H6. assert (H11 : Z.Even (z1' * z1')). { exists (z2' * z2'). lia. }
-       apply even_pow2 in H11. destruct H11 as [k1 H11].
-       assert (H12 : Z.Even (z2' * z2')). { exists (k1 * k1). nia. }
-       apply even_pow2 in H12. destruct H12 as [k2 H12]. specialize (H5 2). destruct H5 as [H5 | H5].
-       --- lia.
-       --- apply H5. unfold Z.divide. exists (k1). lia.
-       --- apply H5. unfold Z.divide. exists (k2). lia.
+  assert (z1 <> 0 /\ z2 <> 0) as [H2 H3] by (apply sqrt_rational_neq_0 with (r := 2%R); lra).
+  assert (H4 : exists z1' z2', ((sqrt 2 = IZR z1' / IZR z2')%R /\ (forall x, x > 1 -> ~(x | z1') \/ ~(x | z2')))).
+  { apply rational_representation with (z1 := z1) (z2 := z2). apply H2. apply H3. apply H1. }
+  destruct H4 as [z1' [z2' [H4 H5]]]. assert (H6 : (sqrt 2 * sqrt 2 = (IZR z1' / IZR z2') * (IZR z1' / IZR z2'))%R) by nra.
+  rewrite sqrt_sqrt in H6. 2 : { lra. } assert (H7 : (z1' <> 0 /\ z2' <> 0)) by (apply sqrt_rational_neq_0 with (r := 2%R); lra).
+  destruct H7 as [H7 H8]. assert (H9 : (IZR z1' <> 0)%R) by (apply not_0_IZR; auto). assert (H10 : (IZR z2' <> 0)%R) by (apply not_0_IZR; auto).
+  replace (IZR z1' / IZR z2' * (IZR z1' / IZR z2'))%R with ((IZR z1')^2 / (IZR z2')^2)%R in H6.
+  2 : { field. auto. } apply Rmult_eq_compat_r with (r := ((IZR z2')^2)%R) in H6.
+  replace ((IZR z1' ^ 2 / IZR z2' ^ 2 * IZR z2' ^ 2)%R) with ((IZR z1')^2)%R in H6.
+  2 : { field. auto. } simpl in H6. repeat rewrite Rmult_1_r in H6. repeat rewrite <- mult_IZR in H6.
+  apply eq_IZR in H6. assert (H11 : Z.Even (z1' * z1')). { exists (z2' * z2'). lia. }
+  apply even_pow2 in H11. destruct H11 as [k1 H11]. assert (H12 : Z.Even (z2' * z2')). { exists (k1 * k1). nia. }
+  apply even_pow2 in H12. destruct H12 as [k2 H12]. specialize (H5 2). destruct H5 as [H5 | H5].
+  { lia. } { apply H5. unfold Z.divide. exists (k1). lia. } { apply H5. unfold Z.divide. exists (k2). lia. }
 Qed.
 
-Open Scope R_scope.
+Ltac zforms :=
+  match goal with
+  | [ |- exists _, ?n = ?num * _ \/ _ ] =>
+      destruct (QRTE n num) as [q [r Hqr]];
+      try exists q;
+      lia
+  | _ => fail "Goal does not match expected pattern"
+  end.
+
+Lemma ksqr_div_3_k_div_3 : forall k,
+  Z.divide 3 (k^2) -> Z.divide 3 k.
+Proof.
+  intros k [a H1]. unfold Z.divide.
+  assert (exists p, k = 3*p \/ k = 3*p+1 \/ k = 3*p+2) as [p H2] by zforms.
+  exists p. lia.
+Qed.
+
+Lemma lemma_2_13_a : irrational (sqrt 3).
+Proof.
+  unfold irrational. unfold rational. unfold not. intros [z1 [z2 H1]].
+  assert (z1 <> 0 /\ z2 <> 0) as [H2 H3] by (apply sqrt_rational_neq_0 with (r := 3%R); lra).
+  assert (H4 : exists z1' z2', ((sqrt 3 = IZR z1' / IZR z2')%R /\ (forall x, x > 1 -> ~(x | z1') \/ ~(x | z2')))).
+  { apply rational_representation with (z1 := z1) (z2 := z2). apply H2. apply H3. apply H1. }
+  destruct H4 as [z1' [z2' [H4 H5]]]. assert (H6 : (sqrt 3 * sqrt 3 = (IZR z1' / IZR z2') * (IZR z1' / IZR z2'))%R) by nra.
+  rewrite sqrt_sqrt in H6. 2 : { lra. } assert (H7 : (z1' <> 0 /\ z2' <> 0)) by (apply sqrt_rational_neq_0 with (r := 3%R); lra).
+  destruct H7 as [H7 H8]. assert (H9 : (IZR z1' <> 0)%R) by (apply not_0_IZR; auto). assert (H10 : (IZR z2' <> 0)%R) by (apply not_0_IZR; auto).
+  replace (IZR z1' / IZR z2' * (IZR z1' / IZR z2'))%R with ((IZR z1')^2 / (IZR z2')^2)%R in H6.
+  2 : { field. auto. } apply Rmult_eq_compat_r with (r := ((IZR z2')^2)%R) in H6.
+  replace ((IZR z1' ^ 2 / IZR z2' ^ 2 * IZR z2' ^ 2)%R) with ((IZR z1')^2)%R in H6.
+  2 : { field. auto. } simpl in H6. repeat rewrite Rmult_1_r in H6. repeat rewrite <- mult_IZR in H6. apply eq_IZR in H6.
+  assert (Z.divide 3 (z1'^2)) as H11 by (exists (z2' * z2'); lia). assert (Z.divide 3 z1') as H12 by (apply ksqr_div_3_k_div_3; auto).
+  pose proof H11 as [p H13]. pose proof H12 as [q H14]. replace (z1'^2) with (z1' * z1') in H13 by lia.
+  assert (H15 : z1' * z1' = 3 * (3 * q * q)) by lia. rewrite H15 in H6. assert (Z.divide 3 (z2'^2)) as H16 by (exists (q * q); lia).
+  assert (Z.divide 3 z2') as H17 by (apply ksqr_div_3_k_div_3; auto). specialize (H5 3). destruct H5 as [H5 | H5].
+  { lia. } { tauto. } { tauto. }
+Qed.
+
+Lemma ksqr_div_3_k_div_5 : forall k,
+  Z.divide 5 (k^2) -> Z.divide 5 k.
+Proof.
+  intros k [a H1]. unfold Z.divide.
+  assert (exists p, k = 5*p \/ k = 5*p+1 \/ k = 5*p+2 \/ k = 5*p+3 \/ k = 5*p+4) as [p H2] by zforms.
+  exists p. lia.
+Qed.
+
+Lemma lemma_2_13_a' : irrational (sqrt 5).
+Proof.
+  unfold irrational. unfold rational. unfold not. intros [z1 [z2 H1]].
+  assert (z1 <> 0 /\ z2 <> 0) as [H2 H3] by (apply sqrt_rational_neq_0 with (r := 5%R); lra).
+  assert (H4 : exists z1' z2', ((sqrt 5 = IZR z1' / IZR z2')%R /\ (forall x, x > 1 -> ~(x | z1') \/ ~(x | z2')))).
+  { apply rational_representation with (z1 := z1) (z2 := z2). apply H2. apply H3. apply H1. }
+  destruct H4 as [z1' [z2' [H4 H5]]]. assert (H6 : (sqrt 5 * sqrt 5 = (IZR z1' / IZR z2') * (IZR z1' / IZR z2'))%R) by nra.
+  rewrite sqrt_sqrt in H6. 2 : { lra. } assert (H7 : (z1' <> 0 /\ z2' <> 0)) by (apply sqrt_rational_neq_0 with (r := 5%R); lra).
+  destruct H7 as [H7 H8]. assert (H9 : (IZR z1' <> 0)%R) by (apply not_0_IZR; auto). assert (H10 : (IZR z2' <> 0)%R) by (apply not_0_IZR; auto).
+  replace (IZR z1' / IZR z2' * (IZR z1' / IZR z2'))%R with ((IZR z1')^2 / (IZR z2')^2)%R in H6.
+  2 : { field. auto. } apply Rmult_eq_compat_r with (r := ((IZR z2')^2)%R) in H6.
+  replace ((IZR z1' ^ 2 / IZR z2' ^ 2 * IZR z2' ^ 2)%R) with ((IZR z1')^2)%R in H6.
+  2 : { field. auto. } simpl in H6. repeat rewrite Rmult_1_r in H6. repeat rewrite <- mult_IZR in H6. apply eq_IZR in H6.
+  assert (Z.divide 5 (z1'^2)) as H11 by (exists (z2' * z2'); lia). assert (Z.divide 5 z1') as H12 by (apply ksqr_div_3_k_div_5; auto).
+  pose proof H11 as [p H13]. pose proof H12 as [q H14]. replace (z1'^2) with (z1' * z1') in H13 by lia.
+  assert (H15 : z1' * z1' = 5 * (5 * q * q)) by lia. rewrite H15 in H6. assert (Z.divide 5 (z2'^2)) as H16 by (exists (q * q); lia).
+  assert (Z.divide 5 z2') as H17 by (apply ksqr_div_3_k_div_5; auto). specialize (H5 5). destruct H5 as [H5 | H5].
+  { lia. } { tauto. } { tauto. }
+Qed.
+
+Lemma ksqr_div_6_k_div_6 : forall k,
+  Z.divide 6 (k^2) -> Z.divide 6 k.
+Proof.
+  intros k [a H1]; unfold Z.divide;
+  assert (exists p, k=6*p\/k=6*p+1\/k=6*p+2\/k=6*p+3\/k=6*p+4\/k=6*p+5) as [p H2] by zforms;
+  exists p; lia.
+Qed.
+
+Lemma lemma_2_13_a'' : irrational (sqrt 6).
+Proof.
+  unfold irrational. unfold rational. unfold not. intros [z1 [z2 H1]].
+  assert (z1 <> 0 /\ z2 <> 0) as [H2 H3] by (apply sqrt_rational_neq_0 with (r := 6%R); lra).
+  assert (H4 : exists z1' z2', ((sqrt 6 = IZR z1' / IZR z2')%R /\ (forall x, x > 1 -> ~(x | z1') \/ ~(x | z2')))).
+  { apply rational_representation with (z1 := z1) (z2 := z2). apply H2. apply H3. apply H1. }
+  destruct H4 as [z1' [z2' [H4 H5]]]. assert (H6 : (sqrt 6 * sqrt 6 = (IZR z1' / IZR z2') * (IZR z1' / IZR z2'))%R) by nra.
+  rewrite sqrt_sqrt in H6. 2 : { lra. } assert (H7 : (z1' <> 0 /\ z2' <> 0)) by (apply sqrt_rational_neq_0 with (r := 6%R); lra).
+  destruct H7 as [H7 H8]. assert (H9 : (IZR z1' <> 0)%R) by (apply not_0_IZR; auto). assert (H10 : (IZR z2' <> 0)%R) by (apply not_0_IZR; auto).
+  replace (IZR z1' / IZR z2' * (IZR z1' / IZR z2'))%R with ((IZR z1')^2 / (IZR z2')^2)%R in H6.
+  2 : { field. auto. } apply Rmult_eq_compat_r with (r := ((IZR z2')^2)%R) in H6.
+  replace ((IZR z1' ^ 2 / IZR z2' ^ 2 * IZR z2' ^ 2)%R) with ((IZR z1')^2)%R in H6.
+  2 : { field. auto. } simpl in H6. repeat rewrite Rmult_1_r in H6. repeat rewrite <- mult_IZR in H6. apply eq_IZR in H6.
+  assert (Z.divide 6 (z1'^2)) as H11 by (exists (z2' * z2'); lia). assert (Z.divide 6 z1') as H12 by (apply ksqr_div_6_k_div_6; auto).
+  pose proof H11 as [p H13]. pose proof H12 as [q H14]. replace (z1'^2) with (z1' * z1') in H13 by lia.
+  assert (H15 : z1' * z1' = 6 * (6 * q * q)) by lia. rewrite H15 in H6. assert (Z.divide 6 (z2'^2)) as H16 by (exists (q * q); lia).
+  assert (Z.divide 6 z2') as H17 by (apply ksqr_div_6_k_div_6; auto). specialize (H5 6). destruct H5 as [H5 | H5].
+  { lia. } { tauto. } { tauto. }
+Qed.
+
+Close Scope Z_scope.
+
+Lemma lemma_2_19 : forall n h,
+  h > -1 -> (1 + h) ^ n >= 1 + INR n * h.
+Proof.
+  intros n h H1. induction n as [| k IH].
+  - simpl. lra.
+  - pose proof (Rtotal_order h 0) as [H2 | [H2 | H2]].
+    -- rewrite S_INR. replace ((1+h)^S k) with ((1+h) * (1+h)^k) by (simpl; lra).
+       replace (1 + (INR k + 1) * h) with (1 + INR k * h + h) by lra. apply Rmult_ge_compat_l.
+       
 
 Fixpoint Fibonacci (n : nat) : R :=
   match n with
