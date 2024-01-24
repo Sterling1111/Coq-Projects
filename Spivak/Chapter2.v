@@ -1,7 +1,10 @@
 Require Import Reals Lra Lia ZArith FunctionalExtensionality List Classical Arith QArith.
 Import ListNotations.
 From Spivak Require Import Chapter1.
-Open Scope R_scope. 
+
+Module Znt := ZArith.Znumtheory.
+
+Open Scope R_scope.
 
 Theorem sum_n_nat : forall n : nat,
   sum_f 0 n (fun i => INR i) = (INR n * (INR n + 1)) / 2.
@@ -68,7 +71,7 @@ Proof.
 Qed.
 
 Definition choose (n k : nat) : R :=
-  if n <? k then 0 else
+  if (n <? k) then 0 else
   (INR (fact n)) / (INR (fact k) * INR (fact (n - k))).
 
 Lemma n_choose_n : forall (n : nat),
@@ -717,8 +720,35 @@ Proof.
   pose proof H11 as [p H13]. pose proof H12 as [q H14]. replace (z1'^2) with (z1' * z1') in H13 by lia.
   assert (H15 : z1' * z1' = 6 * (6 * q * q)) by lia. rewrite H15 in H6. assert (Z.divide 6 (z2'^2)) as H16 by (exists (q * q); lia).
   assert (Z.divide 6 z2') as H17 by (apply ksqr_div_6_k_div_6; auto). specialize (H5 6). destruct H5 as [H5 | H5].
-  { lia. } { tauto. } { tauto. }
+  { lia. } { tauto. } { tauto. }    
 Qed.
+
+Fixpoint max_list_Z (l : list Z) : Z := 
+  match (l) with
+  | [] => 0
+  | x :: xs => Z.max x (max_list_Z xs)
+  end.
+
+Lemma max_list_Z_greatest : forall l x,
+  In x l -> x <= (max_list_Z l)%Z.
+Proof.
+  intros l x H. induction l as [| h t IH].
+  - inversion H.
+  - destruct H as [H | H].
+    -- rewrite H. simpl. apply Z.le_max_l.
+    -- apply IH in H. simpl. lia.
+Qed.
+
+Definition first_primes (l : list Z) : Prop :=
+  NoDup l /\ Forall Znt.prime' l /\ 
+    (forall x, Znt.prime' x /\ x <= (max_list_Z l)%Z -> In x l).
+  
+Lemma lemma_2_17_d : forall (l : list Z),
+  first_primes l -> exists p : Z, Znt.prime' p /\ p > max_list_Z l.
+Proof.
+  intros l [H1 [H2 H3]]. set (q := fold_right Z.mul 1 l + 1).
+  
+Abort.
 
 Close Scope Z_scope.
 
@@ -756,7 +786,6 @@ Proof.
        replace (1 + (INR k + 1) * h) with (1 + INR k * h + h) by lra. assert ((1 + h)^k > 0) as H3 by (apply Rpow_gt_0; nra).
        destruct k. { compute. lra. } assert ((1 + h) ^ S k > 1) as H4 by (apply Rpow_gt_1; try nra; try lia). nra.
 Qed.
-       
 
 Fixpoint Fibonacci (n : nat) : R :=
   match n with
