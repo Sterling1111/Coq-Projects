@@ -193,7 +193,6 @@ Proof.
        --- rewrite <- H2. repeat rewrite sum_f_n_n. lra.
 Qed.
         
-
 Lemma sum_f_congruence: forall (f1 f2 : nat -> R) (i n : nat),
 (i <= n)%nat ->
 (forall k, (i <= k <= n)%nat -> f1 k = f2 k) ->
@@ -548,6 +547,8 @@ Proof.
          } nra.
        } nra. 
 Qed.
+
+
 
 Lemma lemma_1_4_vii : forall x : R,
   x < -2 \/ x > 3 <-> x^2 - x + 10 > 16.
@@ -2065,7 +2066,7 @@ Qed.
 Lemma lemma_1_23 : forall x y x0 y0 eps,
   (y0 <> 0) -> (Rabs (x - x0) < Rmin (eps / (2 * (1 / Rabs y0 + 1))) 1) -> (Rabs (y - y0) < Rmin (Rabs (y0 / 2)) ((eps * (Rabs y0)^2) / (4 * ((Rabs x0) + 1)))) -> (y <> 0 /\ Rabs (x / y - x0 / y0) < eps).
 Proof.
-  intros x y x0 y0 eps H1 H2 H3.
+  intros x y x0 y0 eps H1 H2 H3. 
   assert (H4 : 4 * ((Rabs x0) + 1) > 2) by solve_abs.
   assert (H5 : eps >= 0).
   { 

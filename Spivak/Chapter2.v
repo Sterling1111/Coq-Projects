@@ -722,14 +722,40 @@ Qed.
 
 Close Scope Z_scope.
 
+Lemma Rpow_lt_1 : forall r n,
+  0 < r < 1 -> (n > 0)%nat -> r ^ n < 1.
+Proof.
+  intros r n [H1 H2] H3. induction n as [| k IH].
+  - lia.
+  - simpl. destruct k.
+    -- simpl. lra.
+    -- assert (r ^ S k < 1) by (apply IH; lia). nra.
+Qed.
+
+Lemma Rpow_gt_1 : forall r n,
+  r > 1 -> (n > 0)%nat -> r ^ n > 1.
+Proof.
+  intros r n H1 H2. induction n as [| k IH].
+  - lia.
+  - simpl. destruct k.
+    -- simpl. lra.
+    -- assert (r ^ S k > 1) by (apply IH; lia). nra.
+Qed.
+
 Lemma lemma_2_19 : forall n h,
   h > -1 -> (1 + h) ^ n >= 1 + INR n * h.
 Proof.
   intros n h H1. induction n as [| k IH].
   - simpl. lra.
   - pose proof (Rtotal_order h 0) as [H2 | [H2 | H2]].
-    -- rewrite S_INR. replace ((1+h)^S k) with ((1+h) * (1+h)^k) by (simpl; lra).
-       replace (1 + (INR k + 1) * h) with (1 + INR k * h + h) by lra. apply Rmult_ge_compat_l.
+    -- rewrite S_INR. replace ((1+h)^S k) with ((1 + h)^k + h * (1 + h)^k) by (simpl; lra).
+       replace (1 + (INR k + 1) * h) with (1 + INR k * h + h) by lra. assert ((1 + h)^k > 0) as H3 by (apply Rpow_gt_0; nra).
+       destruct k. { compute. lra. } assert ((1 + h) ^ S k < 1) as H4 by (apply Rpow_lt_1; try nra; try lia). nra.
+    -- simpl. nra.
+    -- rewrite S_INR. replace ((1+h)^S k) with ((1 + h)^k + h * (1 + h)^k) by (simpl; lra).
+       replace (1 + (INR k + 1) * h) with (1 + INR k * h + h) by lra. assert ((1 + h)^k > 0) as H3 by (apply Rpow_gt_0; nra).
+       destruct k. { compute. lra. } assert ((1 + h) ^ S k > 1) as H4 by (apply Rpow_gt_1; try nra; try lia). nra.
+Qed.
        
 
 Fixpoint Fibonacci (n : nat) : R :=
