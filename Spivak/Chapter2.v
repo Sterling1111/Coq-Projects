@@ -739,9 +739,83 @@ Proof.
     -- apply IH in H. simpl. lia.
 Qed.
 
+Definition prime_list (l : list Z) : Prop := Forall Znt.prime' l.
+
 Definition first_primes (l : list Z) : Prop :=
-  NoDup l /\ Forall Znt.prime' l /\ 
+  NoDup l /\ prime_list l /\ 
     (forall x, Znt.prime' x /\ x <= (max_list_Z l)%Z -> In x l).
+
+Lemma div_trans : forall a b c,
+  (a | b) -> (b | c) -> (a | c).
+Proof.
+  intros a b c [k1 H1] [k2 H2]. unfold Z.divide. exists (k1 * k2). lia.
+Qed.
+
+Lemma prime_divides : forall z, 
+  z > 1 -> (exists p, Znt.prime' p -> (p | z)).
+Proof.
+  intros z. assert (z <= 1 \/ z > 1) as [H1 | H1] by lia.
+  - lia.
+  - apply strong_induction_Z with (n := z). 2 : { lia. }
+    intros n IH H2. assert (n = 2 \/ n > 2) as [H3 | H3] by lia.
+    + exists 2. intros H4. unfold Z.divide. exists (1). lia.
+    + destruct (Znt.prime_dec n) as [H4 | H4].
+      * exists n. intros H5. unfold Z.divide. exists (1). lia.
+      * rewrite <- Znt.prime_alt in H4. unfold Znt.prime' in H4. apply not_and_or in H4. destruct H4 as [H4 | H4].
+        -- lia.
+        -- apply not_all_ex_not in H4. destruct H4 as [p H4]. apply imply_to_and in H4. destruct H4 as [H4 H5].
+           assert (p <= n) as H6 by lia. assert (p > 1) as H7 by lia. apply NNPP in H5. assert (0 <= p < n) as H9 by lia.
+           specialize (IH p H9 H7). destruct IH as [p' IH]. exists p'. intros H10. apply IH in H10.
+           apply div_trans with (b := p); auto.
+Qed.
+
+Lemma prime_no_div : forall p z,
+  Znt.prime' p -> (p | z) -> ~(p | z + 1).
+Proof.
+  intros p z H1 H2 H3. destruct H2 as [r H2]. destruct H3 as [s H3]. 
+  assert (p | 1) as H4 by (exists (s - r); lia). assert (p >= 2) as H5. 
+  { rewrite Znt.prime_alt in H1. apply Znt.prime_ge_2 in H1. lia. }
+  assert (p = 1) as H6. { destruct H4 as [t H4]. assert (t > 0) by lia. nia. }
+  lia.
+Qed.
+
+Lemma fold_right_mul_distributive : forall (k : Z) (l : list Z),
+  fold_right Z.mul k l = k * fold_right Z.mul 1 l.
+Proof.
+  intros k l. induction l as [| h l' IH].
+  - simpl. lia.
+  - simpl. rewrite IH. lia.
+Qed.
+  
+Lemma lemma_2_17_a : forall z : Z,
+  z > 1 -> exists l : list Z, 
+    prime_list l /\ z = fold_right Z.mul 1 l.
+Proof.
+  intros z. assert (z <= 1 \/ z > 1) as [H1 | H1] by lia.
+  - lia.
+  - apply strong_induction_Z with (n := z). 2 : { lia. }
+    intros n IH H2. assert (n = 2 \/ n > 2) as [H3 | H3] by lia.
+    + exists [2]. split.
+      * constructor. rewrite Znt.prime_alt. apply Znt.prime_2. constructor.
+      * simpl. lia.
+    + destruct (Znt.prime_dec n) as [H4 | H4].
+      * exists [n]. split.
+        -- constructor. rewrite Znt.prime_alt. auto. constructor.
+        -- simpl. lia.
+      * rewrite <- Znt.prime_alt in H4. unfold Znt.prime' in H4. apply not_and_or in H4. destruct H4 as [H4 | H4].
+        -- lia.
+        -- apply not_all_ex_not in H4. destruct H4 as [p H4]. apply imply_to_and in H4. destruct H4 as [H4 H5].
+           apply NNPP in H5. destruct H5 as [k H5]. assert (p > 1 /\ 0 <= p < n) as [H7 H8] by lia.
+           assert (k > 1 /\ 0 <= k < n) as [H9 H10] by nia.
+           assert (exists l1 : list Z, prime_list l1 /\ p = fold_right Z.mul 1 l1) as [l1 H11] by (apply IH; lia).
+           assert (exists l2 : list Z, prime_list l2 /\ k = fold_right Z.mul 1 l2) as [l2 H12] by (apply IH; lia).
+           exists (l1 ++ l2). split.
+           ++ apply Forall_app. split.
+              ** apply H11.
+              ** apply H12.
+           ++ destruct H11 as [H11 H11']. destruct H12 as [H12 H12']. rewrite fold_right_app. rewrite <- H12'.
+              rewrite fold_right_mul_distributive. rewrite <- H11'. lia.
+Qed.
   
 Lemma lemma_2_17_d : forall (l : list Z),
   first_primes l -> exists p : Z, Znt.prime' p /\ p > max_list_Z l.
@@ -790,10 +864,8 @@ Qed.
 Fixpoint Fibonacci (n : nat) : R :=
   match n with
   | O => 0
-  | S n' => match n' with
-           | O => 1
-           | S n'' => Fibonacci n' + Fibonacci n''
-           end
+  | S O => 1
+  | S (S n'' as n') => Fibonacci n' + Fibonacci n''
   end.
 
 Lemma lemma_2_20 : forall n,
