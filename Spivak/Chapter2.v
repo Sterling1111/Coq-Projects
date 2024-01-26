@@ -909,32 +909,49 @@ Proof.
     -- repeat split.
       + constructor. apply gt_list_max_not_in. lia. unfold first_n_primes in H1. tauto.
       + unfold prime_list. unfold first_n_primes in H1; apply Forall_cons; tauto.
-      + intros x [H11 H12]. destruct H1 as [H1 [H1' H1'']].
-        destruct (Z.eq_dec x z) as [H13 | H13].
-        * rewrite H13. left. auto.
-        * right. apply H1''. split. apply H11. apply le_max_list_Z in H12. destruct H12 as [H12 | H12].
-          ++ lia.
-          ++ destruct H12 as [H12 | H12]. 
-            ** destruct H12 as [H12 H14]. specialize (H10 x).
+      + intros x [H11 H12]. simpl. apply le_max_list_Z in H12 as [H12 | [H12 | H12]].
+        * lia.
+        * destruct H12 as [H12 H13]. specialize (H10 x). assert (x >= 0) as H14.
+          { rewrite Znt.prime_alt in H11. apply Znt.prime_ge_2 in H11. lia. }
+          assert (E x) as H15. { unfold E. split. apply H11. apply H13. }
+          apply H10 in H15. 2 : { apply H14. } lia.
+        * right. apply H1. split. apply H11. apply H12.
+    -- simpl. lia.
 Qed.
 
-
-Lemma help_meee : forall (n : nat),
-  exists l, first_n_primes l /\ length l = n.
+Lemma list_len_cons : forall {A : Type} h (l : list A),
+  length (h :: l) = S (length l).
 Proof.
-  intros n. induction n as [| k IH].
-  - exists []. split.
-    -- repeat split; repeat constructor. intros x [H1 H2]. simpl in H2.
-       rewrite -> Znt.prime_alt in H1. assert (H3 : x >= 2) by (apply Znt.prime_ge_2 in H1; lia). lia.
-    -- simpl. reflexivity.
-  -
+  intros A h l. simpl. reflexivity.
 Qed.
 
+Lemma limes : forall l,
+  first_n_primes l -> max_list_Z l >= Z.of_nat (length l).
+Proof.
+  intros l H1. pose proof Znt.prime_ge_2 as H2.
+  pose proof (Znt.not_prime_1) as H3. assert (H4 : ~ In 1 l).
+  { intros H4. unfold first_n_primes in H1. destruct H1 as [H1 [H5 H6]]. unfold prime_list in H5.
+    rewrite Forall_forall in H5. specialize (H5 1). apply H5 in H4. rewrite Znt.prime_alt in H4. tauto.
+  
+Admitted.
+
+Lemma help_meee : forall p,
+  Znt.prime' p -> exists l, first_n_primes l /\ In p l.
+Proof.
+  intros p H1. pose proof (prime_list_len (Z.to_nat p)) as [l [H2 H3]].
+  exists l. split.
+  - apply H2.
+  - apply H2. apply limes in H2.  rewrite H3 in H2. rewrite Z2Nat.id in H2.
+    2 : { rewrite Znt.prime_alt in H1. apply Znt.prime_ge_2 in H1. lia. }
+    split. apply H1. lia.
+Qed.
+  
 Theorem inf_primes : forall p1,
   Znt.prime p1 -> exists p2, Znt.prime p2 /\ p2 > p1.
 Proof.
-  intros p1 H1. 
-Qed.
+  intros p1 H1. rewrite <- Znt.prime_alt in H1. apply help_meee in H1 as [l [H1 H2]].
+
+Abort.
 
 Close Scope Z_scope.
 
