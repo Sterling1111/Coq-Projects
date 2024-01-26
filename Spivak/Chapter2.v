@@ -741,9 +741,9 @@ Qed.
 
 Definition prime_list (l : list Z) : Prop := Forall Znt.prime' l.
 
-Definition first_primes (l : list Z) : Prop :=
+Definition first_n_primes (l : list Z) : Prop :=
   NoDup l /\ prime_list l /\ 
-    (forall x, Znt.prime' x /\ x <= (max_list_Z l)%Z -> In x l).
+    (forall x, (Znt.prime' x /\ x <= (max_list_Z l)%Z) -> In x l).
 
 Lemma div_trans : forall a b c,
   (a | b) -> (b | c) -> (a | c).
@@ -752,21 +752,26 @@ Proof.
 Qed.
 
 Lemma prime_divides : forall z, 
-  z > 1 -> (exists p, Znt.prime' p -> (p | z)).
+  z > 1 -> (exists p, Znt.prime' p /\ (p | z)).
 Proof.
   intros z. assert (z <= 1 \/ z > 1) as [H1 | H1] by lia.
   - lia.
   - apply strong_induction_Z with (n := z). 2 : { lia. }
     intros n IH H2. assert (n = 2 \/ n > 2) as [H3 | H3] by lia.
-    + exists 2. intros H4. unfold Z.divide. exists (1). lia.
+    + exists 2. split.
+      * rewrite Znt.prime_alt. apply Znt.prime_2.
+      * exists (1). lia. 
     + destruct (Znt.prime_dec n) as [H4 | H4].
-      * exists n. intros H5. unfold Z.divide. exists (1). lia.
+      * exists n. split.
+        -- rewrite Znt.prime_alt. auto.
+        -- exists (1). lia.
       * rewrite <- Znt.prime_alt in H4. unfold Znt.prime' in H4. apply not_and_or in H4. destruct H4 as [H4 | H4].
         -- lia.
         -- apply not_all_ex_not in H4. destruct H4 as [p H4]. apply imply_to_and in H4. destruct H4 as [H4 H5].
            assert (p <= n) as H6 by lia. assert (p > 1) as H7 by lia. apply NNPP in H5. assert (0 <= p < n) as H9 by lia.
-           specialize (IH p H9 H7). destruct IH as [p' IH]. exists p'. intros H10. apply IH in H10.
-           apply div_trans with (b := p); auto.
+           specialize (IH p H9 H7). destruct IH as [p' IH]. exists p'. split.
+            ++ apply IH.
+            ++ apply div_trans with (b := p); (try apply IH; try apply H5).
 Qed.
 
 Lemma prime_no_div : forall p z,
@@ -785,6 +790,26 @@ Proof.
   intros k l. induction l as [| h l' IH].
   - simpl. lia.
   - simpl. rewrite IH. lia.
+Qed.
+
+Lemma fold_right_factor_divides : forall (k : Z) (l : list Z),
+  (In k l) -> (k | fold_right Z.mul 1 l).
+Proof.
+  intros k l H. induction l as [| h l' IH].
+  - inversion H.
+  - simpl. destruct H as [H | H].
+    -- rewrite H. apply Z.divide_factor_l.
+    -- apply IH in H. destruct H as [r H]. exists (r * h). lia.
+Qed.
+
+Lemma prime_list_product_gt_1 : forall l,
+  prime_list l -> fold_right Z.mul 1 l >= 1.
+Proof.
+  intros l H1. induction l as [| h t IH].
+  - simpl. lia.
+  - simpl. unfold prime_list in *. apply Forall_cons_iff in H1 as [H1 H2]. apply IH in H2.
+    assert (h >= 2) as H3. { rewrite Znt.prime_alt in H1. apply Znt.prime_ge_2 in H1. lia. }
+    lia.
 Qed.
   
 Lemma lemma_2_17_a : forall z : Z,
@@ -816,13 +841,100 @@ Proof.
            ++ destruct H11 as [H11 H11']. destruct H12 as [H12 H12']. rewrite fold_right_app. rewrite <- H12'.
               rewrite fold_right_mul_distributive. rewrite <- H11'. lia.
 Qed.
-  
-Lemma lemma_2_17_d : forall (l : list Z),
-  first_primes l -> exists p : Z, Znt.prime' p /\ p > max_list_Z l.
+
+Lemma first_n_primes_prime_list : forall l,
+  first_n_primes l -> prime_list l.
 Proof.
-  intros l [H1 [H2 H3]]. set (q := fold_right Z.mul 1 l + 1).
-  
-Abort.
+  intros l [H1 [H2 H3]]. apply H2.
+Qed.
+
+Lemma lemma_2_17_d : forall (l : list Z),
+  first_n_primes l -> exists p : Z, Znt.prime' p /\ p > max_list_Z l.
+Proof.
+  intros l [H1 [H2 H3]]. set (N := fold_right Z.mul 1 l + 1).
+  assert (N > 1) as H4 by (destruct l; apply prime_list_product_gt_1 in H2; lia).
+  destruct (prime_divides N H4) as [q H5]. exists q. split.
+  - apply H5.
+  - destruct H5 as [H5 H6]. destruct (in_dec Z.eq_dec q l) as [H7 | H7].
+    -- assert ((q | fold_right Z.mul 1 l)) as H8 by (apply fold_right_factor_divides; auto).
+       unfold N in H6. pose proof (prime_no_div q (fold_right Z.mul 1 l) H5 H8 H6) as H9. lia.
+    -- specialize (H3 q). tauto.
+Qed.
+
+(* we know that for every prime list there exists a prime p which is larger than every prime in the prime list
+   we prove that a prime list exists of length 0(base case) suppose one exists of length k
+   then we show that one exists of length S k. but how to find the next prime? we don't know where it might be
+   but we know by the prior lemma that a larger one exists. then we just form a set of all the primes larger than
+   max of our list this is a finite set and so has a least element. we can grab this element with well-ordering 
+   principle and use it to construct S k. BOO Ya!*)
+
+Lemma gt_list_max_not_in : forall l x,
+  (x > max_list_Z l)%Z -> ~(In x l).
+Proof.
+  intros l x H1 H2. induction l as [| h t IH].
+  - inversion H2.
+  - simpl in H1. simpl in H2. destruct H2 as [H2 | H2].
+    -- rewrite H2 in H1. lia.
+    -- apply IH in H2. lia. lia.
+Qed.
+
+Lemma le_max_list_Z : forall l x z,
+  x <= max_list_Z (z :: l) -> x = z \/ (x < z /\ x > max_list_Z l) \/ x <= max_list_Z l.
+Proof.
+  intros l x z H1. induction l as [| h l' IH].
+  - simpl in *. assert (H2 : z <= 0 \/ z > 0) by lia. destruct H2.
+    -- lia.
+    -- lia.
+  - simpl in *. assert (H2 : z <= h \/ z > h) by lia. destruct H2.
+    -- simpl in H1. lia.
+    -- simpl in H1. lia.
+Qed.
+
+Lemma prime_list_len : forall n,
+  exists l, first_n_primes l /\ length l = n.
+Proof.
+  intros n. induction n as [| k IH].
+  - exists []. split.
+    -- repeat split; repeat constructor. intros x [H1 H2]. simpl in H2.
+       rewrite -> Znt.prime_alt in H1. assert (H3 : x >= 2) by (apply Znt.prime_ge_2 in H1; lia). lia.
+    -- simpl. reflexivity.
+  - destruct IH as [l [H1 H2]]. destruct (lemma_2_17_d l H1) as [p [H3 H4]].
+    set (E := (fun x => (Znt.prime' x /\ x > max_list_Z l)%Z)).
+    assert (exists p, E p) as [p' H5]. { exists p. unfold E. split. apply H3. apply H4. }
+    assert (H6 : forall z, E z -> z >= 0). 
+    { intros z [H6 H7]. assert (z >= 2). {rewrite Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia. } lia. }
+    assert (H7 : exists z, E z). { exists p'. apply H5. }
+    pose proof (well_ordering_Z E H6 H7) as [z [[H8 H9] H10]]. 
+    exists (z :: l). split.
+    -- repeat split.
+      + constructor. apply gt_list_max_not_in. lia. unfold first_n_primes in H1. tauto.
+      + unfold prime_list. unfold first_n_primes in H1; apply Forall_cons; tauto.
+      + intros x [H11 H12]. destruct H1 as [H1 [H1' H1'']].
+        destruct (Z.eq_dec x z) as [H13 | H13].
+        * rewrite H13. left. auto.
+        * right. apply H1''. split. apply H11. apply le_max_list_Z in H12. destruct H12 as [H12 | H12].
+          ++ lia.
+          ++ destruct H12 as [H12 | H12]. 
+            ** destruct H12 as [H12 H14]. specialize (H10 x).
+Qed.
+
+
+Lemma help_meee : forall (n : nat),
+  exists l, first_n_primes l /\ length l = n.
+Proof.
+  intros n. induction n as [| k IH].
+  - exists []. split.
+    -- repeat split; repeat constructor. intros x [H1 H2]. simpl in H2.
+       rewrite -> Znt.prime_alt in H1. assert (H3 : x >= 2) by (apply Znt.prime_ge_2 in H1; lia). lia.
+    -- simpl. reflexivity.
+  -
+Qed.
+
+Theorem inf_primes : forall p1,
+  Znt.prime p1 -> exists p2, Znt.prime p2 /\ p2 > p1.
+Proof.
+  intros p1 H1. 
+Qed.
 
 Close Scope Z_scope.
 
