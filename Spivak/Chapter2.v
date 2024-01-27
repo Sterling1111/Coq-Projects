@@ -729,7 +729,7 @@ Fixpoint max_list_Z (l : list Z) : Z :=
   | x :: xs => Z.max x (max_list_Z xs)
   end.
 
-Lemma max_list_Z_greatest : forall l x,
+Lemma in_list_le_max : forall l x,
   In x l -> x <= (max_list_Z l)%Z.
 Proof.
   intros l x H. induction l as [| h t IH].
@@ -925,14 +925,95 @@ Proof.
   intros A h l. simpl. reflexivity.
 Qed.
 
+Lemma max_list_cons : forall l h m,
+  m = max_list_Z (h :: l) -> m = h \/ m = max_list_Z l.
+Proof.
+  intros l h m H. induction l as [| h' l' IH]; simpl in *; lia.
+Qed.
+
+Lemma max_list_cons_ge : forall l h m,
+  m >= max_list_Z (h :: l) -> m >= h /\ m >= max_list_Z l.
+Proof.
+  intros l h m H. induction l as [| h' l' IH].
+  - simpl in *. lia.
+  - simpl in *. assert (m >= h /\ m >= max_list_Z l') as [H1 H2] by lia. split.
+    -- lia.
+    -- lia.
+Qed.
+
+Lemma max_list_ge_not_in : forall l h,
+  h > 0 -> h >= max_list_Z l /\ ~ In h l -> h > max_list_Z l.
+Proof.
+  intros l h H1 [H2 H3]. induction l as [| h' l' IH].
+  - simpl. lia.
+  - simpl. assert (~ In h l') as H4. { pose proof in_cons h' h l' as H4. tauto. }
+    assert (h >= max_list_Z l') as H5. { apply max_list_cons_ge in H2 as [H2 H6]. apply IH in H4 as H7. lia. lia. }
+    assert (H6 : h > max_list_Z l'). { apply IH in H4 as H6. lia. lia. }
+    assert (H7 : h <> h'). { intros H7. rewrite H7 in H3. assert (In h' (h' :: l')) as H8 by apply in_eq. tauto. }
+    pose proof (max_list_cons_ge l' h' h) as [H8 H9]. lia. lia.
+Qed.
+
+Lemma max_list_ge_not_in' : forall l h,
+  max_list_Z l > 0 -> max_list_Z l >= h /\ ~ In h l -> max_list_Z l > h.
+Proof.
+  intros l h H1 [H2 H3]. induction l as [| h' l' IH].
+  - simpl in *. lia.
+  - simpl. assert (~ In h l') as H4. { pose proof in_cons h' h l' as H4. tauto. }
+    assert (max_list_Z (h' :: l') = h' \/ max_list_Z (h' :: l') = max_list_Z l') as [H5 | H5] by (simpl; lia).
+    -- rewrite H5 in H2. assert (h' <> h) as H6. 
+       { intros H6. rewrite H6 in H3. assert (In h' (h' :: l')) as H7 by apply in_eq. rewrite H6 in H7. tauto. } lia.
+    -- assert (max_list_Z l' >= h) as H6. { rewrite H5 in H2. tauto. } 
+       assert (max_list_Z l' > h) as H7. { apply IH in H4 as H7; lia; auto. }
+       lia.
+Qed.
+
+Lemma in_list_1 : forall l,
+  Z.of_nat (length l) > 0 -> NoDup l -> Forall (fun x => x > 0) l -> Z.of_nat (length l) = max_list_Z l -> In 1 l.
+Proof.
+  intros l H1 H2 H3 H4. induction l as [| h l' IH].
+  - simpl in *. lia.
+  - simpl. assert (H5 : NoDup l').
+    { apply NoDup_cons_iff in H2 as [H2 H5]. apply H5. }
+    assert (H6 : Forall (fun x : Z => x > 0) l').
+    { apply Forall_cons_iff in H3 as [H3 H6]. apply H6. }
+    assert (H7 : Z.of_nat (length l') = max_list_Z l').
+    { apply max_list_cons in H4 as [H4 | H4]. 2 : {  }
+      - rewrite H4 in H3. apply Forall_cons_iff in H3 as [H3 H7]. apply H7.
+      - rewrite H4 in H4. apply max_list_cons in H4 as [H4 | H4].
+        -- rewrite H4 in H3. apply Forall_cons_iff in H3 as [H3 H7]. apply H7.
+        -- apply H4. }
+
+
+Lemma list_len_lt_max : forall l,
+  Forall (fun x => x > 1) l /\ NoDup l -> Z.of_nat (length l) <= max_list_Z l.
+Proof.
+  intros l. induction l as [| h l' IH].
+  - intros [H1 H2]. simpl. lia.
+  - intros [H1 H2]. apply Forall_cons_iff in H1 as [H1 H1']. apply NoDup_cons_iff in H2 as [H2 H3].
+    assert (Z.of_nat(length l') <= max_list_Z l') as H4 by (apply IH; split; auto).
+    rewrite list_len_cons. assert (max_list_Z (h :: l') = h \/ max_list_Z (h :: l') = max_list_Z l') as [H5 | H5] by (simpl; lia).
+    -- rewrite H5. assert (H6 : h >= max_list_Z l') by (induction l'; simpl in *; lia).
+       pose proof (max_list_ge_not_in l' h) as H7. assert (H8 : h > 0) by lia. apply H7 in H8. lia. auto.
+    -- rewrite H5. assert (H6 : max_list_Z l' >= h) by (induction l'; simpl in *; lia).
+       pose proof (max_list_ge_not_in' l' h) as H7. assert (H8 : max_list_Z l' > 0) by lia. apply H7 in H8. 2 : { tauto. }
+       assert (Z.of_nat (length l') = max_list_Z l' \/ Z.of_nat (length l') < max_list_Z l') as [H9 | H9].
+       --- lia.
+       --- rewrite <- H5 in H9. assert (NoDup (h :: l')) as H10 by (apply NoDup_cons; auto). 
+           assert (Z.of_nat (length l') = max_list_Z l' \/ Z.of_nat (length l') < max_list_Z l') as [H11 | H11] by lia.
+           2 : { lia. }
+           
+
+       
+
+Qed.
 Lemma limes : forall l,
   first_n_primes l -> max_list_Z l >= Z.of_nat (length l).
 Proof.
   intros l H1. pose proof Znt.prime_ge_2 as H2.
   pose proof (Znt.not_prime_1) as H3. assert (H4 : ~ In 1 l).
   { intros H4. unfold first_n_primes in H1. destruct H1 as [H1 [H5 H6]]. unfold prime_list in H5.
-    rewrite Forall_forall in H5. specialize (H5 1). apply H5 in H4. rewrite Znt.prime_alt in H4. tauto.
-  
+    rewrite Forall_forall in H5. specialize (H5 1). apply H5 in H4. rewrite Znt.prime_alt in H4. tauto. }
+  unfold first_n_primes in H1. destruct H1 as [H1 [H5 H6]]. unfold prime_list in H5. 
 Admitted.
 
 Lemma help_meee : forall p,
