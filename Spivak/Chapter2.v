@@ -967,6 +967,98 @@ Proof.
        lia.
 Qed.
 
+Lemma max_list_Z_eq : forall l h,
+  max_list_Z (h :: l) = h \/ max_list_Z (h :: l) = max_list_Z l.
+Proof.
+  intros l h. simpl. lia.
+Qed.
+
+Fixpoint remove_one (l : list Z) (x : Z) : list Z :=
+  match l with
+  | [] => []
+  | h :: t => if (Z.eq_dec h x) then t else h :: (remove_one t x)
+  end.
+
+Theorem list_has_len : forall (l : list Z) (a : Z),
+  In a l -> (length l > 0)%nat.
+Proof.
+  intros l a. induction l as [| h l' IH].
+  - simpl. lia.
+  - simpl. intros [H1 | H1]; lia.
+Qed.
+
+Lemma remove_one_len : forall l x,
+  In x l -> length (remove_one l x) = (length l - 1)%nat.
+Proof.
+  intros l x H. induction l as [| h l' IH].
+  - inversion H.
+  - simpl. destruct (Z.eq_dec h x) as [H1 | H1].
+    -- lia.
+    -- simpl. destruct H as [H | H]. lia. rewrite IH.
+       --- assert (length l' > 0)%nat as H2. { apply list_has_len with (a := x). apply H. } lia.
+       --- apply H.
+Qed.
+
+Lemma remove_one_remains : forall l x1 x2,
+  In x1 l -> x1 <> x2 -> In x1 (remove_one l x2).
+Proof.
+  intros l x1 x2 H. induction l as [| h l' IH].
+  - inversion H.
+  - simpl. intros H1. destruct (Z.eq_dec h x2) as [H2 | H2].
+    -- simpl in H. destruct H as [H | H].
+       --- lia.
+       --- tauto.
+    -- simpl. simpl in H. tauto.
+Qed.
+
+Lemma in_notin_neq : forall (l : list Z) x1 x2,
+  In x1 l -> ~ (In x2 l) -> x1 <> x2.
+Proof.
+  intros l x1 x2 H1 H2. induction l as [| h l' IH].
+  - inversion H1.
+  - simpl in *. destruct H1 as [H1 | H1].
+    -- rewrite H1 in H2. tauto.
+    -- tauto.
+Qed.
+
+
+Theorem longer_list: 
+    forall l1 l2 : list Z,  
+    (forall x : Z, In x l1 -> In x l2) -> 
+    (exists x : Z, In x l2 /\ ~ In x l1) ->
+    NoDup l1 ->
+    (length l2 > length l1)%nat.
+  Proof.
+    intros l1 l2 H1 H2 H3. generalize dependent l2.
+    induction l1 as [| h l1' IH].
+    - intros l2 H4 H5. simpl in *. destruct H5 as [x H5]. assert (exists a, In a l2) as [a H6]. 
+    { exists x. apply H5. } apply list_has_len in H6. lia.
+    - intros l2 H4 [a [H5 H6]]. apply NoDup_cons_iff in H3. destruct H3 as [H3 H3']. 
+      specialize (IH H3' (remove_one l2 a)). apply not_in_cons in H6 as [H6 H6'].
+      assert (In h (remove_one l2 a)) as H7.
+      { apply remove_one_remains. apply (H4 h). simpl. lia. lia. } 
+      assert (length (remove_one l2 a) > length l1')%nat as H8.
+      { apply IH. intros x H8. apply remove_one_remains. apply (H4 x). simpl. tauto. 2 : { exists h. tauto. }  apply in_notin_neq with (l := l1') (x2 := a). apply H8. apply H6'. }
+      rewrite remove_one_len in H8. simpl. lia. tauto.
+  Qed.
+
+Theorem pigeonhole_principle_Z : forall (l1 l2 : list Z),
+  (forall x, In x l1 -> In x l2) -> (length l2 < length l1)%nat ->
+    ~ NoDup l1.
+Proof.
+  intros l1. induction l1 as [|a l1' IH].
+  - simpl. lia.
+  - simpl. intros l2 H1 H2. destruct (in_dec Z.eq_dec a (l1')) as [H3 | H3].
+    -- intros H4. apply NoDup_cons_iff in H4 as [H4 H5]. tauto.
+    -- intros H4. apply IH with (l2 := l2).
+       3 : { apply NoDup_cons_iff in H4. tauto. } 
+       intros x H5. specialize (H1 x). assert (a = x \/ In x l1') as H6 by tauto. tauto.
+       assert (H5 : (length l2 > length l1')%nat). 
+       { apply longer_list. intros x H5. apply (H1 x). tauto. exists a. split. apply (H1 a). 
+        tauto. tauto. apply NoDup_cons_iff in H4. tauto. }
+       lia.
+Qed.  
+
 Lemma in_list_1 : forall l,
   Z.of_nat (length l) > 0 -> NoDup l -> Forall (fun x => x > 0) l -> Z.of_nat (length l) = max_list_Z l -> In 1 l.
 Proof.
@@ -977,11 +1069,10 @@ Proof.
     assert (H6 : Forall (fun x : Z => x > 0) l').
     { apply Forall_cons_iff in H3 as [H3 H6]. apply H6. }
     assert (H7 : Z.of_nat (length l') = max_list_Z l').
-    { apply max_list_cons in H4 as [H4 | H4]. 2 : {  }
-      - rewrite H4 in H3. apply Forall_cons_iff in H3 as [H3 H7]. apply H7.
-      - rewrite H4 in H4. apply max_list_cons in H4 as [H4 | H4].
-        -- rewrite H4 in H3. apply Forall_cons_iff in H3 as [H3 H7]. apply H7.
-        -- apply H4. }
+    { pose proof H4 as H4'. apply max_list_cons in H4 as [H4 | H4].
+      - pose proof (max_list_Z_eq l' h) as [H8 | H8].
+        -- rewrite <- H8 in H4 at 2. 
+        -- rewrite H4 in H1. simpl in H1. lia.
 
 
 Lemma list_len_lt_max : forall l,
