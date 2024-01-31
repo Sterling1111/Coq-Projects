@@ -1021,7 +1021,6 @@ Proof.
     -- tauto.
 Qed.
 
-
 Theorem longer_list: 
     forall l1 l2 : list Z,  
     (forall x : Z, In x l1 -> In x l2) -> 
@@ -1059,21 +1058,37 @@ Proof.
        lia.
 Qed.  
 
+Definition Zseq_pos (seq : list nat) : list Z :=
+  map Z.of_nat (seq).
+    
+Lemma in_Zseq_pos : forall start len x,
+  let l := seq start len in
+    x > 0 -> In (Z.to_nat x) (seq start len) -> In x (Zseq_pos l).
+Proof.
+  intros start len x l H. unfold Zseq_pos.
+  rewrite in_map_iff. exists (Z.to_nat x). split. lia. auto.
+Qed.
+
+Lemma Zseq_len : forall start len,
+  let l := seq start len in
+    length (l) = length (Zseq_pos l).
+Proof.
+  intros start len. unfold Zseq_pos. rewrite map_length. reflexivity.
+Qed.
+
 Lemma in_list_1 : forall l,
   Z.of_nat (length l) > 0 -> NoDup l -> Forall (fun x => x > 0) l -> Z.of_nat (length l) = max_list_Z l -> In 1 l.
 Proof.
-  intros l H1 H2 H3 H4. induction l as [| h l' IH].
-  - simpl in *. lia.
-  - simpl. assert (H5 : NoDup l').
-    { apply NoDup_cons_iff in H2 as [H2 H5]. apply H5. }
-    assert (H6 : Forall (fun x : Z => x > 0) l').
-    { apply Forall_cons_iff in H3 as [H3 H6]. apply H6. }
-    assert (H7 : Z.of_nat (length l') = max_list_Z l').
-    { pose proof H4 as H4'. apply max_list_cons in H4 as [H4 | H4].
-      - pose proof (max_list_Z_eq l' h) as [H8 | H8].
-        -- rewrite <- H8 in H4 at 2. 
-        -- rewrite H4 in H1. simpl in H1. lia.
-
+  intros l H1 H2 H3 H4. destruct (in_dec Z.eq_dec 1 l) as [H5 | H5]. apply H5.
+  set (l2 := Zseq_pos (seq 2 (Z.to_nat (max_list_Z l - 1)))). assert (~NoDup l) as H6.
+  - apply pigeonhole_principle_Z with (l2 := l2). 
+    2 : { assert (length l2 = Z.to_nat (max_list_Z l) - 1)%nat. { unfold l2. rewrite <- Zseq_len. rewrite seq_length. lia. } lia. }
+    intros x H6. apply in_Zseq_pos. rewrite Forall_forall in H3. specialize (H3 x). tauto. apply in_seq.
+    replace (2 + Z.to_nat (max_list_Z l - 1))%nat with (Z.to_nat (max_list_Z l) + 1)%nat by lia. pose proof H6 as H6'. pose proof H6 as H6''.
+    apply in_list_le_max in H6. rewrite Forall_forall in H3. specialize (H3 x). apply H3 in H6'. assert (~x = 1). unfold not in *. intros H7. apply H5. rewrite H7 in H6''. tauto.
+    lia.
+  - tauto.
+Qed.
 
 Lemma list_len_lt_max : forall l,
   Forall (fun x => x > 1) l /\ NoDup l -> Z.of_nat (length l) <= max_list_Z l.
@@ -1091,39 +1106,57 @@ Proof.
        --- lia.
        --- rewrite <- H5 in H9. assert (NoDup (h :: l')) as H10 by (apply NoDup_cons; auto). 
            assert (Z.of_nat (length l') = max_list_Z l' \/ Z.of_nat (length l') < max_list_Z l') as [H11 | H11] by lia.
-           2 : { lia. }
-           
-
-       
-
+           2 : { lia. } apply in_list_1 in H11. 
+           + rewrite Forall_forall in H1'. specialize (H1' 1). apply H1' in H11. lia.
+           + lia.
+           + apply H3.
+           + assert (H12 : Forall (fun x : Z => x > 1) l' -> Forall (fun x : Z => x > 0) l').
+             { intros H12. rewrite Forall_forall in H12. rewrite Forall_forall. intros x H13. apply H12 in H13. lia. }
+             tauto.
+      --- lia.
 Qed.
-Lemma limes : forall l,
+       
+Lemma max_primes_ge_len : forall l,
   first_n_primes l -> max_list_Z l >= Z.of_nat (length l).
 Proof.
   intros l H1. pose proof Znt.prime_ge_2 as H2.
   pose proof (Znt.not_prime_1) as H3. assert (H4 : ~ In 1 l).
   { intros H4. unfold first_n_primes in H1. destruct H1 as [H1 [H5 H6]]. unfold prime_list in H5.
     rewrite Forall_forall in H5. specialize (H5 1). apply H5 in H4. rewrite Znt.prime_alt in H4. tauto. }
-  unfold first_n_primes in H1. destruct H1 as [H1 [H5 H6]]. unfold prime_list in H5. 
-Admitted.
+  unfold first_n_primes in H1. destruct H1 as [H1 [H5 H6]]. unfold prime_list in H5. rewrite Forall_forall in H5.
+  apply Z.le_ge. apply list_len_lt_max. split. rewrite Forall_forall. intros x H7. specialize (H5 x). apply H5 in H7.
+  apply Znt.prime_alt in H7. apply Znt.prime_ge_2 in H7. lia. apply H1.
+Qed.
 
-Lemma help_meee : forall p,
+Lemma prime_in_first_n_primes : forall p,
   Znt.prime' p -> exists l, first_n_primes l /\ In p l.
 Proof.
   intros p H1. pose proof (prime_list_len (Z.to_nat p)) as [l [H2 H3]].
   exists l. split.
   - apply H2.
-  - apply H2. apply limes in H2.  rewrite H3 in H2. rewrite Z2Nat.id in H2.
+  - apply H2. apply max_primes_ge_len in H2. rewrite H3 in H2. rewrite Z2Nat.id in H2.
     2 : { rewrite Znt.prime_alt in H1. apply Znt.prime_ge_2 in H1. lia. }
     split. apply H1. lia.
+Qed.
+  
+Lemma gt_max_gt_all : forall (l : list Z) x1 x2,
+  In x1 l -> x2 > max_list_Z l -> x2 > x1.
+Proof.
+  intros l x1 x2 H1 H2. induction l as [| h l' IH].
+  - inversion H1.
+  - simpl in H1. simpl in H2. destruct H1 as [H1 | H1].
+    -- lia.
+    -- apply IH. apply H1. lia.
 Qed.
   
 Theorem inf_primes : forall p1,
   Znt.prime p1 -> exists p2, Znt.prime p2 /\ p2 > p1.
 Proof.
-  intros p1 H1. rewrite <- Znt.prime_alt in H1. apply help_meee in H1 as [l [H1 H2]].
-
-Abort.
+  intros p1 H1. rewrite <- Znt.prime_alt in H1. apply prime_in_first_n_primes in H1 as [l [H1 H2]].
+  pose proof (lemma_2_17_d l H1) as [p2 [H3 H4]]. exists p2. split.
+  - rewrite Znt.prime_alt in H3. apply H3.
+  - apply gt_max_gt_all with (l := l); tauto.
+Qed.
 
 Close Scope Z_scope.
 
