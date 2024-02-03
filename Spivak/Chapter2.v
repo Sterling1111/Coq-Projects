@@ -628,7 +628,7 @@ Proof.
   { lia. } { apply H5. unfold Z.divide. exists (k1). lia. } { apply H5. unfold Z.divide. exists (k2). lia. }
 Qed.
 
-Lemma lemma_2_13_a : forall a b,
+Lemma lemma_2_12_a : forall a b,
   rational a -> rational b -> rational (a + b).
 Proof.
   intros a b [z1 [z2 H1]] [z3 [z4 H2]].
@@ -642,7 +642,7 @@ Proof.
     repeat rewrite mult_IZR. field; split; apply not_0_IZR; lia.
 Qed.
 
-Lemma lemma_2_13_a' : forall a,
+Lemma lemma_2_12_a' : forall a,
   irrational a -> exists b, irrational b /\ rational (a + b).
 Proof.
   intros a H1. exists (-a)%R. split.
@@ -650,7 +650,7 @@ Proof.
   - exists 0, 1. nra.
 Qed.
 
-Lemma lemma_2_13_b : forall b,
+Lemma lemma_2_12_b : forall b,
   irrational b -> exists a, rational a /\ rational (a * b).
 Proof.
   intros a H1. exists 0%R. split; exists 0, 1; nra.
@@ -666,7 +666,7 @@ Proof.
   exists (z1 * z3), (z2 * z4). rewrite H3. rewrite H4. repeat rewrite mult_IZR. field. split; apply not_0_IZR; lia.
 Qed.
 
-Lemma lemma_2_13_b' : forall a b,
+Lemma lemma_2_12_b' : forall a b,
   a <> 0%R -> rational a -> irrational b -> irrational (a * b).
 Proof.
   intros a b H1 H2 H3. assert (irrational (a * b) \/ rational (a * b)) as [H4 | H4].
@@ -690,7 +690,7 @@ Proof.
   unfold irrational in H3. tauto.
 Qed.
 
-Lemma lemma_2_13_a'' : exists a b, irrational (a + b).
+Lemma lemma_2_12_a'' : exists a b, irrational (a + b).
 Proof.
   exists (sqrt 2), (sqrt 2). replace (sqrt 2 + sqrt 2)%R with (2 * sqrt 2)%R by lra. apply lemma_2_13_b' with (a := 2%R) (b := (sqrt 2)%R).
   - lra.
@@ -698,7 +698,7 @@ Proof.
   - apply sqrt_2_irrational.
 Qed.
 
-Lemma lemma_2_13_c : exists a,
+Lemma lemma_2_12_c : exists a,
   irrational (a^2) /\ rational (a^4).
 Proof.
   exists (sqrt (sqrt 2)). split.
@@ -708,7 +708,7 @@ Proof.
     rewrite sqrt_sqrt; nra.
 Qed.
 
-Lemma lemma_2_13_d : exists a b,
+Lemma lemma_2_12_d : exists a b,
   irrational a -> irrational b -> rational (a * b) /\ rational (a + b).
 Proof.
   exists (sqrt 2), (-(sqrt 2))%R. intros H1 H2. split.
