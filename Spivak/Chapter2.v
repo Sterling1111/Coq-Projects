@@ -692,7 +692,7 @@ Qed.
 
 Lemma lemma_2_12_a'' : exists a b, irrational (a + b).
 Proof.
-  exists (sqrt 2), (sqrt 2). replace (sqrt 2 + sqrt 2)%R with (2 * sqrt 2)%R by lra. apply lemma_2_13_b' with (a := 2%R) (b := (sqrt 2)%R).
+  exists (sqrt 2), (sqrt 2). replace (sqrt 2 + sqrt 2)%R with (2 * sqrt 2)%R by lra. apply lemma_2_12_b' with (a := 2%R) (b := (sqrt 2)%R).
   - lra.
   - exists 2, 1. nra.
   - apply sqrt_2_irrational.
