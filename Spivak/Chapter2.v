@@ -166,7 +166,7 @@ Check (Z.to_nat (up 1.333)).
 
 Definition real_is_nat (r : R) : Prop := r = INR (Z.to_nat (up r)).
 
-Lemma lemma_2_d : forall a b n,
+Lemma lemma_2_3_d : forall a b n,
   (a + b) ^ n = sum_f 0 n (fun i => (choose n i) * a ^ (n - i) * b ^ i).
 Proof.
   intros a b n. induction n as [| k IH].
@@ -213,6 +213,25 @@ Proof.
            2 : { apply sum_f_equiv. lia. intros k0 H3. replace (S k - k0)%nat with (k - k0 + 1)%nat by lia. reflexivity. }
            nra.
 Qed.
+
+Lemma lemma_2_4_a : forall l m n,
+  sum_f 0 l (fun i => choose n i * choose m (l - i)) = choose (n + m) l.
+Proof.
+  intros l m n. assert (H1 : forall x, (sum_f 0 n (fun i => choose n i * x^i) * sum_f 0 m (fun i => choose m i * x^i) = sum_f 0 (n+m) (fun i => choose (n+m) i * x ^ i))).
+  { intros x. pose proof pow_add (1 + x) (n) (m) as H1. apply eq_sym in H1.
+    replace ((fun i : nat => choose n i * x ^ i)) with (fun i : nat => choose n i * 1 ^ (n - i) * (x ^ i)).
+    2 : { apply functional_extensionality. intros k. rewrite pow1. nra. }
+    replace ((fun i : nat => choose m i * x ^ i)) with (fun i : nat => choose m i * 1 ^ (m - i) * (x ^ i)).
+    2 : { apply functional_extensionality. intros k. rewrite pow1. nra. }
+    replace ((fun i : nat => choose (n + m) i * x ^ i)) with (fun i : nat => choose (n + m) i * 1 ^ (n + m - i) * (x ^ i)).
+    2 : { apply functional_extensionality. intros k. rewrite pow1. nra. }
+   repeat rewrite <- lemma_2_3_d. apply H1. } 
+   induction l as [| k IH].
+   - simpl. repeat rewrite n_choose_0. rewrite sum_f_0_0. rewrite n_choose_0. nra.
+   - rewrite sum_f_i_Sn_f.
+    -- replace (choose m (S k - S k)) with 1. 2 : { replace (S k - S k)%nat with 0%nat by lia. rewrite n_choose_0. reflexivity. }
+       rewrite Rmult_1_r. 
+Abort.
 
 Lemma lemma_2_5 : forall n r,
   r <> 1 -> sum_f 0 n (fun i => r ^ i) = (1 - r ^ (n+1)) / (1 - r).
@@ -852,6 +871,14 @@ Proof.
   specialize (H6 2) as [H6 | H6]; try lia; tauto.
 Qed.
 
+Lemma kcub_div_3_k_div_3 : forall k,
+  Z.divide 3 (k^3) -> Z.divide 3 k.
+Proof.
+  intros k [a H1]. unfold Z.divide.
+  assert (exists p, k = 3*p \/ k = 3*p+1 \/ k = 3*p+2) as [p H2] by zforms.
+  exists p. lia.
+Qed.
+
 Lemma lemma_2_13_b' : irrational (Rpower 3 (1/3)).
 Proof.
   unfold irrational. unfold rational. unfold not. intros [z1 [z2 H1]].
@@ -868,8 +895,19 @@ Proof.
   2 : { repeat rewrite <- Rpower_plus. replace (1/3 + 1/3 + 1/3)%R with 1%R by lra. rewrite Rpower_1;lra. }
   replace (IZR z1' / IZR z2' * (IZR z1' / IZR z2') * (IZR z1' / IZR z2'))%R with ((IZR z1')^3 / (IZR z2')^3)%R in H7 by (field; apply not_0_IZR; tauto).
     apply Rmult_eq_compat_r with (r := ((IZR z2')^3)%R) in H7. replace ((IZR z1' ^ 3 / IZR z2' ^ 3 * IZR z2' ^ 3)%R) with ((IZR z1')^3)%R in H7 by (field; apply not_0_IZR; tauto).
-  replace 3 % nat with (Z.to_nat 3) in H7 at 1 by auto.
-Abort.
+  replace 3 % nat with (Z.to_nat 3) in H7 at 1 by auto. assert (3 | z1'^3) as H9.
+  { replace 3 with (Z.of_nat 3) by auto. exists (z2'^3). apply eq_IZR. rewrite <- pow_IZR. rewrite mult_IZR.
+    apply eq_sym. rewrite pow_IZR in H7. simpl in *. nra. }
+  assert (H10 : Z.divide 3 z1'). { apply kcub_div_3_k_div_3 in H9. auto. }
+  destruct H10 as [k H10]. rewrite H10 in H7. assert (H11 : (IZR z2' ^ 3 = 9 * IZR (k^3))%R).
+  { replace 3%nat with (Z.to_nat 3) in H7 by auto. rewrite pow_IZR with (z := k * 3) in H7. replace (Z.to_nat 3) with 3%nat in H7 by auto.
+    replace (Z.of_nat 3) with 3 in H7 by auto. replace ((k * 3) ^ 3) with (27 * k^3) in H7 by lia. rewrite mult_IZR in H7. nra. }
+  assert (Z.divide 3 (z2'^3)) as H12. { replace 3 with (Z.of_nat 3) by auto. exists (3 * k^3). apply eq_IZR. rewrite <- pow_IZR. rewrite mult_IZR. 
+    rewrite mult_IZR. replace (IZR (Z.of_nat 3)) with 3%R by auto. nra. }
+  assert (H13 : Z.divide 3 z2'). { apply kcub_div_3_k_div_3 in H12. auto. }
+  assert (H14 : (3 | z1')). { exists (k). lia. }
+  specialize (H6 3) as [H6 | H6]; try lia; tauto.
+Qed.
 
 Fixpoint max_list_Z (l : list Z) : Z :=
   match (l) with
