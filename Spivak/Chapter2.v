@@ -675,13 +675,24 @@ Proof.
   intros a H1. exists 0%R. split; exists 0, 1; nra.
 Qed.
 
+Lemma x_neq_0_IZR_den_neq_0 : forall x y z,
+  (x <> 0 /\ x = IZR y / IZR z)%R -> z <> 0. 
+Proof.
+  intros x y z [H1 H2]. assert (z <> 0 \/ z = 0) as [H3 | H3] by lia. auto. rewrite H3 in H2. rewrite Rdiv_0_r in H2. nra.
+Qed.
+
+Lemma x_neq_0_IZR_num_neq_0 : forall x y z,
+  (x <> 0 /\ x = IZR y / IZR z)%R -> y <> 0.
+Proof.
+  intros x y z [H1 H2]. assert (y <> 0 \/ y = 0) as [H3 | H3] by lia. auto. rewrite H3 in H2. rewrite Rdiv_0_l in H2. nra.
+Qed.
+
 Lemma mult_rational : forall a b,
   a <> 0%R -> b <> 0%R -> rational a -> rational b -> rational (a * b).
 Proof.
   intros a b  H1 H2 [z1 [z2 H3]] [z3 [z4 H4]]. 
-  assert (H5 : forall x y z, (x <> 0 /\ x = IZR y / IZR z)%R -> z <> 0).
-  { intros x y z [H5 H6]. assert (z <> 0 \/ z = 0) as [H7 | H7] by lia. auto. rewrite H7 in H6. rewrite Rdiv_0_r in H6. nra. }
-  assert (H6 : z2 <> 0 /\ z4 <> 0). { split. apply H5 with (x := a) (y := z1). tauto. apply H5 with (x := b) (y := z3). tauto. }
+  assert (H5 : z2 <> 0 /\ z4 <> 0).
+  { split. apply x_neq_0_IZR_den_neq_0 with (x := a) (y := z1). tauto. apply x_neq_0_IZR_den_neq_0 with (x := b) (y := z3). tauto. }
   exists (z1 * z3), (z2 * z4). rewrite H3. rewrite H4. repeat rewrite mult_IZR. field. split; apply not_0_IZR; lia.
 Qed.
 
@@ -690,21 +701,12 @@ Lemma lemma_2_12_b' : forall a b,
 Proof.
   intros a b H1 H2 H3. assert (irrational (a * b) \/ rational (a * b)) as [H4 | H4].
   { unfold irrational. tauto. } auto.
-  assert (H5 : forall x y z, (x <> 0 /\ x = IZR y / IZR z)%R -> y <> 0 /\ z <> 0).
-  { 
-    intros x y z [H5 H6]. split.
-    - assert (y <> 0 \/ y = 0) as [H7 | H7] by lia. auto. rewrite H7 in H6. rewrite Rdiv_0_l in H6. nra.
-    - assert (z <> 0 \/ z = 0) as [H7 | H7] by lia. auto. rewrite H7 in H6. rewrite Rdiv_0_r in H6. nra. 
-  }
-  assert (H6 : rational (/ a)).
-  { 
-    destruct H2 as [z1 [z2 H2]]. exists z2, z1. rewrite H2. specialize (H5 a z1 z2).
-    assert (z1 <> 0 /\ z2 <> 0) as [H7 H8] by (apply H5; auto). field; split; apply not_0_IZR; lia.
-  }
-  assert (H7 : b <> 0%R).
-  { intros H7. apply H3. exists 0, 1. nra. }
-  assert (H8 : / a <> 0%R) by (apply Rinv_neq_0_compat; auto).
-  assert (H9 : rational b).
+  destruct H2 as [z1 [z2 H2]]. assert (H5 : z1 <> 0). { apply x_neq_0_IZR_num_neq_0 with (x := a) (y := z1) (z := z2). auto. }
+  assert (H6 : z2 <> 0). { apply x_neq_0_IZR_den_neq_0 with (x := a) (y := z1) (z := z2). auto. }
+  assert (H7 : rational (/ a)) by (exists z2, z1; rewrite H2; field; split; apply not_0_IZR; lia).
+  assert (H8 : b <> 0%R) by (intros H8; apply H3; exists 0, 1; nra).
+  assert (H9 : / a <> 0%R) by (apply Rinv_neq_0_compat; auto).
+  assert (H10 : rational b).
   { replace b with (a * b / a)%R by (field; auto). apply mult_rational; auto. }
   unfold irrational in H3. tauto.
 Qed.
@@ -907,6 +909,90 @@ Proof.
   assert (H13 : Z.divide 3 z2'). { apply kcub_div_3_k_div_3 in H12. auto. }
   assert (H14 : (3 | z1')). { exists (k). lia. }
   specialize (H6 3) as [H6 | H6]; try lia; tauto.
+Qed.
+
+Lemma rational_plus_rev : forall a b,
+  rational (a + b) -> rational a -> rational b.
+Proof.
+  intros a b H1 H2. unfold rational in *. destruct H1 as [z1 [z2 H1]]. destruct H2 as [z3 [z4 H2]].
+  assert (a = 0 /\ b = 0 \/ a = 0 /\ b <> 0 \/ a <> 0 /\ b = 0 \/ a <> 0 /\ b <> 0)%R as [H3 | [H3 | [H3 | H3]]] by lra.
+  - exists 0, 0. lra.
+  - exists z1, z2. lra.
+  - exists 0, 0. lra.
+  - assert (a + b = 0 \/ a + b <> 0)%R as [H4 | H4] by lra.
+    -- exists (-z3), z4. replace (-z3) with (-1 * z3) by lia. rewrite mult_IZR. lra.
+    -- exists (z1 * z4 - z2 * z3), (z2 * z4).  rewrite minus_IZR. repeat rewrite mult_IZR. pose proof H1 as H1'. rewrite H2 in H1.
+       apply Rminus_eq_compat_r with (r := (IZR z3 / IZR z4)%R) in H1. replace ((IZR z3 / IZR z4 + b - IZR z3 / IZR z4)%R) with b in H1 by lra.
+       rewrite H1.  destruct H3 as [H3 H3']. 
+       field; split; apply not_0_IZR; try apply x_neq_0_IZR_den_neq_0 with (x := (a + b)%R) (y := z1) (z := z2); try apply x_neq_0_IZR_den_neq_0 with (x := a) (y := z3) (z := z4); auto.
+Qed.
+
+Lemma rational_mult_rev : forall a b,
+  (a <> 0)%R -> rational (a * b) -> rational a -> rational b.
+Proof.
+  intros a b H1 H2 H3. unfold rational in *. destruct H2 as [z1 [z2 H2]]. destruct H3 as [z3 [z4 H3]].
+  assert (a = 0 /\ b = 0 \/ a = 0 /\ b <> 0 \/ a <> 0 /\ b = 0 \/ a <> 0 /\ b <> 0)%R as [H4 | [H4 | [H4 | H4]]] by lra.
+  - lra.
+  - lra.
+  - exists 0, 0. lra.
+  - assert (a * b = 0 \/ a * b <> 0)%R as [H5 | H5] by lra.
+    -- nra.
+    -- exists (z1 * z4), (z2 * z3). repeat rewrite mult_IZR. pose proof H2 as H2'. rewrite H3 in H2.
+       assert (H6 : IZR z1 <> 0%R). { apply not_0_IZR. apply x_neq_0_IZR_num_neq_0 with (x := (a * b)%R) (y := z1) (z := z2); split; auto. }
+       assert (H7 : IZR z3 <> 0%R). { apply not_0_IZR. apply x_neq_0_IZR_num_neq_0 with (x := a) (y := z3) (z := z4); split; auto. }
+       assert (H8 : IZR z2 <> 0%R). { apply not_0_IZR. apply x_neq_0_IZR_den_neq_0 with (x := (a * b)%R) (y := z1) (z := z2); split; auto. }
+       assert (H9 : IZR z4 <> 0%R). { apply not_0_IZR. apply x_neq_0_IZR_den_neq_0 with (x := a) (y := z3) (z := z4); split; auto. }
+       apply Rmult_eq_compat_r with (r := (IZR z4 / IZR z3)%R) in H2. replace ((IZR z3 / IZR z4 * b * (IZR z4 / IZR z3))%R) with b in H2 by (field; lra).
+       rewrite H2. field; auto.
+Qed.
+
+Lemma lemma_2_14_a : irrational (sqrt 2 + sqrt 6).
+Proof.
+  assert (irrational (sqrt 2 + sqrt 6) \/ rational (sqrt 2 + sqrt 6)) as [H1 | H1].
+  { unfold irrational. tauto. }
+  - auto.
+  - assert (sqrt 2 + sqrt 6 <> 0)%R as H2.
+    { pose proof sqrt_lt_R0 2 as H2. pose proof sqrt_lt_R0 6 as H3. nra. }
+    assert (rational ((sqrt 2 + sqrt 6)^2)) as H3.
+    { simpl. rewrite Rmult_1_r. apply mult_rational; auto. }
+    replace ((sqrt 2 + sqrt 6)^2)%R with (8 + 4 * sqrt 3)%R in H3.
+    2 : 
+    { 
+      simpl. repeat rewrite Rmult_plus_distr_r. repeat rewrite Rmult_1_r. repeat rewrite Rmult_plus_distr_l.
+      repeat rewrite sqrt_sqrt; try lra. repeat rewrite <- sqrt_mult_alt; try lra. rewrite Rmult_comm with (r1 := 2%R).
+      replace (sqrt (6 * 2)) with (2 * sqrt 3)%R. 2 : { replace (6 * 2)%R with ((2 * 2) * 3)%R by lra. 
+      rewrite sqrt_mult_alt; try lra. rewrite sqrt_square; lra. } lra.
+    }
+    apply rational_plus_rev with (a := 8%R) (b := (4 * sqrt 3)%R) in H3 as H4.
+    2 : { exists 8, 1. lra. }
+    apply rational_mult_rev with (a := 4%R) (b := sqrt 3) in H4 as H5.
+    2 : { lra. }
+    2 : { exists 4, 1. lra. }
+    pose proof lemma_2_13_a as H6. unfold irrational in H6. tauto.
+Qed.
+
+Lemma lemma_2_14_b : irrational (sqrt 2 + sqrt 3).
+Proof.
+  assert (irrational (sqrt 2 + sqrt 3) \/ rational (sqrt 2 + sqrt 3)) as [H1 | H1].
+  { unfold irrational. tauto. }
+  - auto.
+  - assert (sqrt 2 + sqrt 3 <> 0)%R as H2.
+    { pose proof sqrt_lt_R0 2 as H2. pose proof sqrt_lt_R0 3 as H3. nra. }
+    assert (rational ((sqrt 2 + sqrt 3)^2)) as H3.
+    { simpl. rewrite Rmult_1_r. apply mult_rational; auto. }
+    replace ((sqrt 2 + sqrt 3)^2)%R with (5 + 2 * sqrt 6)%R in H3.
+    2 : 
+    { 
+      simpl. repeat rewrite Rmult_plus_distr_r. repeat rewrite Rmult_1_r. repeat rewrite Rmult_plus_distr_l.
+      repeat rewrite sqrt_sqrt; try lra. repeat rewrite <- sqrt_mult_alt; try lra. rewrite Rmult_comm with (r1 := 2%R).
+      replace (2 * 3)%R with 6%R by lra. replace (3 * 2)%R with 6%R by lra. nra.
+    }
+    apply rational_plus_rev with (a := 5%R) (b := (2 * sqrt 6)%R) in H3 as H4.
+    2 : { exists 5, 1. lra. }
+    apply rational_mult_rev with (a := 2%R) (b := sqrt 6) in H4 as H5.
+    2 : { lra. }
+    2 : { exists 2, 1. lra. }
+    pose proof lemma_2_13_a'' as H6. unfold irrational in H6. tauto.
 Qed.
 
 Fixpoint max_list_Z (l : list Z) : Z :=
