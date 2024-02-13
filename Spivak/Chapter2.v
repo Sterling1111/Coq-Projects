@@ -158,6 +158,12 @@ Proof.
        replace (n - (k - 1))%nat with (S n - k)%nat by lia. reflexivity.
 Qed.
 
+Lemma lemma_2_3' : forall n k : nat,
+  (k >= 1)%nat -> choose n (S k) = choose (S n) (S k) - choose n k.
+Proof.
+  intros n k H1. rewrite lemma_2_3. 2 : { lia. } replace (S k - 1)%nat with k by lia. lra.
+Qed.
+
 (* nat to real*)
 Check (IZR (Z.of_nat 3%nat)).
 
@@ -230,7 +236,7 @@ Proof.
    - simpl. repeat rewrite n_choose_0. rewrite sum_f_0_0. rewrite n_choose_0. nra.
    - rewrite sum_f_i_Sn_f.
     -- replace (choose m (S k - S k)) with 1. 2 : { replace (S k - S k)%nat with 0%nat by lia. rewrite n_choose_0. reflexivity. }
-       rewrite Rmult_1_r. 
+       rewrite Rmult_1_r. rewrite lemma_2_3' with (n := (n + m)%nat). rewrite <- IH.
 Abort.
 
 Lemma lemma_2_5 : forall n r,
@@ -688,12 +694,16 @@ Proof.
 Qed.
 
 Lemma mult_rational : forall a b,
-  a <> 0%R -> b <> 0%R -> rational a -> rational b -> rational (a * b).
+  rational a -> rational b -> rational (a * b).
 Proof.
-  intros a b  H1 H2 [z1 [z2 H3]] [z3 [z4 H4]]. 
-  assert (H5 : z2 <> 0 /\ z4 <> 0).
-  { split. apply x_neq_0_IZR_den_neq_0 with (x := a) (y := z1). tauto. apply x_neq_0_IZR_den_neq_0 with (x := b) (y := z3). tauto. }
-  exists (z1 * z3), (z2 * z4). rewrite H3. rewrite H4. repeat rewrite mult_IZR. field. split; apply not_0_IZR; lia.
+  intros a b [z1 [z2 H1]] [z3 [z4 H2]].
+  assert (a = 0 \/ b = 0 \/ a <> 0 /\ b <> 0)%R as [H3 | [H3 | [H3 H4]]] by lra.
+  - exists 0, 1. nra.
+  - exists 0, 1. nra.
+  - exists (z1 * z3). exists (z2 * z4). rewrite H1. rewrite H2. repeat rewrite mult_IZR. field.
+    split; apply not_0_IZR.
+    -- apply x_neq_0_IZR_den_neq_0 with (x := b) (y := z3) (z := z4). auto.
+    -- apply x_neq_0_IZR_den_neq_0 with (x := a) (y := z1) (z := z2). auto.
 Qed.
 
 Lemma lemma_2_12_b' : forall a b,
@@ -994,6 +1004,44 @@ Proof.
     2 : { exists 2, 1. lra. }
     pose proof lemma_2_13_a'' as H6. unfold irrational in H6. tauto.
 Qed.
+
+Close Scope Z_scope.
+
+Open Scope R_scope.
+
+Lemma lemma_2_15_a : forall x p q m,
+  rational p -> rational q -> x = p + sqrt q -> q >= 0 ->
+    exists a b, rational a /\ rational b /\ x^m = a + b * sqrt q.
+Proof.
+  intros x p q m H1 H2 H3 H4. induction m as [| m' IH].
+  - exists 1, 0. repeat split.
+    -- exists 1%Z, 1%Z. lra.
+    -- exists 0%Z, 1%Z. lra.
+    -- lra.
+  - destruct IH as [a [b [H5 [H6 H7]]]]. exists (p * a + q * b), (p * b + a); repeat split.
+    -- apply lemma_2_12_a; apply mult_rational; auto.
+    -- apply lemma_2_12_a; try apply mult_rational; auto.
+    -- simpl. rewrite H7. rewrite H3. replace ((p + sqrt q) * (a + b * sqrt q)) with (p * a + p * b * sqrt q + sqrt q * a + b * (sqrt q * sqrt q)) by nra.
+       rewrite sqrt_sqrt; lra. 
+Qed.
+
+Lemma lemma_2_15_b : forall p q m,
+  rational p -> rational q -> q >= 0 ->
+    exists a b, rational a /\ rational b /\ (p - sqrt q)^m = a - b * sqrt q.
+Proof.
+  intros p q m H1 H2 H3. induction m as [| m' IH].
+  - exists 1, 0. repeat split.
+    -- exists 1%Z, 1%Z. lra.
+    -- exists 0%Z, 1%Z. lra.
+    -- lra.
+  - destruct IH as [a [b [H4 [H5 H6]]]]. exists (p * a + q * b), (p * b + a); repeat split.
+    -- apply lemma_2_12_a; apply mult_rational; auto.
+    -- apply lemma_2_12_a; try apply mult_rational; auto.
+    --  simpl. rewrite H6. replace ((p - sqrt q) * (a - b * sqrt q)) with (p * a - p * b * sqrt q - sqrt q * a + b * (sqrt q * sqrt q)) by nra.
+       rewrite sqrt_sqrt; lra.
+Qed.
+
+Open Scope Z_scope.  
 
 Fixpoint max_list_Z (l : list Z) : Z :=
   match (l) with
@@ -1524,6 +1572,12 @@ Definition arithmetic_mean (l : list R) : R :=
 Definition geometric_mean (l : list R) : R :=
   Rpower (prod_f 0 (length l - 1) (fun i => nth i l 0)) (1 / INR (length l)).
 
+Lemma geometric_mean_app : forall l1 l2,
+  length l1 = length l2 ->
+  geometric_mean (l1 ++ l2) = geometric_mean l1 * geometric_mean l2.
+Proof.
+  intros l1 l2 H1. unfold geometric_mean.  rewrite H1. rewrite <- Rpower_plus.
+
 Lemma lemma_2_22_b : forall (l : list R) k,
   pos_list l ->
     (length l = 2 ^ k)%nat -> geometric_mean l <= arithmetic_mean l.
@@ -1534,11 +1588,22 @@ Proof.
     assert (H3 : nth 0 l 0 > 0). 
     { unfold pos_list in H1. rewrite Forall_forall in H1. apply H1. apply nth_In. lia. }
     rewrite Rpower_1. 2 : { apply H3. } lra.
-  - intros l H1 H2.
-Abort.
+  - intros l H1 H2. set (l1 := firstn (length l / 2) l). set (l2 := skipn (length l / 2) l).
+    assert (H3 : l1 ++ l2 = l). { unfold l1, l2. rewrite firstn_skipn. reflexivity. }
+    assert (H4 : (length l1 = 2 ^ k)%nat).
+    { unfold l1. rewrite H2. replace (2 ^ S k)%nat with (2 * 2 ^ k)%nat. 2 : { simpl. lia. }
+      rewrite Nat.mul_comm. rewrite Nat.div_mul. 2 : { lia. } rewrite firstn_length. rewrite H2. 
+      simpl. lia. }
+    assert (H5 : (length l2 = 2^k)%nat).
+    { unfold l2. rewrite H2. replace (2^S k)%nat with (2 * 2^k)%nat by (simpl; lia).
+      rewrite Nat.mul_comm. rewrite Nat.div_mul by lia. rewrite skipn_length. rewrite H2.
+      simpl. lia. }
+    
+    
+Abort. 
 
 Lemma lemma_2_23 : forall (a : R) (n m : nat),
-  a ^ (n + m) = a^n * a^m.
+  a ^ (n + m) = a^n * a^m.    
 Proof.
   intros a n m. induction n as [| k IH].
   - simpl. lra.
