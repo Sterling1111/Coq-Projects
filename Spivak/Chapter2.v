@@ -1567,16 +1567,104 @@ Definition pos_list (l : list R) : Prop :=
   Forall (fun x => x > 0) l.
 
 Definition arithmetic_mean (l : list R) : R :=
-  sum_f 0 (length l - 1) (fun i => nth i l 0) / INR (length l).
+  fold_right Rplus 0 l / INR (length l).
 
 Definition geometric_mean (l : list R) : R :=
-  Rpower (prod_f 0 (length l - 1) (fun i => nth i l 0)) (1 / INR (length l)).
+  if eq_nat_dec (length l) 0 then 0 else
+  Rpower (fold_right Rmult 1 l) (1 / INR (length l)).
 
-Lemma geometric_mean_app : forall l1 l2,
-  length l1 = length l2 ->
-  geometric_mean (l1 ++ l2) = geometric_mean l1 * geometric_mean l2.
+Lemma pos_list_cons : forall h l,
+  pos_list (h :: l) -> h > 0 /\ pos_list l.
 Proof.
-  intros l1 l2 H1. unfold geometric_mean.  rewrite H1. rewrite <- Rpower_plus.
+  intros h l H1. unfold pos_list in H1. apply Forall_cons_iff in H1. tauto.
+Qed.
+
+Lemma pos_list_app : forall l1 l2,
+  pos_list (l1 ++ l2) -> pos_list l1 /\ pos_list l2.
+Proof.
+  intros l1 l2 H1. unfold pos_list in H1. apply Forall_app in H1 as [H1 H1']. tauto.
+Qed.
+
+Lemma fold_right_mult_pos_list_gt_0 : forall l,
+  pos_list l -> fold_right Rmult 1 l > 0.
+Proof.
+  intros l H1. induction l as [| h l' IH].
+  - simpl. lra.
+  - simpl. apply pos_list_cons in H1 as [H1 H2]. apply IH in H2. nra.
+Qed.
+
+Lemma fold_right_mul_initial_val : forall l a,
+  fold_right Rmult a l = a * fold_right Rmult 1 l.
+Proof.
+  intros l a. induction l as [| h l' IH].
+  - simpl. lra.
+  - simpl. rewrite IH. lra.
+Qed.
+
+Lemma Rpower_gt_0 : forall r n,
+  r > 0 -> Rpower r n > 0.
+Proof.
+  intros r n H1. unfold Rpower. destruct (Rle_dec 0 r).
+  - apply exp_pos.
+  - apply exp_pos.
+Qed.
+
+Lemma ge_le_arith_2 : forall a b,
+  a > 0 -> b > 0 -> sqrt (a * b) <= (a + b) / 2.
+Proof.
+  intros a b H1 H2. apply Rmult_le_reg_r with (r := 2). lra.
+  replace ((a + b) / 2 * 2) with (a + b) by lra. rewrite sqrt_mult; try lra.
+  apply Rsqr_incr_0_var. 2 : { lra. } unfold Rsqr.
+  replace (sqrt a * sqrt b * 2 * (sqrt a * sqrt b * 2)) with (4 * (sqrt a * sqrt a) * (sqrt b * sqrt b)) by lra.
+  repeat rewrite sqrt_sqrt; try lra. replace ((a + b) * (a + b)) with (a * a + 2 * a * b + b * b) by lra.
+  pose proof (Rtotal_order a b) as [H3 | [H4 | H5]]; try nra.
+Qed.
+
+(*this might be the most inefficient proof ever... bad*)
+Lemma geometric_mean_app : forall l1 l2,
+  pos_list l1 -> pos_list l2 -> length l1 = length l2 ->
+  geometric_mean (l1 ++ l2) = sqrt (geometric_mean l1 * geometric_mean l2).
+Proof.
+  intros l1 l2 H1 H2 H3. unfold geometric_mean. rewrite H3. destruct l1, l2.
+  - simpl. rewrite Rmult_0_r. rewrite sqrt_0. reflexivity.
+  - simpl in H3; lia.
+  - simpl in H3; lia.
+  - simpl in *. pose proof H3 as H3'. destruct (length l2) in H3. 
+    -- assert (H4 : l1 = []). { destruct l1. reflexivity. simpl in H3. lia. } rewrite H4. simpl. rewrite Rmult_1_r. assert (length l2 = 0%nat). { destruct l2. auto. inversion H3'. apply length_zero_iff_nil in H4. lia. }
+       rewrite H. replace (1 / (1 + 1)) with (/ 2) by nra. replace (1 / 1) with 1 by lra. rewrite Rpower_mult_distr. 2 : { apply pos_list_cons in H1. tauto. }
+       2 : { assert (fold_right Rmult 1 l2 > 0). { apply pos_list_cons in H2. apply fold_right_mult_pos_list_gt_0; tauto. } apply pos_list_cons in H2. nra. }
+       rewrite Rpower_sqrt. 2 : { apply pos_list_cons in H1 as [H1 H1']. apply pos_list_cons in H2 as [H2 H2']. assert (fold_right Rmult 1 l2 > 0) by (apply fold_right_mult_pos_list_gt_0; tauto).
+       assert (r0 * fold_right Rmult 1 l2 > 0) by nra. nra. }
+       rewrite Rpower_1. 2 : { apply pos_list_cons in H1 as [H1 H1']. apply pos_list_cons in H2 as [H2 H2']. assert (fold_right Rmult 1 l2 > 0) by (apply fold_right_mult_pos_list_gt_0; tauto).
+       assert (r0 * fold_right Rmult 1 l2 > 0) by nra. nra. }
+       reflexivity.
+    -- assert (H4 : length (l1 ++ r0 :: l2) = S (S (S (n + n)))).
+        { replace (S (S (S (n + n)))) with (S n + S n + 1)%nat by lia. inversion H3. inversion H0. rewrite app_length. simpl. lia. }
+        destruct (length (l1 ++ r0 :: l2)). lia. destruct (length l2). lia. assert (H5 : r * fold_right Rmult 1 l1 > 0). { apply pos_list_cons in H1. assert (fold_right Rmult 1 l1 > 0) by (apply fold_right_mult_pos_list_gt_0; tauto). nra. }
+        assert (H6 : r0 * fold_right Rmult 1 l2 > 0). { apply pos_list_cons in H2. assert (fold_right Rmult 1 l2 > 0) by (apply fold_right_mult_pos_list_gt_0; tauto). nra. } rewrite Rpower_mult_distr; auto.
+        rewrite <- Rpower_sqrt. rewrite Rpower_mult. rewrite H4. inversion H4 as [H7]. replace (S n1) with (S n). 2 : { inversion H3. inversion H3'. reflexivity. } repeat rewrite S_INR. rewrite plus_INR.
+        replace ((1 / (INR n + 1 + 1) * / 2)) with ((1 / (INR n + INR n + 1 + 1 + 1 + 1))). 2 : { field. split; pose proof pos_INR n; lra. }
+        replace (r * fold_right Rmult 1 (l1 ++ r0 :: l2)) with (r * fold_right Rmult 1 l1 * (r0 * fold_right Rmult 1 l2)).
+        2 : { rewrite fold_right_app. simpl. rewrite fold_right_mul_initial_val with (a := r0 * fold_right Rmult 1 l2). nra. }
+        reflexivity.
+        apply Rgt_lt. apply Rpower_gt_0. apply Rmult_gt_0_compat; auto.
+Qed.
+
+Lemma pow_2_n_gt_0 : forall n,
+  (2 ^ n > 0)%nat.
+Proof.
+  intros n. induction n as [| k IH].
+  - simpl. lia.
+  - simpl. lia.
+Qed.
+
+Lemma fold_right_app' : forall l1 l2,
+  fold_right Rplus 0 (l1 ++ l2) = fold_right Rplus 0 l1 + fold_right Rplus 0 l2.
+Proof.
+  intros l1 l2. induction l1 as [| h l1' IH].
+  - simpl. lra.
+  - simpl. rewrite IH. lra.
+Qed.
 
 Lemma lemma_2_22_b : forall (l : list R) k,
   pos_list l ->
@@ -1584,10 +1672,10 @@ Lemma lemma_2_22_b : forall (l : list R) k,
 Proof.
   intros l k H1 H2. generalize dependent l. induction k as [| k IH].
   - intros l H1 H2. simpl in H2. unfold geometric_mean, arithmetic_mean. rewrite H2.
-    rewrite sum_f_n_n. rewrite prod_f_n_n. simpl. replace (1 / 1) with 1 by lra.
-    assert (H3 : nth 0 l 0 > 0). 
-    { unfold pos_list in H1. rewrite Forall_forall in H1. apply H1. apply nth_In. lia. }
-    rewrite Rpower_1. 2 : { apply H3. } lra.
+    simpl. replace (1 / 1) with 1 by lra. rewrite Rpower_1. 2 : { apply fold_right_mult_pos_list_gt_0. apply H1. } 
+    replace (fold_right Rplus 0 l / 1) with (fold_right Rplus 0 l) by lra. assert (H3 : exists a, l = [a]). 
+    { destruct l. inversion H2. exists r. inversion H2 as [H3]. apply length_zero_iff_nil in H3. rewrite H3. reflexivity. }
+    destruct H3 as [a H3]. rewrite H3. simpl. nra.
   - intros l H1 H2. set (l1 := firstn (length l / 2) l). set (l2 := skipn (length l / 2) l).
     assert (H3 : l1 ++ l2 = l). { unfold l1, l2. rewrite firstn_skipn. reflexivity. }
     assert (H4 : (length l1 = 2 ^ k)%nat).
@@ -1598,9 +1686,26 @@ Proof.
     { unfold l2. rewrite H2. replace (2^S k)%nat with (2 * 2^k)%nat by (simpl; lia).
       rewrite Nat.mul_comm. rewrite Nat.div_mul by lia. rewrite skipn_length. rewrite H2.
       simpl. lia. }
-    
-    
-Abort. 
+    rewrite <- H3 at 1. rewrite geometric_mean_app. 2 : { rewrite <- H3 in H1. apply pos_list_app in H1. tauto. }
+    2 : { rewrite <- H3 in H1. apply pos_list_app in H1. tauto. }
+    2 : { lia. }
+    assert (H6 : (0 < length l1)%nat). { rewrite H4. apply pow_2_n_gt_0. }
+    assert (H7 : (0 < length l2)%nat). { rewrite H5. apply pow_2_n_gt_0. }
+    assert (pos_list l1 /\ pos_list l2) as [H8 H9]. { rewrite <- H3 in H1. apply pos_list_app in H1. tauto. }
+    assert (H10 : sqrt (geometric_mean l1 * geometric_mean l2) <= (geometric_mean l1 + geometric_mean l2) / 2).
+    { apply ge_le_arith_2. unfold geometric_mean. destruct (length l1). lia. simpl. apply Rpower_gt_0. apply fold_right_mult_pos_list_gt_0. auto.
+      unfold geometric_mean. destruct (length l2). lia. simpl. apply Rpower_gt_0. apply fold_right_mult_pos_list_gt_0. auto. }
+    assert ((geometric_mean l1 <= arithmetic_mean l1) /\ (geometric_mean l2 <= arithmetic_mean l2)) as [H11 H12].
+    { split; apply IH; auto. }
+    assert (H13 : sqrt (geometric_mean l1 * geometric_mean l2) <= (arithmetic_mean l1 + arithmetic_mean l2) / 2) by nra.
+    assert (H14 : (arithmetic_mean l1 + arithmetic_mean l2) / 2 = arithmetic_mean l).
+    { unfold arithmetic_mean. replace ((fold_right Rplus 0 l1 / INR (length l1) + fold_right Rplus 0 l2 / INR (length l2)) / 2) with
+      ((fold_right Rplus 0 l1 + fold_right Rplus 0 l2) / (2 * INR (length l1))). 2 : { assert (H14 : INR (length l1) <> 0). { apply not_0_INR. nia. } 
+      assert (H15 : length l1 = length l2). { nia. } rewrite <- H15. field; nra. }
+    rewrite <- fold_right_app'. rewrite H3. rewrite H2. rewrite H4. simpl. rewrite Nat.add_0_r. 
+    rewrite plus_INR. replace (2 * INR (2 ^ k)) with (INR (2 ^ k) + INR (2 ^ k)) by (simpl; lra). reflexivity. }
+    nra.
+Qed.
 
 Lemma lemma_2_23 : forall (a : R) (n m : nat),
   a ^ (n + m) = a^n * a^m.    
