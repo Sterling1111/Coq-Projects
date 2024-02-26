@@ -13,7 +13,7 @@ Fixpoint standard_sum (l : list R) : R :=
 Lemma lemma_1_24_a : forall l a,
   a + standard_sum l = standard_sum (a :: l).
 Proof.
-  intros; destruct l; simpl; lra.
+  intros l a. destruct l; simpl; lra.
 Qed.
 
 Lemma lemma_1_24_b : forall l1 l2,
