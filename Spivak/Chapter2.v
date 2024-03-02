@@ -1,6 +1,6 @@
 Require Import Reals Lra Lia ZArith FunctionalExtensionality List Classical Arith QArith.
 Import ListNotations.
-From Spivak Require Import Chapter1.
+From Spivak Require Export Chapter1.
 
 Module Znt := ZArith.Znumtheory.
 
