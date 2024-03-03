@@ -1162,6 +1162,23 @@ Proof.
               rewrite fold_right_mul_distributive. rewrite <- H11'. lia.
 Qed.
 
+Lemma prime_factorization_unique : forall l1 l2 z,
+  z > 1 -> prime_list l1 -> prime_list l2 -> z = fold_right Z.mul 1 l1 -> z = fold_right Z.mul 1 l2 -> 
+    (forall p, In p l1 -> count_occ Z.eq_dec l1 p = count_occ Z.eq_dec l2 p).
+Proof.
+  intros.  Print Z.eq_dec.
+Qed.
+Lemma lemma_2_17_b : forall n,
+  (n >= 0)%R ->
+  (~(exists m, (n = m^2)%R)) -> irrational (sqrt n).
+Proof.
+  intros n H1 H2. unfold irrational. unfold not in *. intros [a [b H3]].
+  apply H2. exists (IZR a / IZR b)%R. replace n with (sqrt n * sqrt n)%R.
+  2 : { rewrite sqrt_sqrt; lra. } rewrite H3. assert (b = 0 \/ b <> 0) as [H4 | H4] by lia.
+  - rewrite H4. lra.
+  - field. apply not_0_IZR. auto.
+Qed.
+
 Lemma first_n_primes_prime_list : forall l,
   first_n_primes l -> prime_list l.
 Proof.
