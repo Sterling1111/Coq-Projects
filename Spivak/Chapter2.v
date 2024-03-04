@@ -1162,12 +1162,58 @@ Proof.
               rewrite fold_right_mul_distributive. rewrite <- H11'. lia.
 Qed.
 
-Lemma prime_factorization_unique : forall l1 l2 z,
-  z > 1 -> prime_list l1 -> prime_list l2 -> z = fold_right Z.mul 1 l1 -> z = fold_right Z.mul 1 l2 -> 
-    (forall p, In p l1 -> count_occ Z.eq_dec l1 p = count_occ Z.eq_dec l2 p).
+Lemma prime_list_cons : forall l p,
+  prime_list (p :: l) -> prime_list l /\ Znt.prime' p.
 Proof.
-  intros.  Print Z.eq_dec.
+  intros l p H1. split.
+  - apply Forall_inv_tail in H1. apply H1.
+  - apply Forall_inv in H1. apply H1.
 Qed.
+
+Lemma z_div_fold_right : forall l z,
+  In z l -> (z | fold_right Z.mul 1 l).
+Proof.
+  intros l z H. induction l as [| h t IH].
+  - inversion H.
+  - simpl. destruct H as [H | H].
+    -- rewrite H. apply Z.divide_factor_l.
+    -- apply IH in H. destruct H as [r H]. exists (r * h). lia.
+Qed.
+
+Lemma divide_factor_l : forall a b c,
+  (b | c) -> (a * b | a * c).
+Proof.
+  intros a b c [k H]. exists k. lia.
+Qed.
+
+Lemma count_mul_div_fold_right : forall l z,
+  In z l -> (z ^ (Z.of_nat (count_occ Z.eq_dec l z)) | fold_right Z.mul 1 l).
+Proof.
+  intros l z H1. induction l as [| h t IH].
+  - inversion H1.
+  - simpl. destruct H1 as [H1 | H1].
+    -- rewrite H1. destruct (Z.eq_dec z z) as [H2 | H2]; try contradiction. clear H2.
+       assert (In z t \/ ~ In z t) as [H2 | H2] by apply classic.
+       + replace (Z.of_nat (S (count_occ Z.eq_dec t z))) with (Z.succ (Z.of_nat (count_occ Z.eq_dec t z))) by lia.
+         rewrite Z.pow_succ_r. 2 : { lia. } apply divide_factor_l. apply IH; auto.
+       + apply (count_occ_not_In Z.eq_dec) in H2. rewrite H2. simpl. exists (fold_right Z.mul 1 t). lia. 
+    -- pose proof (Z.eq_dec h z) as [H2 | H2].
+       + rewrite H2. destruct (Z.eq_dec z z) as [H3 | H3]; try contradiction. clear H3.
+         replace (Z.of_nat (S (count_occ Z.eq_dec t z))) with (Z.succ (Z.of_nat (count_occ Z.eq_dec t z))) by lia.
+         rewrite Z.pow_succ_r. 2 : { lia. } apply divide_factor_l. apply IH; auto.
+       + destruct (Z.eq_dec h z) as [H3 | H3]; try contradiction. apply IH in H1. destruct H1 as [r H1]. exists (r * h). lia.
+Qed.
+
+Lemma prime_factorization_unique : forall l1 l2 z p,
+  z > 1 -> prime_list l1 -> prime_list l2 -> z = fold_right Z.mul 1 l1 -> z = fold_right Z.mul 1 l2 -> 
+  In p l1 -> count_occ Z.eq_dec l1 p = count_occ Z.eq_dec l2 p.
+Proof.
+  intros l1 l2 z p H1 H2 H3 H4 H5 H6. pose proof (Nat.eq_dec (count_occ Z.eq_dec l1 p) (count_occ Z.eq_dec l2 p)) as [H7 | H7].
+  - auto.
+  - assert (count_occ Z.eq_dec l1 p < count_occ Z.eq_dec l2 p \/ count_occ Z.eq_dec l1 p > count_occ Z.eq_dec l2 p)%nat as [H8 | H8] by lia.
+    --  
+Qed.
+
 Lemma lemma_2_17_b : forall n,
   (n >= 0)%R ->
   (~(exists m, (n = m^2)%R)) -> irrational (sqrt n).
