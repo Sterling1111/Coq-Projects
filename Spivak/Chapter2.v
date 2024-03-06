@@ -1061,6 +1061,12 @@ Qed.
 
 Definition prime_list (l : list Z) : Prop := Forall Znt.prime' l.
 
+Lemma in_prime_list : forall l x,
+  prime_list l -> In x l -> Znt.prime' x.
+Proof.
+  intros l x H1 H2. unfold prime_list in H1. rewrite Forall_forall in H1. apply H1. auto.
+Qed.
+
 Definition first_n_primes (l : list Z) : Prop :=
   NoDup l /\ prime_list l /\
     (forall x, (Znt.prime' x /\ x <= (max_list_Z l)%Z) -> In x l).
@@ -1170,7 +1176,15 @@ Proof.
   - apply Forall_inv in H1. apply H1.
 Qed.
 
-Lemma z_div_fold_right : forall l z,
+Lemma prime_list_cons_iff : forall l p,
+  prime_list (p :: l) <-> prime_list l /\ Znt.prime' p.
+Proof.
+  intros l p. split.
+  - apply prime_list_cons.
+  - intros [H1 H2]. apply Forall_cons; auto.
+Qed.
+
+Lemma in_div_fold_right : forall l z,
   In z l -> (z | fold_right Z.mul 1 l).
 Proof.
   intros l z H. induction l as [| h t IH].
@@ -1204,14 +1218,156 @@ Proof.
        + destruct (Z.eq_dec h z) as [H3 | H3]; try contradiction. apply IH in H1. destruct H1 as [r H1]. exists (r * h). lia.
 Qed.
 
-Lemma prime_factorization_unique : forall l1 l2 z p,
-  z > 1 -> prime_list l1 -> prime_list l2 -> z = fold_right Z.mul 1 l1 -> z = fold_right Z.mul 1 l2 -> 
-  In p l1 -> count_occ Z.eq_dec l1 p = count_occ Z.eq_dec l2 p.
+Lemma p_div_fold_right_In : forall l p,
+  prime_list l -> Znt.prime' p -> (p | fold_right Z.mul 1 l) -> In p l.
 Proof.
-  intros l1 l2 z p H1 H2 H3 H4 H5 H6. pose proof (Nat.eq_dec (count_occ Z.eq_dec l1 p) (count_occ Z.eq_dec l2 p)) as [H7 | H7].
-  - auto.
-  - assert (count_occ Z.eq_dec l1 p < count_occ Z.eq_dec l2 p \/ count_occ Z.eq_dec l1 p > count_occ Z.eq_dec l2 p)%nat as [H8 | H8] by lia.
-    --  
+  intros l p H1 H2 H3. induction l as [| h t IH].
+  - simpl in H3. rewrite Znt.prime_alt in H2. apply Znt.prime_ge_2 in H2. destruct H3 as [r1 H3]. assert (r1 = 1) as H4 by lia. lia.
+  - simpl in H3. apply prime_list_cons in H1 as [H1 H1']. destruct (Z.eq_dec h p) as [H6 | H6].
+    + rewrite H6. left. reflexivity.
+    + right. apply IH. rewrite Znt.prime_alt in H2. auto. apply Znt.prime_mult in H3. 2 : { rewrite Znt.prime_alt in H2. auto. }
+      assert (H7 : ~(p | h)). { intros H7. apply Znt.prime_div_prime in H7; try lia; rewrite Znt.prime_alt in H1', H2; auto. }
+      tauto.
+Qed.
+
+Lemma p_notin_ndiv_fold_right : forall l p,
+  prime_list l -> Znt.prime' p -> ~In p l -> ~(p | fold_right Z.mul 1 l).
+Proof.
+  intros l p H1 H2 H3 H4. apply p_div_fold_right_In in H4; auto.
+Qed.
+
+Lemma div_a_mul_p_pow : forall a b c d,
+  (c > 0)%nat -> a = b * d^(Z.of_nat c) -> (d | a).
+Proof.
+  intros a b c p H1 H2. destruct c; try lia. rewrite Nat2Z.inj_succ in H2. rewrite Z.pow_succ_r in H2; try lia.
+  exists (b * p ^ Z.of_nat c). lia.
+Qed.
+
+Lemma div_mul_factor : forall a b c d,
+  b <> 0 -> a * b = c * d -> (b | d) -> a = c * (d / b).
+Proof.
+  intros a b c d H1 H2 [k H3]. rewrite H3. rewrite Z.div_mul; auto. rewrite H3 in H2. apply Z.mul_cancel_l with (p := b); auto. lia.
+Qed.
+
+Lemma z_pow_zero : forall a : Z,
+  a <> 0 -> 0^a = 0.
+Proof.
+  intros a H1. assert (a < 0 \/ a = 0 \/ a = 1 \/ a > 1) as [H2 | [H2 | [H2 | H2]]] by lia.
+  - rewrite Z.pow_neg_r; lia.
+  - rewrite H2. lia.
+  - rewrite H2. lia.
+  - replace a with (Z.succ (a - 1)) by lia. rewrite Z.pow_succ_r; lia.
+Qed.
+
+Lemma fold_right_div_pow_eq_remove_fold_right : forall l z,
+  z <> 0 ->
+  fold_right Z.mul 1 l / (z ^ (Z.of_nat (count_occ Z.eq_dec l z))) = fold_right Z.mul 1 (remove Z.eq_dec z l).
+Proof.
+  intros l z H1. induction l as [| h t IH].
+  - simpl. apply Z.div_1_r.
+  - assert (In z (h :: t) \/ ~ In z (h :: t)) as [H2 | H2] by apply classic.
+    -- simpl. destruct (Z.eq_dec h z) as [H3 | H3].
+       + rewrite H3. destruct (Z.eq_dec z z) as [H4 | H4]; try contradiction. clear H4.
+         assert (In z t \/ ~ In z t) as [H4 | H4] by apply classic.
+         * rewrite <- IH. rewrite Nat2Z.inj_succ. rewrite Z.pow_succ_r. 2 : { lia. } pose proof (count_mul_div_fold_right t z H4) as [r H5].
+           rewrite H5. rewrite Z.div_mul. 2 : { apply (count_occ_In Z.eq_dec) in H4. apply Z.pow_nonzero. lia. lia. } rewrite Z.mul_comm. rewrite <- Z.mul_assoc.
+              replace (z^Z.of_nat (count_occ Z.eq_dec t z) * z) with (z * z^Z.of_nat (count_occ Z.eq_dec t z)) by lia. rewrite Z.div_mul; try lia.
+              assert (H6 : z ^ Z.of_nat (count_occ Z.eq_dec t z) <> 0). { apply Z.pow_nonzero; lia. } lia.
+         * replace (count_occ Z.eq_dec t z) with (0%nat). 2 : { apply (count_occ_not_In Z.eq_dec) in H4. lia. }
+           replace (remove Z.eq_dec z t) with t. 2 : { apply (notin_remove Z.eq_dec) in H4. auto. } rewrite Z.mul_comm. replace (Z.of_nat 1) with 1 by lia.
+           rewrite Z.pow_1_r. rewrite Z.div_mul; try lia.
+       + destruct (Z.eq_dec z h) as [H4 | H4]; try lia. clear H4. simpl. rewrite <- IH. destruct H2 as [H2 | H2]; try contradiction. pose proof (count_mul_div_fold_right t z H2) as [r H4].
+         rewrite H4. rewrite Z.div_mul. 2 : { apply (count_occ_In Z.eq_dec) in H2. apply Z.pow_nonzero. lia. lia. } rewrite Z.mul_comm. rewrite <- Z.mul_assoc.
+         replace (z^Z.of_nat (count_occ Z.eq_dec t z) * h) with (h * z^Z.of_nat (count_occ Z.eq_dec t z)) by lia. rewrite Z.mul_assoc. rewrite Z.div_mul; try lia.
+         apply (count_occ_In Z.eq_dec) in H2. apply Z.pow_nonzero; lia.
+    -- replace (remove Z.eq_dec z (h :: t)) with (h :: t). 2 : { apply (notin_remove Z.eq_dec) in H2. auto. } 
+       replace (count_occ Z.eq_dec (h :: t) z) with (0%nat). 2 : { apply (count_occ_not_In Z.eq_dec) in H2. lia. } simpl. rewrite Z.div_1_r. lia.
+Qed.
+
+Lemma p_ndiv_fold_right : forall l p,
+  prime_list l -> In p l -> ~(p | (fold_right Z.mul 1 l / p ^ (Z.of_nat (count_occ Z.eq_dec l p)))).
+Proof.
+  intros l p H1 H2. rewrite fold_right_div_pow_eq_remove_fold_right. 
+  2 : { apply in_prime_list in H2; auto. rewrite Znt.prime_alt in H2. apply Znt.prime_ge_2 in H2. lia. }
+  intros H3. assert (~In p (remove Z.eq_dec p l)) as H4. { intros H4. apply (in_remove Z.eq_dec) in H4. lia. }
+  apply H4. apply p_div_fold_right_In; auto. 2 : { apply in_prime_list in H2; auto. } unfold prime_list in *.
+  rewrite Forall_forall in *. intros x H5. apply H1. apply in_remove in H5. tauto.
+Qed.
+
+Lemma z_pow_div_z_div : forall a b c,
+  c >= 1 -> (a^c | b) -> (a | b).
+Proof.
+  intros a b c H1 [k H2]. exists (k * a^(Z.pred c)). rewrite H2.
+  - assert (c = 1 \/ c > 1) as [H3 | H3] by lia.
+    + rewrite H3. simpl. lia.
+    + assert (H4 : exists d, c = Z.succ d) by (exists (Z.pred c); lia). destruct H4 as [d H4]. rewrite H4. rewrite Z.pow_succ_r. 2 : { lia. }
+      replace (Z.pred (Z.succ d)) with d by lia. lia.
+Qed.
+
+Lemma z_mul_div : forall a b c,
+  c <> 0 ->
+  (c | b) -> a * (b / c) = (a * b) / c.
+Proof.
+  intros a b c H1 [r1 H2]. rewrite H2. rewrite Z.div_mul; auto. 
+  rewrite Z.mul_assoc. rewrite Z.div_mul; auto.
+Qed.
+
+Lemma z_pow_mult : forall a b c,
+  a >= 0 -> b >= 0 -> c >= 0 -> a^(b) * a^(c) = a^(b + c).
+Proof.
+  intros a b c H1 H2 H3. rewrite Z.pow_add_r; lia.
+Qed.
+
+Lemma prime_factorization_unique : forall l1 l2 z p,
+  prime_list l1 -> prime_list l2 -> z = fold_right Z.mul 1 l1 -> z = fold_right Z.mul 1 l2 -> 
+  count_occ Z.eq_dec l1 p = count_occ Z.eq_dec l2 p.
+Proof.
+  intros l1 l2 z p H1 H2 H3 H4.
+  pose proof (lt_eq_lt_dec (count_occ Z.eq_dec l1 p) (count_occ Z.eq_dec l2 p)) as [[H5 | H5] | H5].
+  2 : { auto. }
+  - assert (H6 : In p l2). { apply (count_occ_In Z.eq_dec); lia. } pose proof (count_mul_div_fold_right l2 p H6) as H7.
+    rewrite <- H4 in H7. assert (count_occ Z.eq_dec l1 p = 0 \/ count_occ Z.eq_dec l1 p > 0)%nat as [H8 | H8] by lia.
+    -- assert (H9 : ~In p l1). { intros H9. apply (count_occ_not_In Z.eq_dec) in H9. lia. lia. } 
+       assert (H10 : ~(p | fold_right Z.mul 1 l1)). { apply p_notin_ndiv_fold_right; auto. apply in_prime_list in H6; auto. }
+       rewrite <- H3 in H10. assert (H11 : (p | z)). { apply z_pow_div_z_div with (c := Z.of_nat (count_occ Z.eq_dec l2 p)); auto; lia. } tauto.
+    -- assert (H9 : In p l1). { apply (count_occ_In Z.eq_dec); lia. } pose proof (count_mul_div_fold_right l1 p H9) as H10.
+       rewrite <- H3 in H10. assert (H11 : (p | z / p ^ (Z.of_nat (count_occ Z.eq_dec l1 p)))).
+       { destruct H7 as [r1 H7]. destruct H10 as [r2 H10]. exists (r1 * p ^ Z.of_nat (count_occ Z.eq_dec l2 p - count_occ Z.eq_dec l1 p - 1)). rewrite H10. rewrite Z.div_mul. 
+         2 : { apply Z.pow_nonzero. apply in_prime_list in H6; auto. apply Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia. lia. }
+         rewrite <- Z.mul_assoc. rewrite Z.mul_comm with (m := p). rewrite <- Z.pow_succ_r; try lia.
+         replace (Z.succ (Z.of_nat (count_occ Z.eq_dec l2 p - count_occ Z.eq_dec l1 p - 1))) with (Z.of_nat (count_occ Z.eq_dec l2 p - count_occ Z.eq_dec l1 p)) by lia.
+         rewrite Nat2Z.inj_sub; try lia. rewrite Z.pow_sub_r; try lia. 2 : { apply in_prime_list in H6; auto. apply Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia. }
+         assert (H12 : (p ^ Z.of_nat (count_occ Z.eq_dec l1 p) | p ^ Z.of_nat (count_occ Z.eq_dec l2 p))). 
+         { exists (p ^ (Z.of_nat (count_occ Z.eq_dec l2 p - count_occ Z.eq_dec l1 p))). rewrite z_pow_mult; try lia. 
+           2 : { apply in_prime_list in H6; auto. apply Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia. }
+           replace (Z.of_nat (count_occ Z.eq_dec l2 p - count_occ Z.eq_dec l1 p) + Z.of_nat (count_occ Z.eq_dec l1 p)) with (Z.of_nat (count_occ Z.eq_dec l2 p)) by lia. lia. 
+         }
+         rewrite z_mul_div; auto. 2 : { apply in_prime_list in H6; auto. apply Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia. }
+         rewrite <- H7. rewrite H10. rewrite Z.div_mul; auto. apply in_prime_list in H6; auto. apply Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia.
+       }
+       pose proof p_ndiv_fold_right l1 p H1 H9 as H12. rewrite <- H3 in H12. tauto.
+  - assert (H6 : In p l1). { apply (count_occ_In Z.eq_dec); lia. } pose proof (count_mul_div_fold_right l1 p H6) as H7.
+    rewrite <- H3 in H7. assert (count_occ Z.eq_dec l2 p = 0 \/ count_occ Z.eq_dec l2 p > 0)%nat as [H8 | H8] by lia.
+    -- assert (H9 : ~In p l2). { intros H9. apply (count_occ_not_In Z.eq_dec) in H9. lia. lia. } 
+       assert (H10 : ~(p | fold_right Z.mul 1 l2)). { apply p_notin_ndiv_fold_right; auto. apply in_prime_list in H6; auto. }
+       rewrite <- H4 in H10. assert (H11 : (p | z)). { apply z_pow_div_z_div with (c := Z.of_nat (count_occ Z.eq_dec l1 p)); auto; lia. }
+       tauto.
+    -- assert (H9 : In p l2). { apply (count_occ_In Z.eq_dec); lia. } pose proof (count_mul_div_fold_right l2 p H9) as H10.
+       rewrite <- H4 in H10. assert (H11 : (p | z / p ^ (Z.of_nat (count_occ Z.eq_dec l2 p)))).
+       { destruct H7 as [r1 H7]. destruct H10 as [r2 H10]. exists (r1 * p ^ Z.of_nat (count_occ Z.eq_dec l1 p - count_occ Z.eq_dec l2 p - 1)). rewrite H10. rewrite Z.div_mul.
+         2 : { apply Z.pow_nonzero. apply in_prime_list in H6; auto. apply Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia. lia. }
+         rewrite <- Z.mul_assoc. rewrite Z.mul_comm with (m := p). rewrite <- Z.pow_succ_r; try lia.
+         replace (Z.succ (Z.of_nat (count_occ Z.eq_dec l1 p - count_occ Z.eq_dec l2 p - 1))) with (Z.of_nat (count_occ Z.eq_dec l1 p - count_occ Z.eq_dec l2 p)) by lia.
+         rewrite Nat2Z.inj_sub; try lia. rewrite Z.pow_sub_r; try lia. 2 : { apply in_prime_list in H6; auto. apply Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia. }
+         assert (H12 : (p ^ Z.of_nat (count_occ Z.eq_dec l2 p) | p ^ Z.of_nat (count_occ Z.eq_dec l1 p))). 
+         { exists (p ^ (Z.of_nat (count_occ Z.eq_dec l1 p - count_occ Z.eq_dec l2 p))). rewrite z_pow_mult; try lia. 
+           2 : { apply in_prime_list in H6; auto. apply Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia. }
+           replace (Z.of_nat (count_occ Z.eq_dec l1 p - count_occ Z.eq_dec l2 p) + Z.of_nat (count_occ Z.eq_dec l2 p)) with (Z.of_nat (count_occ Z.eq_dec l1 p)) by lia. lia. 
+         }
+         rewrite z_mul_div; auto. 2 : { apply in_prime_list in H6; auto. apply Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia. }
+         rewrite <- H7. rewrite H10. rewrite Z.div_mul; auto. apply in_prime_list in H6; auto. apply Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia.
+       }
+       pose proof p_ndiv_fold_right l2 p H2 H9 as H12. rewrite <- H4 in H12. tauto.
 Qed.
 
 Lemma lemma_2_17_b : forall n,
