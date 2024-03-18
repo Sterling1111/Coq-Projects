@@ -21,7 +21,7 @@ Lemma lemma_1_24_b : forall l1 l2,
 Proof.
   intros l1 l2. induction l1 as [| a' l1' IH].
   - (simpl; lra).
-  - replace ((a' :: l1') ++ l2) with (a' :: (l1' ++ l2)) by (simpl; reflexivity).
+  - replace ((a' :: l1') ++ l2) with (a' :: (l1' ++ l2)) by (simpl; reflexivity). 
     repeat rewrite <- lemma_1_24_a. lra.
 Qed.
 
