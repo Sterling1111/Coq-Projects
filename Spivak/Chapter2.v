@@ -1168,6 +1168,13 @@ Proof.
               rewrite fold_right_mul_distributive. rewrite <- H11'. lia.
 Qed.
 
+Lemma prime_list_product_exists_pos : forall z,
+  z > 1 -> exists l : list Z,
+    prime_list l /\ z = fold_right Z.mul 1 l.
+Proof.
+  intros z H1. pose proof (lemma_2_17_a z) as H2. apply H2 in H1. destruct H1 as [l [H1 H3]]; exists l; split; auto; try lia.
+Qed.
+
 Lemma prime_list_product_exists_neg : forall z,
   z < -1 -> exists l : list Z,
     prime_list l /\ z = -fold_right Z.mul 1 l.
@@ -1196,7 +1203,9 @@ Lemma prime_list_app : forall l1 l2,
   prime_list (l1 ++ l2) <-> prime_list l1 /\ prime_list l2.
 Proof.
   intros l1 l2. split.
-
+  - intros H1. unfold prime_list in H1. rewrite Forall_app in H1. tauto.
+  - intros [H1 H2]. unfold prime_list. rewrite Forall_app. tauto.
+Qed.
 
 Lemma in_div_fold_right : forall l z,
   In z l -> (z | fold_right Z.mul 1 l).
@@ -1793,8 +1802,50 @@ Proof.
          pose proof (z_square_even_primes (-a) H9) as [l4 [H16 [H17 H18]]]. replace ((-a)^2) with (a^2) in H17 by lia.
          pose proof (z_square_even_primes (-b) H8) as [l5 [H19 [H20 H21]]]. replace ((-b)^2) with (b^2) in H20 by lia.
          rewrite H20 in H5. rewrite H17 in H5. clear H17 H20. apply even_count_occ_perfect_square. exists l1. split; auto.
-         intros p. rewrite H11 in H5. rewrite <- fold_right_mult_app_Z in H5. assert (H22 : prime_list (l1 ++ l5)).
-         { apply prime_list_app. }
+         intros p. specialize (H18 p). specialize (H21 p). rewrite H11 in H5. rewrite <- fold_right_mult_app_Z in H5.
+         assert (H22 : prime_list (l1 ++ l5)) by (apply prime_list_app; tauto).
+         pose proof (prime_factorization_unique (l1 ++ l5) l4 (fold_right Z.mul 1 (l1 ++ l5)) p H22 H16 eq_refl H5) as H23.
+         rewrite count_occ_app in H23. assert (Nat.Even (count_occ Z.eq_dec l1 p + count_occ Z.eq_dec l5 p)) as H24 by (rewrite H23; auto).
+         apply Nat.Even_add_Even_inv_l with (m := count_occ Z.eq_dec l5 p) in H24; auto.
+       + pose proof (lemma_2_17_a n H1) as [l1 [H10 H11]]. pose proof (prime_list_product_exists_pos a H9) as [l2 [H12 H13]].
+         pose proof (prime_list_product_exists_neg b H8) as [l3 [H14 H15]]. 
+         assert (H16 : -b > 1) by lia. clear H8. rename H16 into H8. pose proof (z_square_even_primes (-b) H8) as [l4 [H16 [H17 H18]]].
+         pose proof (z_square_even_primes a H9) as [l5 [H19 [H20 H21]]]. rewrite H20 in H5. clear H20 H15.
+         replace ((-b)^2) with (b^2) in H17 by lia. rewrite H17 in H5. clear H17. apply even_count_occ_perfect_square. exists l1. split; auto.
+         intros p. specialize (H18 p). specialize (H21 p). rewrite H11 in H5. rewrite <- fold_right_mult_app_Z in H5. assert (H17 : prime_list (l1 ++ l4)) by (apply prime_list_app; tauto).
+         pose proof (prime_factorization_unique (l1 ++ l4) l5 (fold_right Z.mul 1 (l1 ++ l4)) p H17 H19 eq_refl) as H22. rewrite count_occ_app in H22.
+         assert (Nat.Even (count_occ Z.eq_dec l1 p + count_occ Z.eq_dec l4 p)) as H23 by (rewrite H22; auto). apply Nat.Even_add_Even_inv_l with (m := count_occ Z.eq_dec l4 p) in H23; auto.
+    -- assert (a = 1 \/ a = -1 \/ (a < -1 \/ a > 1)) as [H9 | [H9 | [H9 | H9]]] by lia; try lia.
+       + pose proof (lemma_2_17_a n H1) as [l1 [H10 H11]]. pose proof (prime_list_product_exists_neg a H9) as [l2 [H12 H13]].
+         pose proof (prime_list_product_exists_pos b H8) as [l3 [H14 H15]]. 
+         assert (H16 : -a > 1) by lia. clear H9. rename H16 into H9. pose proof (z_square_even_primes (-a) H9) as [l4 [H16 [H17 H18]]].
+         pose proof (z_square_even_primes b H8) as [l5 [H19 [H20 H21]]]. rewrite H20 in H5. clear H20 H13.
+         replace ((-a)^2) with (a^2) in H17 by lia. rewrite H17 in H5. clear H17. apply even_count_occ_perfect_square. exists l1. split; auto.
+         intros p. specialize (H18 p). specialize (H21 p). rewrite H11 in H5. rewrite <- fold_right_mult_app_Z in H5. assert (H17 : prime_list (l1 ++ l5)) by (apply prime_list_app; tauto).
+         pose proof (prime_factorization_unique (l1 ++ l5) l4 (fold_right Z.mul 1 (l1 ++ l5)) p H17 H16 eq_refl) as H22. rewrite count_occ_app in H22.
+         assert (Nat.Even (count_occ Z.eq_dec l1 p + count_occ Z.eq_dec l5 p)) as H23 by (rewrite H22; auto). apply Nat.Even_add_Even_inv_l with (m := count_occ Z.eq_dec l5 p) in H23; auto.
+       + pose proof (lemma_2_17_a n H1) as [l1 [H10 H11]]. pose proof (prime_list_product_exists_pos a H9) as [l2 [H12 H13]].
+         pose proof (prime_list_product_exists_pos b H8) as [l3 [H14 H15]]. 
+         pose proof (z_square_even_primes a H9) as [l4 [H16 [H17 H18]]]. pose proof (z_square_even_primes b H8) as [l5 [H19 [H20 H21]]].
+         rewrite H20 in H5. rewrite H17 in H5. clear H20 H17. apply even_count_occ_perfect_square. exists l1. split; auto.
+         intros p. specialize (H18 p). specialize (H21 p). rewrite H11 in H5. rewrite <- fold_right_mult_app_Z in H5. assert (H20 : prime_list (l1 ++ l5)) by (apply prime_list_app; tauto).
+         pose proof (prime_factorization_unique (l1 ++ l5) l4 (fold_right Z.mul 1 (l1 ++ l5)) p H20 H16 eq_refl) as H22. rewrite count_occ_app in H22.
+         assert (Nat.Even (count_occ Z.eq_dec l1 p + count_occ Z.eq_dec l5 p)) as H23 by (rewrite H22; auto). apply Nat.Even_add_Even_inv_l with (m := count_occ Z.eq_dec l5 p) in H23; auto.
+Qed.
+
+Lemma not_perfect_square : forall z : Z,
+  (exists z2, z > z2^2 /\ z < (z2+1)^2) -> ~(exists m, (z = m^2)%Z).
+Proof.
+  intros z H1. intros [m H2]. destruct H1 as [z2 [H3 H4]]. rewrite H2 in *. clear H2.
+  destruct (Ztrichotomy m 0) as [H5 | [H5 | H5]]; destruct (Ztrichotomy z2 0) as [H6 | [H6  | H6]]; try lia.
+  - assert (-m > z2) by nia. assert (-m < z2 + 1) by nia. nia.
+  - assert (m > z2) by nia. assert (m < z2 + 1) by nia. nia.
+Qed.
+
+Lemma sqrt_2_irrational_prime : irrational (sqrt 2).
+Proof.
+  apply lemma_2_17_b; try lia. intros [m H1]. assert (H2 : exists z, 2 > z^2 /\ 2 < (z+1)^2) by (exists 1; lia).
+  pose proof (not_perfect_square 2 H2) as H3. apply H3. exists m. apply H1.
 Qed.
 
 Lemma first_n_primes_prime_list : forall l,
