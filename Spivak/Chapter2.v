@@ -1979,12 +1979,6 @@ Proof.
   intros l h. simpl. lia.
 Qed.
 
-Fixpoint remove_one (l : list Z) (x : Z) : list Z :=
-  match l with
-  | [] => []
-  | h :: t => if (Z.eq_dec h x) then t else h :: (remove_one t x)
-  end.
-
 Theorem list_has_len : forall (l : list Z) (a : Z),
   In a l -> (length l > 0)%nat.
 Proof.
@@ -1994,7 +1988,7 @@ Proof.
 Qed.
 
 Lemma remove_one_len : forall l x,
-  In x l -> length (remove_one l x) = (length l - 1)%nat.
+  In x l -> length (remove_one Z.eq_dec x l) = (length l - 1)%nat.
 Proof.
   intros l x H. induction l as [| h l' IH].
   - inversion H.
@@ -2006,7 +2000,7 @@ Proof.
 Qed.
 
 Lemma remove_one_remains : forall l x1 x2,
-  In x1 l -> x1 <> x2 -> In x1 (remove_one l x2).
+  In x1 l -> x1 <> x2 -> In x1 (remove_one Z.eq_dec x2 l).
 Proof.
   intros l x1 x2 H. induction l as [| h l' IH].
   - inversion H.
@@ -2039,10 +2033,10 @@ Theorem longer_list:
     - intros l2 H4 H5. simpl in *. destruct H5 as [x H5]. assert (exists a, In a l2) as [a H6].
     { exists x. apply H5. } apply list_has_len in H6. lia.
     - intros l2 H4 [a [H5 H6]]. apply NoDup_cons_iff in H3. destruct H3 as [H3 H3'].
-      specialize (IH H3' (remove_one l2 a)). apply not_in_cons in H6 as [H6 H6'].
-      assert (In h (remove_one l2 a)) as H7.
+      specialize (IH H3' (remove_one Z.eq_dec a l2)). apply not_in_cons in H6 as [H6 H6'].
+      assert (In h (remove_one Z.eq_dec a l2)) as H7.
       { apply remove_one_remains. apply (H4 h). simpl. lia. lia. }
-      assert (length (remove_one l2 a) > length l1')%nat as H8.
+      assert (length (remove_one Z.eq_dec a l2) > length l1')%nat as H8.
       { apply IH. intros x H8. apply remove_one_remains. apply (H4 x). simpl. tauto. 2 : { exists h. tauto. }  apply in_notin_neq with (l := l1') (x2 := a). apply H8. apply H6'. }
       rewrite remove_one_len in H8. simpl. lia. tauto.
   Qed.
