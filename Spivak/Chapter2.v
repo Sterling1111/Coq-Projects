@@ -1833,6 +1833,15 @@ Proof.
          assert (Nat.Even (count_occ Z.eq_dec l1 p + count_occ Z.eq_dec l5 p)) as H23 by (rewrite H22; auto). apply Nat.Even_add_Even_inv_l with (m := count_occ Z.eq_dec l5 p) in H23; auto.
 Qed.
 
+Lemma lemma_2_17_c : forall n k,
+  (n > 0)%Z -> 
+  ((~exists m, (n = m^k)%Z) -> irrational (Rpower (IZR n) (1 / IZR k))).
+Proof.
+  intros n k H1 H2. unfold not in *. intros [a [b H3]]. apply H2. assert (n = 0 \/ n > 0) as [H4 | H4] by lia.
+  - exists 0. rewrite H4. lia.
+  - clear H1. rename H4 into H1. assert ((IZR (n))^Z.of_nat k = 3).
+Qed.
+
 Lemma not_perfect_square : forall z : Z,
   (exists z2, z > z2^2 /\ z < (z2+1)^2) -> ~(exists m, (z = m^2)%Z).
 Proof.
