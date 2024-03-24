@@ -140,7 +140,9 @@ Proof.
            ++ simpl in H3. lia.
   - intros H5. induction l as [| h t IH].
     + inversion H4.
-    + 
+    + destruct i1, i2; simpl; try lia.
+      -- apply Sorted_extends in H1. 2 : { unfold Relations_1.Transitive. apply Z.le_trans. }
+         rewrite Forall_forall in H1.
 Admitted.
 
 Lemma lower_bound_spec : forall z l i1 i2 x,
@@ -167,7 +169,10 @@ Definition LIS (nums : list Z) : nat :=
   | x :: xs => let sub := [x] in length (LIS_helper nums sub)
   end.
 
-Compute (LIS [5;4;3;2;3;4;5]).
+Compute (LIS [3; 1; 8; 2; 5; 3; 7; 101; 18; 4; 6; 9; 7; 10; 2; 3; 8; 
+              11; 9; 12; 5; 13; 14; 1; 15; 0; 16; 17; 19; 20; 21; 22;
+              23; 24; 25; 26; 27; 28; 29; 30; 31; 32; 33; 34; 35; 36;
+              37; 38; 39; 40; 41; 42; 43; 44; 45; 46; 47; 48; 49; 50]).
 
 Inductive subsequence : list Z -> list Z -> Prop :=
 | sub_nil : subsequence [] []
@@ -179,3 +184,37 @@ Definition increasing_subsequence (l : list Z) (sub : list Z) : Prop :=
 
 Definition longest_increasing_subsequence (l : list Z) (sub : list Z) : Prop :=
   increasing_subsequence l sub /\ forall sub', increasing_subsequence l sub' -> (length sub' <= length sub)%nat.
+
+Lemma hd_exists : forall (l : list Z), (length l >= 1)%nat -> exists x, hd 0 l = x.
+Proof.
+  intros l H1. destruct l as [| x xs].
+  - simpl in H1. lia.
+  - exists x. reflexivity.
+Qed.
+
+Lemma LIS_helper_not_nil : forall (l1 l2 : list Z) (x : Z),
+  l2 <> [] ->
+  LIS_helper l1 l2 <> [].
+Proof.
+  induction l1 as [| h t IH].
+  - intros l2 x H1. simpl. auto.
+  - intros l2 x H1. simpl.   destruct (Z_gt_dec h (last l2 0)).
+    + apply (IH (l2 ++ [h]) x). intros H2. rewrite <- H2 in H1. simpl in H1. destruct l2 as [| h' t'].
+      * simpl in H2. inversion H2.
+      * simpl in H2. inversion H2. 
+    + apply (IH (replace h l2 (lower_bound h l2)) x). intros H2. rewrite <- H2 in H1. simpl in H1. destruct l2 as [| h' t'].
+      * simpl in *. contradiction.
+      * simpl in H2. destruct (Z_lt_dec h' h); try lia.
+        -- inversion H2.
+        -- inversion H2.
+Qed.
+
+Lemma sub_at_least_as_large : forall nums sub1 sub2,
+  (length nums >= 1)%nat -> sub1 = (LIS_helper nums [(hd 0 nums)]) -> increasing_subsequence nums sub2 -> (length sub2 <= length sub1)%nat.
+Proof.
+  intros nums sub1 sub2 H1 H2 H3. generalize dependent sub2. induction sub1 as [| x xs IH].
+  - intros. pose proof (hd_exists nums H1) as [x H4]. rewrite H4 in H2.
+    assert ([x] <> []) as H5. { discriminate. } pose proof (LIS_helper_not_nil nums [x] x H5) as H6.
+    rewrite <- H2 in H6. contradiction.
+  - intros sub2 H3. 
+Qed.

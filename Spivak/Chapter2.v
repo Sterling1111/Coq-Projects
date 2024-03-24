@@ -218,6 +218,7 @@ Proof.
            rewrite Rmult_1_l. replace (sum_f 0 k (fun x : nat => choose (S k) x * a ^ (k - x + 1) * b ^ x)) with (sum_f 0 k (fun i : nat => choose (S k) i * a ^ (S k - i) * b ^ i)).
            2 : { apply sum_f_equiv. lia. intros k0 H3. replace (S k - k0)%nat with (k - k0 + 1)%nat by lia. reflexivity. }
            nra.
+           Show Proof.
 Qed.
 
 Lemma lemma_2_4_a : forall l m n,
@@ -1391,6 +1392,7 @@ Proof.
          rewrite <- H7. rewrite H10. rewrite Z.div_mul; auto. apply in_prime_list in H6; auto. apply Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia.
        }
        pose proof p_ndiv_fold_right l2 p H2 H9 as H12. rewrite <- H4 in H12. tauto.
+       Show Proof.
 Qed.
 
 Lemma fold_right_mult_app_Z : forall l1 l2,
