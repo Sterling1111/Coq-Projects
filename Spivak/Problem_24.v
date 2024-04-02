@@ -54,3 +54,29 @@ Lemma Rplus_assoc_general : forall e1 e2,
 Proof.
   intros e1 e2 H. repeat rewrite lemma_1_24_c. rewrite H. reflexivity.
 Qed.
+
+Ltac prove_equal :=
+  let rec to_add_expr e :=
+    match e with
+    | ?a + ?b =>
+      let a' := to_add_expr a in
+      let b' := to_add_expr b in
+      constr:(Sum a' b')
+    | _ => constr:(Num e)
+    end in
+  match goal with
+  | |- ?a = ?b =>
+    let e1 := to_add_expr a in
+    let e2 := to_add_expr b in
+    change a with (eval_add_expr e1) in *;
+    change b with (eval_add_expr e2) in *;
+    assert (elements e1 = elements e2) by (compute; reflexivity);
+    apply Rplus_assoc_general; auto
+  end.
+
+Lemma dogs : forall a b c d e f g h i j k l m n o p q r s, 
+  a + b + c + d + e + f + g + (h + (i + j + (k + l))) + (m + n + (o + p + (q + r) + s)) = 
+  (a + b + (c + d)) + (e + (f + g + (h + i + j))) + k + l + m + n + o + p + q + r + s.
+Proof.
+  intros. prove_equal.
+Qed.
