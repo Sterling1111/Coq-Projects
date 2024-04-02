@@ -1041,6 +1041,30 @@ Proof.
        rewrite sqrt_sqrt; lra.
 Qed.
 
+Lemma  lemma_2_16_a_a : forall m n : nat,
+  (n > 0)%nat -> (m > 0)%nat -> ((INR m)^2 / (INR n)^2 < 2 -> INR (m + 2 * n)^2 / (INR (m + n)^2) > 2 /\
+                                (INR (m + 2 * n)^2) / (INR (m + n)^2) - 2 < 2 - (INR m)^2 / (INR n)^2).
+Proof.
+  intros m n H1 H2 H3. split.
+  - assert (H4 : INR n > 0). { apply lt_0_INR; auto. } assert (H5 : INR m > 0). { apply lt_0_INR; auto. }
+    apply Rmult_lt_compat_r with (r := (INR n)^2) in H3. 2 : { nra. } field_simplify in H3. 2 : { nra. }
+    apply Rmult_gt_reg_r with (r := INR (m + n)^2). simpl. rewrite Rmult_1_r. rewrite plus_INR. nra. field_simplify. 2 : { rewrite plus_INR. nra. }
+    replace (INR (m + 2 * n)^2) with ((INR m)^2 + 4 * INR m * INR n + 4 * INR n^2). 
+    2 : { simpl. repeat rewrite Rmult_1_r. repeat rewrite Nat.add_0_r. repeat rewrite plus_INR. nra. }
+    replace (2 * INR (m + n)^2) with (2 * INR m^2 + 4 * INR m * INR n + 2 * INR n^2). 
+    2 : { simpl. repeat rewrite Rmult_1_r. repeat rewrite Nat.add_0_r. repeat rewrite plus_INR. nra. }
+    nra.
+  - assert (H4 : INR n > 0). { apply lt_0_INR; auto. } assert (H5 : INR m > 0). { apply lt_0_INR; auto. }
+    apply Rmult_lt_compat_r with (r := (INR n)^2) in H3. 2 : { nra. } field_simplify in H3. 2 : { nra. }
+    apply Rmult_lt_compat_r with (r := (INR (m + n)^2)) in H3. 2 : { simpl. rewrite plus_INR. nra. }
+    apply Rmult_lt_compat_r with (r := 2) in H3. 2 : { lra. } field_simplify in H3.
+    replace (INR (m + 2 * n)^2) with ((INR m)^2 + 4 * INR m * INR n + 4 * INR n^2). 
+    2 : { simpl. repeat rewrite Rmult_1_r. repeat rewrite Nat.add_0_r. repeat rewrite plus_INR. nra. }
+    replace (2 * INR (m + n)^2) with (2 * INR m^2 + 4 * INR m * INR n + 2 * INR n^2). 
+    2 : { simpl. repeat rewrite Rmult_1_r. repeat rewrite Nat.add_0_r. repeat rewrite plus_INR. nra. }
+    nra.
+Qed.
+
 Open Scope Z_scope.  
 
 Fixpoint max_list_Z (l : list Z) : Z :=
@@ -2531,3 +2555,5 @@ Proof.
   - replace (a ^ (S k + m)) with (a * (a ^ (k + m))) by (simpl; lra).
     rewrite IH. replace (a ^ S k) with (a * a ^ k) by (simpl; lra). lra.
 Qed.
+
+what right do you have to judge what you judged to be rights
