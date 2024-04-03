@@ -1055,15 +1055,17 @@ Proof.
     replace (2 * INR (m + n)^2) with (2 * INR m^2 + 4 * INR m * INR n + 2 * INR n^2). 
     2 : { simpl. repeat rewrite Rmult_1_r. repeat rewrite Nat.add_0_r. repeat rewrite plus_INR. nra. }
     nra.
-  - assert (H4 : INR n > 0). { apply lt_0_INR; auto. } assert (H5 : INR m > 0). { apply lt_0_INR; auto. }
-    apply Rmult_lt_compat_r with (r := (INR n)^2) in H3. 2 : { nra. } field_simplify in H3. 2 : { nra. }
-    apply Rmult_lt_compat_r with (r := (INR (m + n)^2)) in H3. 2 : { simpl. rewrite plus_INR. nra. }
-    apply Rmult_lt_compat_r with (r := 2) in H3. 2 : { lra. } field_simplify in H3.
-    replace (INR (m + 2 * n)^2) with ((INR m)^2 + 4 * INR m * INR n + 4 * INR n^2). 
-    2 : { simpl. repeat rewrite Rmult_1_r. repeat rewrite Nat.add_0_r. repeat rewrite plus_INR. nra. }
-    replace (2 * INR (m + n)^2) with (2 * INR m^2 + 4 * INR m * INR n + 2 * INR n^2). 
-    2 : { simpl. repeat rewrite Rmult_1_r. repeat rewrite Nat.add_0_r. repeat rewrite plus_INR. nra. }
-    nra.
+  - assert (INR n > 0 /\ INR m > 0) as [H4 H5] by (split; apply lt_0_INR; auto). apply Rmult_lt_reg_r with (r := INR(m + n)^2).
+    rewrite plus_INR. nra. replace ((INR (m + 2 * n) ^ 2 / INR (m + n) ^ 2 - 2) * INR (m + n) ^ 2) with (INR (m + 2 * n) ^ 2 - 2 * INR (m + n) ^ 2).
+    2 : { field. rewrite plus_INR. nra. } apply Rmult_lt_reg_l with (r := INR n ^ 2). nra.
+    replace (INR n ^ 2 * ((2 - INR m ^ 2 / INR n ^ 2) * INR (m + n) ^ 2)) with ((INR (m + n)^2 * (2 * INR n^2 - INR m^2))).
+    2 : { field. nra. } replace ((INR (m + 2 * n) ^ 2 - 2 * INR (m + n) ^ 2)) with (2 * INR n ^ 2 - INR m ^ 2).
+    2 : { simpl. repeat rewrite plus_INR. repeat rewrite INR_0. repeat rewrite Rmult_1_r. repeat rewrite Rplus_0_r. nra. }
+    assert (H6 : 2 * INR n ^ 2 - INR m ^ 2 > 0). {
+      apply Rmult_lt_compat_r with (r := INR n^2) in H3. 2 : { nra. } field_simplify in H3. 2 : { nra. } nra.
+    }
+    apply Rmult_lt_reg_r with (r := 1 / (2 * INR n^2 - INR m^2)). apply Rgt_lt. unfold Rdiv. rewrite Rmult_1_l. apply Rinv_pos; nra.
+    field_simplify; try nra. simpl. repeat rewrite plus_INR. nra.
 Qed.
 
 Open Scope Z_scope.  
