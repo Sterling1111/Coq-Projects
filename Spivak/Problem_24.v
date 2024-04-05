@@ -68,7 +68,7 @@ Ltac prove_equal :=
     let e2 := to_add_expr b in
     change a with (eval_add_expr e1) in *;
     change b with (eval_add_expr e2) in *;
-    assert (elements e1 = elements e2) by (compute; reflexivity);
+    assert (elements e1 = elements e2) by (reflexivity);
     apply Nat_add_assoc_general; auto
   end.
 
@@ -105,6 +105,20 @@ Proof.
     + simpl. destruct H1 as [H1 | H1].
       * rewrite H1 in H2. contradiction.
       * rewrite IH; auto. destruct (eq_dec h a) as [H3 | H3]; try contradiction. reflexivity.
+Qed.
+
+Lemma remove_one_In_length : forall {A : Type} eq_dec (a : A) l,
+  In a l -> length (remove_one eq_dec a l) = pred (length l).
+Proof.
+  intros A eq_dec a l H1. induction l as [| h t IH].
+  - inversion H1.
+  - simpl. destruct (eq_dec h a) as [H2 | H2].
+    + simpl. reflexivity.
+    + simpl. destruct H1 as [H1 | H1].
+      * rewrite H1 in H2. contradiction.
+      * rewrite IH; auto. destruct t.
+        -- inversion H1.
+        -- simpl. reflexivity.
 Qed.
 
 Lemma remove_one_not_In : forall {A : Type} eq_dec (a : A) l,
@@ -196,34 +210,56 @@ Proof.
   repeat rewrite <- lemma_1_24_c in H1. auto.
 Qed.
 
-Fixpoint count_occ_all_eq (l1 l2 : list nat) : bool := 
-  match l1, l2 with
-  | [], [] => true
-  | h1 :: t1, h2 :: t2 => if Nat.eq_dec h1 h2 then count_occ_all_eq t1 t2 else count_occ_all_eq t1 (remove_one Nat.eq_dec h1 l2)
-  | _, _ => false
+Ltac prove_count_occ :=
+  match goal with
+  | [ |- context [count_occ Nat.eq_dec ?l1 ?n = count_occ Nat.eq_dec ?l2 ?n] ] =>
+    let rec prove_count_occ_aux l n :=
+      match l with
+      | ?a :: ?l' =>
+        destruct (Nat.eq_dec a n); prove_count_occ_aux l' n
+      | [] => reflexivity
+      end in
+    simpl; prove_count_occ_aux l1 n
   end.
 
-Compute (count_occ_all_eq [1; 2; 3] [2; 1; 3]).
+  Ltac prove_count_occ_2 l n :=
+    let rec prove_count_occ_aux l n :=
+      match l with
+      | ?a :: ?l' =>
+        destruct (Nat.eq_dec a n); prove_count_occ_aux l' n
+      | [] => reflexivity
+      end in
+    simpl; prove_count_occ_aux l n.
 
-Lemma count_occ_all_count_occ_eq : forall l1 l2,
-  (forall n, count_occ Nat.eq_dec l1 n = count_occ Nat.eq_dec l2 n) -> count_occ_all_eq l1 l2 = true.
+Lemma apsdofjiprime : forall a b c d e f g n,
+  count_occ Nat.eq_dec [a;b;c;d;e;f;g] n = count_occ Nat.eq_dec [a;c;b;d;e;f;g] n.
 Proof.
-  intros l1 l2 H1. generalize dependent l2. induction l1 as [| h1 t1 IH].
-  - intros l2 H1. simpl in *. assert (H2 : forall n, count_occ Nat.eq_dec l2 n = 0). { auto. } apply (count_occ_inv_nil Nat.eq_dec) in H2. rewrite H2. reflexivity.
-  - intros l2 H1. destruct l2 as [| h2 t2].
-    + simpl. rewrite count_occ_inv_nil in H1. inversion H1.
-    + simpl. destruct (Nat.eq_dec h1 h2) as [H2 | H2].
-      * apply IH. intros n. specialize (H1 n). rewrite H2 in H1. assert (n = h1 \/ n <> h1) as [H3 | H3] by apply classic.
-        ++ rewrite count_occ_cons_eq in H1; try lia. simpl in H1. destruct (Nat.eq_dec h2 n); try lia.
-        ++ rewrite count_occ_cons_neq in H1; try lia. rewrite H1. simpl. destruct (Nat.eq_dec h2 n); try lia.
-      * destruct (Nat.eq_dec h2 h1) as [H3 | H3]; try nia. 
+  intros. prove_count_occ_2 [a;b;c;d;e;f;g] n.
+Qed.
 
-Lemma bullshit : forall a b c,
-  (a + b) + c = c + (b + a).
+Ltac prove_equal_2 :=
+  let rec to_add_expr e :=
+    match e with
+    | ?a + ?b =>
+      let a' := to_add_expr a in
+      let b' := to_add_expr b in
+      constr:(Sum a' b')
+    | _ => constr:(Num e)
+    end in
+  match goal with
+  | |- ?a = ?b =>
+    let e1 := to_add_expr a in
+    let e2 := to_add_expr b in
+    change a with (eval_add_expr e1) in *;
+    change b with (eval_add_expr e2) in *;
+    set (l1 := elements e1);
+    set (l2 := elements e2);
+    assert (forall n, count_occ Nat.eq_dec (l1) n = count_occ Nat.eq_dec (l2) n) as H1
+    by (intros __n__; simpl in l1, l2; unfold l1, l2; prove_count_occ); apply nat_add_comm_general in H1; auto
+  end.
+
+Lemma big_balls : forall a b c d e f g h,
+  (g + f) + ((e + (d + c) + a) + b) + h  = (a + c) + (b + d) + (e + g + f) + h.
 Proof.
-  intros a b c.
-  set (e1 := Sum (Sum (Num a) (Num b)) (Num c)).
-  set (e2 := Sum (Num c) (Sum (Num b) (Num a))).
-  assert (H1 : count_occ Nat.eq_dec (elements e1) = count_occ Nat.eq_dec (elements e2)).
-  { compute. reflexivity. }
+  intros. prove_equal_2.
 Qed.

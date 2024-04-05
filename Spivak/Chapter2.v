@@ -2559,5 +2559,3 @@ Proof.
   - replace (a ^ (S k + m)) with (a * (a ^ (k + m))) by (simpl; lra).
     rewrite IH. replace (a ^ S k) with (a * a ^ k) by (simpl; lra). lra.
 Qed.
-
-what right do you have to judge what you judged to be rights
