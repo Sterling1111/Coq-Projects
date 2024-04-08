@@ -1042,7 +1042,7 @@ Proof.
        rewrite sqrt_sqrt; lra.
 Qed.
 
-Lemma  lemma_2_16_a_a : forall m n : nat,
+Lemma  lemma_2_16_a : forall m n : nat,
   (n > 0)%nat -> (m > 0)%nat -> ((INR m)^2 / (INR n)^2 < 2 -> INR (m + 2 * n)^2 / (INR (m + n)^2) > 2 /\
                                 (INR (m + 2 * n)^2) / (INR (m + n)^2) - 2 < 2 - (INR m)^2 / (INR n)^2).
 Proof.
@@ -1065,6 +1065,38 @@ Proof.
       apply Rmult_lt_compat_r with (r := INR n^2) in H3. 2 : { nra. } field_simplify in H3. 2 : { nra. } nra.
     }
     apply Rmult_lt_reg_r with (r := 1 / (2 * INR n^2 - INR m^2)). apply Rgt_lt. unfold Rdiv. rewrite Rmult_1_l. apply Rinv_pos; nra.
+    field_simplify; try nra. simpl. repeat rewrite plus_INR. nra.
+Qed.
+
+Lemma Rmult_gt_reg_neg_r : forall r r1 r2,
+  r < 0 -> r1 * r > r2 * r -> r1 < r2.
+Proof.
+  intros. nra.
+Qed.
+
+Lemma lemma_2_16_b : forall m n : nat,
+  (n > 0)%nat -> (m > 0)%nat -> ((INR m)^2 / (INR n)^2 > 2 -> INR (m + 2 * n)^2 / (INR (m + n)^2) < 2 /\
+                                (INR (m + 2 * n)^2) / (INR (m + n)^2) - 2 > 2 - (INR m)^2 / (INR n)^2).
+Proof.
+  intros m n H1 H2 H3. split.
+  - assert (H4 : INR n > 0). { apply lt_0_INR; auto. } assert (H5 : INR m > 0). { apply lt_0_INR; auto. }
+    apply Rmult_gt_compat_r with (r := (INR n)^2) in H3. 2: { nra. } field_simplify in H3. 2: { nra. }
+    apply Rmult_lt_reg_r with (r := INR (m + n)^2). simpl. rewrite Rmult_1_r. rewrite plus_INR. nra. field_simplify. 2: { rewrite plus_INR. nra. }
+    replace (INR (m + 2 * n)^2) with ((INR m)^2 + 4 * INR m * INR n + 4 * INR n^2).
+    2 : { simpl. repeat rewrite Rmult_1_r. repeat rewrite Nat.add_0_r. repeat rewrite plus_INR. nra. }
+    replace (2 * INR (m + n)^2) with (2 * INR m^2 + 4 * INR m * INR n + 2 * INR n^2).
+    2 : { simpl. repeat rewrite Rmult_1_r. repeat rewrite Nat.add_0_r. repeat rewrite plus_INR. nra. }
+    nra.
+  - assert (INR n > 0 /\ INR m > 0) as [H4 H5] by (split; apply lt_0_INR; auto). apply Rmult_gt_reg_r with (r := INR (m+n)^2).
+    rewrite plus_INR. nra. replace ((INR (m + 2 * n) ^ 2 / INR (m + n) ^ 2 - 2) * INR (m + n) ^ 2) with (INR (m + 2 * n) ^ 2 - 2 * INR (m + n) ^ 2).
+    2 : { field. rewrite plus_INR. nra. } apply Rmult_gt_reg_l with (r := INR n ^ 2). nra.
+    replace (INR n ^ 2 * ((2 - INR m ^ 2 / INR n ^ 2) * INR (m + n) ^ 2)) with ((INR (m + n)^2 * (2 * INR n^2 - INR m^2))).
+    2 : { field. nra. } replace ((INR (m + 2 * n) ^ 2 - 2 * INR (m + n) ^ 2)) with (2 * INR n ^ 2 - INR m ^ 2).
+    2 : { simpl. repeat rewrite plus_INR. repeat rewrite INR_0. repeat rewrite Rmult_1_r. repeat rewrite Rplus_0_r. nra. }
+    assert (H6 : 2 * INR n ^ 2 - INR m ^ 2 < 0). {
+      apply Rmult_gt_compat_r with (r := INR n^2) in H3. 2 : { nra. } field_simplify in H3. 2 : { nra. } nra.
+    }
+    apply Rmult_gt_reg_neg_r with (r := 1 / (2 * INR n^2 - INR m^2)). apply Rlt_gt. unfold Rdiv. rewrite Rmult_1_l. apply Rinv_neg; nra.
     field_simplify; try nra. simpl. repeat rewrite plus_INR. nra.
 Qed.
 
@@ -1418,7 +1450,6 @@ Proof.
          rewrite <- H7. rewrite H10. rewrite Z.div_mul; auto. apply in_prime_list in H6; auto. apply Znt.prime_alt in H6. apply Znt.prime_ge_2 in H6. lia.
        }
        pose proof p_ndiv_fold_right l2 p H2 H9 as H12. rewrite <- H4 in H12. tauto.
-       Show Proof.
 Qed.
 
 Lemma fold_right_mult_app_Z : forall l1 l2,

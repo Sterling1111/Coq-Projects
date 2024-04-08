@@ -231,10 +231,16 @@ Ltac prove_count_occ :=
       end in
     simpl; prove_count_occ_aux l n.
 
-Lemma apsdofjiprime : forall a b c d e f g n,
-  count_occ Nat.eq_dec [a;b;c;d;e;f;g] n = count_occ Nat.eq_dec [a;c;b;d;e;f;g] n.
+Lemma apsdofjiprimeee : forall n a b c d e,
+  count_occ Nat.eq_dec [a;b;c;d+e] n = count_occ Nat.eq_dec [d+e;a;c;b] n.
 Proof.
-  intros. prove_count_occ_2 [a;b;c;d;e;f;g] n.
+  intros. prove_count_occ_2 [a;b;c;d+e] n.
+Qed.
+
+Lemma apsdofjiprime : forall a b c d e f g h i n,
+  count_occ Nat.eq_dec [a;b;c;d;e;f;g;h + i] n = count_occ Nat.eq_dec [a;c;b;d;e;f;g;h+i] n.
+Proof.
+  intros. prove_count_occ_2 [a;b;c;d;e;f;g;h+i] n.
 Qed.
 
 Ltac prove_equal_2 :=
@@ -258,8 +264,8 @@ Ltac prove_equal_2 :=
     by (intros __n__; simpl in l1, l2; unfold l1, l2; prove_count_occ); apply nat_add_comm_general in H1; auto
   end.
 
-Lemma big_balls : forall a b c d e f g h,
-  (g + f) + ((e + (d + c) + a) + b) + h  = (a + c) + (b + d) + (e + g + f) + h.
+Lemma big_balls : forall a b c,
+  a + b + c = b + (c + a).
 Proof.
   intros. prove_equal_2.
 Qed.
