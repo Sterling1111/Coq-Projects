@@ -1100,6 +1100,34 @@ Proof.
     field_simplify; try nra. simpl. repeat rewrite plus_INR. nra.
 Qed.
 
+Lemma cross_multiply_lt : forall r1 r2 r3 r4,
+  r1 > 0 -> r2 > 0 -> r3 > 0 -> r4 > 0 ->
+  r1 * r4 < r2 * r3 -> r1 / r2 < r3 / r4.
+Proof.
+  intros r1 r2 r3 r4 H1 H2 H3 H4 H5. apply Rmult_lt_reg_r with (r := r2); 
+  apply Rmult_lt_reg_r with (r := r4); field_simplify; nra.
+Qed.
+
+Lemma gte_1_INR : forall n,
+  (n > 0)%nat -> INR n >= 1.
+Proof.
+  intros n H1. assert ((n = 1 \/ n > 1)%nat) as [H2 | H2]. { lia. }
+  - rewrite H2. simpl. lra.
+  - apply Rgt_ge. apply lt_1_INR. lia.
+Qed.
+
+Lemma lemma_2_16_c : forall m n : nat,
+  (n > 0)%nat -> (m > 0)%nat -> INR m / INR n < sqrt 2 ->
+    exists m' n', INR m / INR n < INR m' / INR n' < sqrt 2.
+Proof.
+  intros m n H1 H2 H3. assert (INR n >= 1 /\ INR m >= 1) as [H4 H5] by (split; apply gte_1_INR; auto).
+  set (m1 := (m + 2 * n)%nat). set (n1 := (m + n)%nat).
+  assert (INR m1 >= 1 /\ INR n1 >= 1) as [H6 H7]. { split. unfold m1. apply gte_1_INR. lia. unfold n1. apply gte_1_INR. lia. }
+  assert ((m1 >= 1 /\ n1 >= 1)%nat) as [H8 H9] by (split; lia).
+  assert (H10: (INR m^2 / INR n^2) < 2). { rewrite Rm}
+  exists ((m1 + 2 * n1)%nat). exists ((m1 + n1)%nat). split.
+
+
 Open Scope Z_scope.  
 
 Fixpoint max_list_Z (l : list Z) : Z :=
