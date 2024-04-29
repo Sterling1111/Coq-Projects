@@ -264,8 +264,8 @@ Ltac prove_equal_2 :=
     by (intros __n__; simpl in l1, l2; unfold l1, l2; prove_count_occ); apply nat_add_comm_general in H1; auto
   end.
 
-Lemma big_balls : forall a b c,
-  a + b + c = b + (c + a).
+Lemma big_balls : forall a b c d,
+  ((d + d) + a) + ((b + c) + (c + c)) = (c + b) + (c + a) + (c + d) + d.
 Proof.
   intros. prove_equal_2.
 Qed.
