@@ -269,3 +269,11 @@ Lemma big_balls : forall a b c d,
 Proof.
   intros. prove_equal_2.
 Qed.
+
+Lemma lemma_2_24_a : forall a b c,
+  a * (b + c) = a * b + a * c.
+Proof.
+  intros a b c. induction a as [| k IH].
+  - simpl. reflexivity.
+  - simpl. rewrite IH. prove_equal_2. 
+Qed.

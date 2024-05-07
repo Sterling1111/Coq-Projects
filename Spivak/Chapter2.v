@@ -126,7 +126,7 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma lemma_2_3 : forall n k : nat,
+Lemma lemma_2_3_a : forall n k : nat,
   (k >= 1)%nat ->
   choose (S n) k = choose n (k - 1) + choose n k.
 Proof.
@@ -161,7 +161,7 @@ Qed.
 Lemma lemma_2_3' : forall n k : nat,
   (k >= 1)%nat -> choose n (S k) = choose (S n) (S k) - choose n k.
 Proof.
-  intros n k H1. rewrite lemma_2_3. 2 : { lia. } replace (S k - 1)%nat with k by lia. lra.
+  intros n k H1. rewrite lemma_2_3_a. 2 : { lia. } replace (S k - 1)%nat with k by lia. lra.
 Qed.
 
 (* nat to real*)
@@ -209,7 +209,7 @@ Proof.
            = sum_f 1 k (fun x : nat => choose (S k) x * a ^ (k - x + 1) * b ^ x)).
            { apply sum_f_equiv. lia. intros k0 H2. replace (k - (k0 - 1))%nat with (k - k0 + 1)%nat by lia.
            rewrite Rmult_assoc. rewrite Rmult_assoc with (r1 := choose k (k0 - 1)) at 1.
-           rewrite <- Rmult_plus_distr_r with (r3 := a ^ (k - k0 + 1) * b ^ k0). rewrite Rplus_comm. rewrite lemma_2_3. 2 : { lia. } lra. }
+           rewrite <- Rmult_plus_distr_r with (r3 := a ^ (k - k0 + 1) * b ^ k0). rewrite Rplus_comm. rewrite lemma_2_3_a. 2 : { lia. } lra. }
            rewrite H2. rewrite sum_f_Si_n_f. 2 : { lia. } rewrite sum_f_i_Sn_f. 2 : { lia. } replace (choose (S k) (S k)) with 1. 2 : { rewrite n_choose_n. auto. }
            replace (choose (S k) 0%nat) with 1. 2 : { rewrite n_choose_0. reflexivity. }
            repeat rewrite Rmult_1_l. replace (k - (S k - 1))%nat with 0%nat by lia. replace (S k - S k)%nat with 0%nat by lia.
@@ -218,7 +218,6 @@ Proof.
            rewrite Rmult_1_l. replace (sum_f 0 k (fun x : nat => choose (S k) x * a ^ (k - x + 1) * b ^ x)) with (sum_f 0 k (fun i : nat => choose (S k) i * a ^ (S k - i) * b ^ i)).
            2 : { apply sum_f_equiv. lia. intros k0 H3. replace (S k - k0)%nat with (k - k0 + 1)%nat by lia. reflexivity. }
            nra.
-           Show Proof.
 Qed.
 
 Lemma lemma_2_4_a : forall l m n,
@@ -1173,6 +1172,16 @@ Qed.
 
 Definition prime_list (l : list Z) : Prop := Forall Znt.prime' l.
 
+Lemma prime_list_fold_right_pos : forall l,
+  prime_list l -> fold_right Z.mul 1 l >= 0.
+Proof.
+  intros l H1. induction l as [| h t IH].
+  - simpl. lia.
+  - simpl. apply Forall_cons_iff in H1 as [H1 H2]. apply IH in H2. assert (h >= 2) as H3.
+    { rewrite Znt.prime_alt in H1. apply Znt.prime_ge_2 in H1. lia. }
+    lia.
+Qed.
+
 Lemma in_prime_list : forall l x,
   prime_list l -> In x l -> Znt.prime' x.
 Proof.
@@ -1519,6 +1528,14 @@ Fixpoint repeat_app (l : list Z) (n : nat) : list Z :=
   | S n' => l ++ repeat_app l n'
   end. 
 
+Lemma in_repeat_app : forall l n z,
+  In z (repeat_app l n) -> In z l.
+Proof.
+  intros l n z H. induction n as [| n' IH].
+  - simpl in H. contradiction.
+  - simpl in H. apply in_app_or in H. destruct H as [H | H]; auto.
+Qed.
+
 Lemma count_occ_repeat_app : forall l n z,
   count_occ Z.eq_dec (repeat_app l n) z = (n * count_occ Z.eq_dec l z)%nat.
 Proof.
@@ -1561,7 +1578,15 @@ Proof.
        + destruct (Z.eq_dec h z) as [H4 | H4]; try contradiction. simpl. 
          destruct (Z.eq_dec h z) as [H5 | H5]; try contradiction. lia.
 Qed.
-  
+
+Lemma repeat_app_nil : forall (l : list Z) n,
+  repeat_app [] n = [].
+Proof.
+  intros l n. induction n as [| n' IH].
+  - simpl. reflexivity.
+  - simpl. rewrite IH. reflexivity.
+Qed.
+
 Lemma z_square_even_primes : forall z,
   (z > 1)%Z -> exists l, prime_list l /\ z^2 = fold_right Z.mul 1 l /\ (forall p, Nat.Even (count_occ Z.eq_dec l p)).
 Proof.
@@ -1570,6 +1595,25 @@ Proof.
   - apply Forall_app; split; auto.
   - rewrite fold_right_mult_app_Z. lia.
   - intros p. rewrite count_occ_app. exists (count_occ Z.eq_dec l p). lia.
+Qed.
+
+Lemma fold_right_repeat_app : forall l n,
+  fold_right Z.mul 1 (repeat_app l n) = fold_right Z.mul 1 l ^ Z.of_nat n.
+Proof.
+  intros l n. induction n as [| n' IH].
+  - simpl. lia.
+  - replace (fold_right Z.mul 1 (repeat_app l (S n'))) with (fold_right Z.mul 1 (l ++ repeat_app l n')) by reflexivity.
+    rewrite fold_right_mult_app_Z. rewrite IH. rewrite <- Z.pow_succ_r; lia.
+Qed.
+
+Lemma z_pow_factor_primes : forall z k,
+  (z > 1)%Z -> exists l, prime_list l /\ z^Z.of_nat k = fold_right Z.mul 1 l /\ (forall p, exists q, (count_occ Z.eq_dec l p) = q * k)%nat.
+Proof.
+  intros z k H1. pose proof (lemma_2_17_a z H1) as [l [H2 H3]].
+  exists (repeat_app l k). repeat split.
+  - apply Forall_forall. intros x H4. apply in_repeat_app in H4. apply in_prime_list in H4; auto.
+  - rewrite fold_right_repeat_app. rewrite H3. lia.
+  - intros p. rewrite count_occ_repeat_app. exists (count_occ Z.eq_dec l p). lia.
 Qed.
 
 Fixpoint remove_one {A : Type} (eq_dec : forall (x y : A), {x = y} + {x <> y})
@@ -1586,7 +1630,16 @@ Fixpoint reduce_freq_to_half {A : Type} (eq_dec : forall (x y : A), {x = y} + {x
   | x :: xs => 
       let freq := count_occ eq_dec l x in
       repeat x (Nat.div2 freq) ++ remove eq_dec x (reduce_freq_to_half eq_dec xs)
-  end.                        
+  end.  
+
+Fixpoint reduce_freq_by_factor {A : Type} (eq_dec : forall (x y : A), {x = y} + {x <> y})
+                                (k : nat) (l : list A) : list A :=
+  match l with
+  | [] => []
+  | x :: xs =>
+      let freq := count_occ eq_dec l x in
+      repeat x (freq / k) ++ remove eq_dec x (reduce_freq_by_factor eq_dec k xs)
+  end.
 
 Lemma remove_one_In : forall {A : Type} eq_dec (a : A) l,
   In a l -> count_occ eq_dec (remove_one eq_dec a l) a = pred (count_occ eq_dec l a).
@@ -1797,6 +1850,16 @@ Proof.
     rewrite count_occ_remove_neq; auto.
 Qed.
 
+Lemma count_occ_0_count_occ_reduce_factor_0 : forall l1 z k,
+  count_occ Z.eq_dec l1 z = 0%nat -> count_occ Z.eq_dec (reduce_freq_by_factor Z.eq_dec k l1) z = 0%nat.
+Proof.
+  intros l1 z k H1. induction l1 as [| h t IH].
+  - simpl. reflexivity.
+  - simpl in H1. destruct (Z.eq_dec h z) as [H2 | H2]; try lia. pose proof H1 as H1'. apply IH in H1. clear IH. simpl.
+    destruct (Z.eq_dec h h) as [H3 | H3]; try lia. rewrite count_occ_app. simpl. rewrite count_occ_repeat_neq; auto.
+    rewrite count_occ_remove_neq; auto.
+Qed.
+
 Lemma remove_repeat : forall h n,
   remove Z.eq_dec h (repeat h n) = [].
 Proof.
@@ -1809,6 +1872,16 @@ Lemma count_occ_reduce_freq_not_in : forall l1 z,
   ~In z l1 -> count_occ Z.eq_dec (reduce_freq_to_half Z.eq_dec l1) z = 0%nat.
 Proof.
   intros l1 z H1. induction l1 as [| h t IH].
+  - simpl. reflexivity.
+  - simpl in H1. apply not_in_cons in H1 as [H1 H1']. simpl. destruct (Z.eq_dec h z) as [H2 | H2].
+    + rewrite H2 in H1. contradiction.
+    + rewrite count_occ_app. simpl. rewrite count_occ_repeat_neq; auto. rewrite count_occ_remove_neq; auto.
+Qed.
+
+Lemma count_occ_reduce_freq_factor_not_in : forall l1 z k,
+  ~In z l1 -> count_occ Z.eq_dec (reduce_freq_by_factor Z.eq_dec k l1) z = 0%nat.
+Proof.
+  intros l1 z k H1. induction l1 as [| h t IH].
   - simpl. reflexivity.
   - simpl in H1. apply not_in_cons in H1 as [H1 H1']. simpl. destruct (Z.eq_dec h z) as [H2 | H2].
     + rewrite H2 in H1. contradiction.
@@ -1850,10 +1923,33 @@ Proof.
         rewrite H1. simpl. rewrite count_occ_app. rewrite count_occ_repeat_neq; auto. rewrite count_occ_remove_neq; auto.
 Qed.
 
+Lemma count_occ_reduce_freq_by_factor : forall l z k,
+  (count_occ Z.eq_dec l z / k = count_occ Z.eq_dec (reduce_freq_by_factor Z.eq_dec k l) z)%nat.
+Proof.
+  intros l z k. assert (In z l \/ ~In z l) as [H1 | H1] by apply classic.
+  2 : { rewrite count_occ_reduce_freq_factor_not_in; auto. apply (count_occ_not_In Z.eq_dec) in H1; auto. rewrite H1. apply Nat.Div0.div_0_l. }
+  induction l as [| h t IH].
+  - inversion H1.
+  - destruct H1 as [H1 | H1].
+    + rewrite H1. simpl. destruct (Z.eq_dec z z) as [H2 | H2]; try lia. simpl. rewrite count_occ_app. rewrite count_occ_repeat_eq.
+      rewrite count_occ_remove_eq. lia.
+    + pose proof H1 as H1'. apply IH in H1. destruct (Z.eq_dec h z) as [H2 | H2].
+      * rewrite H2. simpl. destruct (Z.eq_dec z z) as [H3 | H3]; try lia. simpl. rewrite count_occ_app. rewrite count_occ_repeat_eq.
+        rewrite count_occ_remove_eq. lia.
+      * simpl. destruct (Z.eq_dec h z) as [H3 | H3]; destruct (Z.eq_dec h h) as [H4 | H4]; try lia.
+        rewrite H1. simpl. rewrite count_occ_app. rewrite count_occ_repeat_neq; auto. rewrite count_occ_remove_neq; auto.
+Qed.
+
 Lemma count_occ_reduce_freq_to_half_prime : forall l z,
   (count_occ Z.eq_dec l z / 2 = count_occ Z.eq_dec (reduce_freq_to_half Z.eq_dec l) z)%nat.
 Proof.
   intros l z. pose proof (count_occ_reduce_freq_to_half l z) as H1. rewrite Nat.div2_div in H1. apply H1.
+Qed.
+
+Lemma count_occ_reduce_freq_by_factor_prime : forall l z k,
+  (count_occ Z.eq_dec l z / k = count_occ Z.eq_dec (reduce_freq_by_factor Z.eq_dec k l) z)%nat.
+Proof.
+  intros l z k. pose proof (count_occ_reduce_freq_by_factor l z k) as H1. apply H1.
 Qed.
 
 Lemma count_occ_even_eq_app_reduce_freq_to_half : forall l1 l2,
@@ -1862,6 +1958,16 @@ Lemma count_occ_even_eq_app_reduce_freq_to_half : forall l1 l2,
 Proof.
   intros l1 l2 H1 H2 z. rewrite H2. rewrite count_occ_app. repeat rewrite <- count_occ_reduce_freq_to_half. 
   specialize (H1 z). destruct H1 as [n H1]. rewrite H1. rewrite div2_double. lia.
+Qed.
+
+Lemma count_occ_even_eq_app_reduce_freq_by_factor : forall l1 l2 k,
+  (forall z, (exists q, (count_occ Z.eq_dec l1 z) = q * k)%nat) -> (l2 = reduce_freq_by_factor Z.eq_dec k l1) ->
+  (forall z, (count_occ Z.eq_dec l1 z = count_occ Z.eq_dec (repeat_app l2 k) z)%nat).
+Proof.
+  intros l1 l2 k H1 H2 z. rewrite H2. rewrite count_occ_repeat_app. repeat rewrite <- count_occ_reduce_freq_by_factor. 
+  specialize (H1 z). destruct H1 as [q H1]. rewrite H1. assert (k = 0 \/ k <> 0)%nat as [H3 | H3] by lia.
+  - rewrite H3. simpl. lia.
+  - rewrite Nat.div_mul; lia.
 Qed.
 
 Lemma fold_right_even_square : forall l1,
@@ -1873,11 +1979,28 @@ Proof.
   apply count_occ_equ_fold_right in H2. rewrite <- H2. rewrite fold_right_mult_app_Z. nia. 
 Qed.
 
+Lemma fold_right_factor : forall l1 k,
+  (forall z, (exists q, (count_occ Z.eq_dec l1 z) = q * k)%nat) -> exists l2,
+  fold_right Z.mul 1 l1 = (fold_right Z.mul 1 l2)^Z.of_nat k.
+Proof.
+  intros l1 k H1. set (l2 := reduce_freq_by_factor Z.eq_dec k l1). exists (l2).
+  pose proof (count_occ_even_eq_app_reduce_freq_by_factor l1 l2 k H1 eq_refl) as H2. 
+  apply count_occ_equ_fold_right in H2. rewrite <- H2. rewrite fold_right_mult_repeat_app_Z. reflexivity.
+Qed.
+
 Lemma even_count_occ_perfect_square : forall z,
   (exists l, z = fold_right Z.mul 1 l /\ (forall p, Nat.Even (count_occ Z.eq_dec l p))) ->
     (exists m, z = m^2).
 Proof.
   intros z [l [H1 H2]]. pose proof (fold_right_even_square l H2) as H3.
+  destruct H3 as [l2 H3]. exists (fold_right Z.mul 1 l2). rewrite H1. rewrite H3. reflexivity.
+Qed.
+
+Lemma count_occ_perfect_factor : forall z k,
+  (exists l, z = fold_right Z.mul 1 l /\ (forall p, (exists q, (count_occ Z.eq_dec l p) = q * k)%nat)) ->
+    (exists m, z = m^Z.of_nat k).
+Proof.
+  intros z k [l [H1 H2]]. pose proof (fold_right_factor l k H2) as H3.
   destruct H3 as [l2 H3]. exists (fold_right Z.mul 1 l2). rewrite H1. rewrite H3. reflexivity.
 Qed.
 
@@ -1945,14 +2068,262 @@ Proof.
          assert (Nat.Even (count_occ Z.eq_dec l1 p + count_occ Z.eq_dec l5 p)) as H23 by (rewrite H22; auto). apply Nat.Even_add_Even_inv_l with (m := count_occ Z.eq_dec l5 p) in H23; auto.
 Qed.
 
-Lemma lemma_2_17_c : forall n k,
-  (n > 0)%Z -> 
-  ((~exists m, (n = m^k)%Z) -> irrational (Rpower (IZR n) (1 / IZR k))).
+Open Scope R_scope.
+
+Lemma Rpower_gt_0 : forall r n,
+  r > 0 -> Rpower r n > 0.
 Proof.
-  intros n k H1 H2. unfold not in *. intros [a [b H3]]. apply H2. assert (n = 0 \/ n > 0) as [H4 | H4] by lia.
-  - exists 0. rewrite H4. lia.
-  - clear H1. rename H4 into H1.
-Abort.
+  intros r n H1. unfold Rpower. destruct (Rle_dec 0 r).
+  - apply exp_pos.
+  - apply exp_pos.
+Qed.
+
+Lemma Rpow_neq_0 : forall r n,
+  r <> 0 -> r ^ n <> 0.
+Proof.
+  intros r n H1. induction n as [| n' IH].
+  - simpl. nra.
+  - simpl. nra.
+Qed.
+
+Lemma Rpow_div_l : forall r1 r2 k,
+  r2 <> 0 -> r2 <> 0 -> (r1 / r2) ^ k = r1 ^ k / r2 ^ k.
+Proof.
+  intros r1 r2 k H1 H2. induction k as [| k' IH].
+  - simpl. field.
+  - simpl. rewrite IH. field. split. 2 : { nra. }
+    apply Rpow_neq_0. auto.
+Qed.
+
+Lemma Rpow_1_k : forall k,
+  1 ^ k = 1.
+Proof.
+  intros k. induction k as [| k' IH].
+  - simpl. reflexivity.
+  - simpl. rewrite IH. lra.
+Qed.
+
+Lemma pow_neg1_n_plus_1 : forall (n : nat),
+  (-1) ^ (n + 1) = (-1) ^ n * (-1) ^ 1.
+Proof.
+  intros n.
+  induction n.
+  - simpl. lra.
+  - simpl. rewrite IHn. lra.
+Qed.
+
+Lemma pow_neg1_n_plus_n : forall (n : nat),
+  (-1)^(n+n) = (-1)^n * (-1)^n.
+Proof.
+  induction n as [| k IH].
+  - simpl. lra.
+  - replace ((-1)^(S k)) with ((-1)^k * (-1)^1) by ((simpl; lra)).
+    replace ((-1)^1) with (-1) by lra.
+    replace ((-1) ^ k * -1 * ((-1) ^ k * -1)) with ((-1) ^ k * (-1) ^ k) by lra.
+    rewrite <- IH.
+    replace ((S k + S k))%nat with (((k + k) + 1) + 1)%nat by lia.
+    repeat rewrite pow_neg1_n_plus_1. lra. 
+Qed.
+
+Lemma pow_neg1_n : forall (n : nat),
+  (-1)^n = 1 \/ (-1)^n = -1.
+Proof.
+  intros n.
+  induction n as [| k IH].
+  - simpl. left. lra.
+  - destruct IH as [H | H].
+    + right. replace (S k) with (k + 1)%nat by lia. rewrite pow_neg1_n_plus_1. rewrite H. lra.
+    + left. replace (S k) with (k + 1)%nat by lia. rewrite pow_neg1_n_plus_1. rewrite H. lra.
+Qed.
+
+Lemma r_mult_r_is_Rsqr : forall r : R, r * r = Rsqr r.
+Proof.
+  intros r.
+  unfold Rsqr. reflexivity.
+Qed.
+
+Lemma pow_neg1_odd : forall k, Nat.Odd k -> (-1) ^ k = -1.
+Proof.
+  intros k Hodd.
+  destruct Hodd as [m Heq]. rewrite Heq.
+  rewrite pow_neg1_n_plus_1. simpl.
+  replace ((m + (m + 0))%nat) with (m + m)%nat by lia.
+  rewrite Rmult_1_r. rewrite pow_neg1_n_plus_n. 
+  rewrite r_mult_r_is_Rsqr. assert (H : (0 <= ((-1) ^ m)²)) by apply Rle_0_sqr.
+  destruct (pow_neg1_n m) as [Hpos | Hneg].
+  - rewrite Hpos. unfold Rsqr. lra.
+  - rewrite Hneg. unfold Rsqr. lra.
+Qed.
+
+Lemma pow_neg1_even : forall k, Nat.Even k -> (-1) ^ k = 1.
+Proof.
+  intros k. unfold Nat.Even. intros [m Heq].
+  assert (H2: (-1) ^ (2 * m + 1) = -1).
+  { apply pow_neg1_odd. exists m. reflexivity. } 
+  rewrite Heq. rewrite pow_neg1_n_plus_1 in H2. lra.
+Qed.
+
+Lemma mult_IZR_eq_1 : forall z1 z2,
+  IZR z1 * IZR z2 = 1 -> ((z1 = 1 /\ z2 = 1) \/ (z1 = -1 /\ z2 = -1))%Z.
+Proof.
+  intros z1 z2 H1. assert (z1 = 0 \/ z1 = 1 \/ z1 = -1 \/ z1 < -1 \/ z1 > 1)%Z as [H2 | [H2 | [H2 | [H2 | H2]]]] by lia.
+  - rewrite H2 in H1. lra.
+  - rewrite H2 in H1. rewrite Rmult_1_l in H1. apply eq_IZR in H1. lia.
+  - rewrite H2 in H1. simpl in H1. assert (IZR z2 = -1) as H3 by lra. apply eq_IZR in H3. lia.
+  - rewrite <- mult_IZR in H1. apply eq_IZR in H1. pose proof Ztrichotomy z2 0 as [H3 | [H3 | H3]]; lia.
+  - rewrite <- mult_IZR in H1. apply eq_IZR in H1. pose proof Ztrichotomy z2 0 as [H3 | [H3 | H3]]; lia.
+Qed.
+
+Lemma mult_IZR_eq_neg1 : forall z1 z2,
+  IZR z1 * IZR z2 = -1 -> ((z1 = 1 /\ z2 = -1) \/ (z1 = -1 /\ z2 = 1))%Z.
+Proof.
+  intros z1 z2 H1. assert (z1 = 0 \/ z1 = 1 \/ z1 = -1 \/ z1 < -1 \/ z1 > 1)%Z as [H2 | [H2 | [H2 | [H2 | H2]]]] by lia.
+  - rewrite H2 in H1. lra.
+  - rewrite H2 in H1. rewrite Rmult_1_l in H1. apply eq_IZR in H1. lia.
+  - rewrite H2 in H1. simpl in H1. assert (IZR z2 = 1) as H3 by lra. apply eq_IZR in H3. lia.
+  - rewrite <- mult_IZR in H1. apply eq_IZR in H1. pose proof Ztrichotomy z2 0 as [H3 | [H3 | H3]]; lia.
+  - rewrite <- mult_IZR in H1. apply eq_IZR in H1. pose proof Ztrichotomy z2 0 as [H3 | [H3 | H3]]; lia.
+Qed.
+
+Close Scope R_scope.
+
+Lemma Zmult_eq_1 : forall z1 z2,
+  z1 * z2 = 1 -> ((z1 = 1 /\ z2 = 1) \/ (z1 = -1 /\ z2 = -1))%Z.
+Proof.
+  intros z1 z2 H1. pose proof Ztrichotomy z1 0 as [H2 | [H2 | H2]]; pose proof Ztrichotomy z2 0 as [H3 | [H3 | H3]]; lia.
+Qed.
+
+Lemma Zmult_eq_neg1 : forall z1 z2,
+  z1 * z2 = -1 -> ((z1 = 1 /\ z2 = -1) \/ (z1 = -1 /\ z2 = 1))%Z.
+Proof.
+  intros z1 z2 H1. pose proof Ztrichotomy z1 0 as [H2 | [H2 | H2]]; pose proof Ztrichotomy z2 0 as [H3 | [H3 | H3]]; lia.
+Qed.
+
+Lemma Even_ZEven : forall n,
+  Nat.Even n <-> Z.Even (Z.of_nat n).
+Proof.
+  intros n; split.
+  - intros [m H1]. exists (Z.of_nat m). lia.
+  - intros [m H1]. exists (Z.to_nat m). lia.
+Qed.
+
+Lemma Odd_ZOdd : forall n,
+  Nat.Odd n <-> Z.Odd (Z.of_nat n).
+Proof.
+  intros n; split.
+  - intros [m H1]. exists (Z.of_nat m). lia.
+  - intros [m H1]. exists (Z.to_nat m). lia.
+Qed.
+
+Search (Z.Odd).
+
+Lemma Zpow_neg1_nat_even : forall n : nat,
+  Nat.Even n -> (-1) ^ (Z.of_nat n) = 1.
+Proof.
+  intros n H1. apply Even_ZEven in H1. rewrite <- Z.pow_opp_even. simpl. rewrite Z.pow_1_l; lia. auto.
+Qed.
+
+Lemma Zpow_neg1_nat_odd : forall n : nat,
+  Nat.Odd n -> (-1) ^ (Z.of_nat n) = -1.
+Proof.
+  intros n H1. apply Odd_ZOdd in H1. rewrite Z.pow_opp_odd with (a := 1). rewrite Z.pow_1_l; lia. auto.
+Qed.
+
+Lemma Zpow_neg_nat_odd : forall n z ,
+  Nat.Odd n -> (-z) ^ (Z.of_nat n) = -z ^ (Z.of_nat n).
+Proof.
+  intros n z H1. apply Odd_ZOdd in H1. rewrite Z.pow_opp_odd with (a := z). reflexivity. auto.
+Qed.
+
+Lemma Zpow_neg_nat_even : forall n z,
+  Nat.Even n -> (-z) ^ (Z.of_nat n) = z ^ (Z.of_nat n).
+Proof.
+  intros n z H1. apply Even_ZEven in H1. rewrite Z.pow_opp_even. reflexivity. auto.
+Qed.
+
+Lemma lemma_2_17_c : forall n k,
+  (n > 0)%Z -> (k > 0)%nat -> 
+  ((~exists m, (n = m^Z.of_nat k)%Z) -> irrational (Rpower (IZR n) (1 / INR k))).
+Proof.
+  intros n k H1 H2 H3. unfold not in *. intros [a [b H4]]. apply H3.
+  assert (Rpower (IZR n) (1 / INR k) ^ k = (IZR a / IZR b) ^ k)%R as H5 by (rewrite H4; reflexivity).
+  assert (n = 1 \/ n > 1)%Z as [H0 | H0] by lia.
+  exists 1. rewrite Z.pow_1_l; lia.
+  assert (a <> 0 /\ b <> 0) as [H6 H7].
+  {
+    split.
+    - intros H6. rewrite H6 in H4. unfold Rdiv in H4. rewrite Rmult_0_l in H4. 
+      assert (Rpower (IZR n) (1 * / INR k) > 0)%R by (apply Rpower_gt_0; apply IZR_lt; lia). lra.
+    - intros H6. rewrite H6 in H4. unfold Rdiv in H4. rewrite Rinv_0 in H4. rewrite Rmult_0_r in H4.
+      assert (Rpower (IZR n) (1 * / INR k) > 0)%R by (apply Rpower_gt_0; apply IZR_lt; lia). lra.
+  }
+  assert (IZR n * IZR b ^ k = IZR a ^ k)%R as H8.
+  {
+    rewrite <- Rpower_pow in H5. 2 : { apply Rpower_gt_0. apply IZR_lt. lia. }
+    rewrite Rpower_mult in H5. replace (1 / INR k * INR k)%R with 1%R in H5. 2 : { field. apply not_0_INR. lia. }
+    rewrite Rpower_1 in H5. 2 : { apply IZR_lt. lia. } rewrite Rpow_div_l in H5. 2 : { apply not_0_IZR. lia. }
+    2 : { apply not_0_IZR. lia. } rewrite H5. field. apply Rpow_neq_0. apply not_0_IZR. lia.
+  }
+  rewrite pow_IZR in H8. rewrite <- mult_IZR in H8. rewrite pow_IZR in H8. apply eq_IZR in H8.
+  assert (b = 1 \/ b = -1 \/ (b < -1 \/ b > 1)) as [H9 | [H9 | [H9 | H9]]] by lia.
+  - rewrite H9 in H8. rewrite Z.pow_1_l in H8. exists a. lia. lia. 
+  - rewrite H9 in H8. assert (Nat.Even k \/ Nat.Odd k) as [H10 | H11] by apply lemma_2_8.
+    + exists a. rewrite Zpow_neg1_nat_even in H8; auto. lia.
+    + assert (a = 1 \/ a = -1 \/ (a < -1 \/ a > 1)) as [H12 | [H12 | [H12 | H12]]] by lia.
+      * rewrite H12 in H8. exists (-1). rewrite Zpow_neg1_nat_odd in *; auto. rewrite Z.pow_1_l in H8; lia.
+      * rewrite H12 in H8. exists 1. rewrite Z.pow_1_l; try lia. rewrite Zpow_neg1_nat_odd in H8; auto. lia.
+      * exists (-a). rewrite Zpow_neg1_nat_odd in H8; auto. rewrite Z.pow_opp_odd. 2 : { apply Odd_ZOdd; auto. } lia.
+      * exists (-a). rewrite Zpow_neg1_nat_odd in H8; auto. rewrite Z.pow_opp_odd. 2 : { apply Odd_ZOdd; auto. } lia.
+  - assert (a = 1 \/ a = -1 \/ (a < -1 \/ a > 1)) as [H10 | [H10 | [H10 | H10]]] by lia.
+    + rewrite H10 in H8. exists 1. rewrite Z.pow_1_l; try lia. rewrite Z.pow_1_l in H8; try lia. apply Zmult_eq_1 in H8 as [[H11 H12] | [H11 H12]]; lia.
+    + rewrite H10 in H8. assert (Nat.Even k \/ Nat.Odd k) as [H11 | H12] by apply lemma_2_8.
+      * exists 1. rewrite Z.pow_1_l; try lia. rewrite Zpow_neg1_nat_even in H8; auto. apply Zmult_eq_1 in H8 as [[H13 H14] | H13]; lia.
+      * exists 1. rewrite Z.pow_1_l; try lia. rewrite Zpow_neg1_nat_odd in H8; auto. apply Zmult_eq_neg1 in H8 as [[H13 H14] | H13]; lia. 
+    + pose proof (lemma_2_17_a n H0) as [l1 [H11 H12]]. pose proof (prime_list_product_exists_neg a H10) as [l2 [H13 H14]].
+      pose proof (prime_list_product_exists_neg b H9) as [l3 [H15 H16]]. 
+      assert (-a > 1) as H17 by lia. clear H10. rename H17 into H10. assert (-b > 1) as H17 by lia. clear H9. rename H17 into H9.
+      pose proof (z_pow_factor_primes (-a) k H10) as [l4 [H17 [H18 H19]]]. pose proof (z_pow_factor_primes (-b) k H9) as [l5 [H20 [H21 H22]]].
+      apply count_occ_perfect_factor. exists l1. split; auto. intros p. specialize (H19 p). specialize (H22 p). destruct H19 as [q1 H19]. destruct H22 as [q2 H22]. 
+      assert (H23 : Nat.Even k \/ Nat.Odd k) by apply lemma_2_8. destruct H23 as [H23 | H23].
+      * rewrite Zpow_neg_nat_even in H18, H21; auto. rewrite H18 in H8. rewrite H21 in H8. rewrite H12 in H8. rewrite <- fold_right_mult_app_Z in H8.
+        assert (H24 : prime_list (l1 ++ l5)) by (apply prime_list_app; tauto). pose proof (prime_factorization_unique (l1 ++ l5) l4 (fold_right Z.mul 1 (l1 ++ l5)) p H24 H17 eq_refl H8) as H25.
+        rewrite count_occ_app in H25.  rewrite H19 in H25. rewrite H22 in H25. exists (q1 - q2)%nat. nia.
+      * rewrite Zpow_neg_nat_odd in H18, H21; auto. assert (H24 : n * fold_right Z.mul 1 l5 = fold_right Z.mul 1 l4) by lia. clear H8. rename H24 into H8. rewrite H12 in H8.
+        rewrite <- fold_right_mult_app_Z in H8. assert (H24 : prime_list (l1 ++ l5)) by (apply prime_list_app; tauto). pose proof (prime_factorization_unique (l1 ++ l5) l4 (fold_right Z.mul 1 (l1 ++ l5)) p H24 H17 eq_refl H8) as H25.
+        rewrite count_occ_app in H25.  rewrite H19 in H25. rewrite H22 in H25. exists (q1 - q2)%nat. nia.
+    + pose proof (lemma_2_17_a n H0) as [l1 [H11 H12]]. pose proof (prime_list_product_exists_pos a H10) as [l2 [H13 H14]].
+      pose proof (prime_list_product_exists_neg b H9) as [l3 [H15 H16]]. 
+      assert (-b > 1) as H17 by lia. clear H9. rename H17 into H9. pose proof (z_pow_factor_primes (-b) k H9) as [l4 [H17 [H18 H19]]].
+      pose proof (z_pow_factor_primes a k H10) as [l5 [H20 [H21 H22]]]. rewrite H21 in H8. assert (Nat.Even k \/ Nat.Odd k) as [H23 | H23] by apply lemma_2_8.
+      * rewrite Zpow_neg_nat_even in H18; auto. rewrite H18 in H8. rewrite H12 in H8. rewrite <- fold_right_mult_app_Z in H8. assert (H24 : prime_list (l1 ++ l4)) by (apply prime_list_app; tauto).
+        apply count_occ_perfect_factor. exists l1. split; auto. intros p. specialize (H19 p). specialize (H22 p). destruct H19 as [q1 H19]. destruct H22 as [q2 H22].
+        pose proof (prime_factorization_unique (l1 ++ l4) l5 (fold_right Z.mul 1 (l1 ++ l4)) p H24 H20 eq_refl) as H25. exists (q2 - q1)%nat. rewrite count_occ_app in H25. nia.
+      * rewrite Zpow_neg_nat_odd in H18; auto. assert (H24 : n * fold_right Z.mul 1 l4 = -fold_right Z.mul 1 l5) by lia. clear H8. rename H24 into H8. rewrite H12 in H8.
+        rewrite <- fold_right_mult_app_Z in H8. assert (H24 : prime_list (l1 ++ l4)) by (apply prime_list_app; tauto). pose proof (prime_list_fold_right_pos (l1 ++ l4) H24) as H25.
+        pose proof (prime_list_fold_right_pos l5 H20) as H26. nia.
+    - assert (a = 1 \/ a = -1 \/ (a < -1 \/ a > 1)) as [H10 | [H10 | [H10 | H10]]] by lia.
+      + rewrite H10 in H8. exists 1. rewrite Z.pow_1_l; try lia. rewrite Z.pow_1_l in H8; try lia.
+      + rewrite H10 in H8. assert (Nat.Even k \/ Nat.Odd k) as [H11 | H12] by apply lemma_2_8.
+        * exists 1. rewrite Z.pow_1_l; try lia. rewrite Zpow_neg1_nat_even in H8; auto. apply Zmult_eq_1 in H8 as [[H13 H14] | H13]; lia.
+        * exists 1. rewrite Z.pow_1_l; try lia. rewrite Zpow_neg1_nat_odd in H8; auto. apply Zmult_eq_neg1 in H8 as [[H13 H14] | H13]; lia. 
+      + pose proof (lemma_2_17_a n H0) as [l1 [H11 H12]]. pose proof (prime_list_product_exists_neg a H10) as [l2 [H13 H14]].
+        pose proof (prime_list_product_exists_pos b H9) as [l3 [H15 H16]]. 
+        assert (-a > 1) as H17 by lia. clear H10. rename H17 into H10.
+        pose proof (z_pow_factor_primes (-a) k H10) as [l4 [H17 [H18 H19]]]. pose proof (z_pow_factor_primes b k H9) as [l5 [H20 [H21 H22]]].
+        apply count_occ_perfect_factor. exists l1. split; auto. intros p. specialize (H19 p). specialize (H22 p). destruct H19 as [q1 H19]. destruct H22 as [q2 H22]. 
+        assert (Nat.Even k \/ Nat.Odd k) as [H23 | H23] by apply lemma_2_8.
+        * rewrite Zpow_neg_nat_even in H18; auto. rewrite H18 in H8. rewrite H21 in H8. rewrite H12 in H8. rewrite <- fold_right_mult_app_Z in H8.
+          assert (H24 : prime_list (l1 ++ l5)) by (apply prime_list_app; tauto). pose proof (prime_factorization_unique (l1 ++ l5) l4 (fold_right Z.mul 1 (l1 ++ l5)) p H24 H17 eq_refl H8) as H25.
+          rewrite count_occ_app in H25.  rewrite H19 in H25. rewrite H22 in H25. exists (q1 - q2)%nat. nia.
+        * rewrite Zpow_neg_nat_odd in H18; auto. assert (H24 : prime_list (l1 ++ l5)) by (apply prime_list_app; tauto). pose proof (prime_list_fold_right_pos (l1 ++ l5) H24) as H25.
+          pose proof (prime_list_fold_right_pos l4 H17) as H26. nia.
+      + pose proof (lemma_2_17_a n H0) as [l1 [H11 H12]]. pose proof (prime_list_product_exists_pos a H10) as [l2 [H13 H14]]. 
+        pose proof (prime_list_product_exists_pos b H9) as [l3 [H15 H16]]. apply count_occ_perfect_factor. exists l1. split; auto.
+        intros p. rewrite H12 in H8. pose proof (z_pow_factor_primes a k H10) as [l4 [H17 [H18 H19]]]. pose proof (z_pow_factor_primes b k H9) as [l5 [H20 [H21 H22]]].
+        specialize (H19 p). specialize (H22 p). destruct H19 as [q1 H19]. destruct H22 as [q2 H22]. rewrite H21 in H8. rewrite H18 in H8. rewrite <- fold_right_mult_app_Z in H8. 
+        assert (H23 : prime_list (l1 ++ l5)) by (apply prime_list_app; tauto). pose proof (prime_factorization_unique (l1 ++ l5) l4 (fold_right Z.mul 1 (l1 ++ l5)) p H23 H17 eq_refl H8) as H24.
+        rewrite count_occ_app in H24.  rewrite H19 in H24. rewrite H22 in H24. exists (q1 - q2)%nat. nia.
+Qed.
 
 Lemma not_perfect_square : forall z : Z,
   (exists z2, z > z2^2 /\ z < (z2+1)^2) -> ~(exists m, (z = m^2)%Z).
@@ -1992,7 +2363,7 @@ Qed.
    we prove that a prime list exists of length 0(base case) suppose one exists of length k
    then we show that one exists of length S k. but how to find the next prime? we don't know where it might be
    but we know by the prior lemma that a larger one exists. then we just form a set of all the primes larger than
-   max of our list this is a finite set and so has a least element. we can grab this element with well-ordering
+   max of our list this bounded below non-empty set and so has a least element. we can grab this element with well-ordering
    principle and use it to construct S k. BOO Ya!*)
 
 Lemma gt_list_max_not_in : forall l x,
@@ -2282,6 +2653,8 @@ Qed.
 
 Close Scope Z_scope.
 
+Open Scope R_scope.
+
 Lemma Rpow_lt_1 : forall r n,
   0 < r < 1 -> (n > 0)%nat -> r ^ n < 1.
 Proof.
@@ -2412,14 +2785,6 @@ Proof.
   intros l a. induction l as [| h l' IH].
   - simpl. lra.
   - simpl. rewrite IH. lra.
-Qed.
-
-Lemma Rpower_gt_0 : forall r n,
-  r > 0 -> Rpower r n > 0.
-Proof.
-  intros r n H1. unfold Rpower. destruct (Rle_dec 0 r).
-  - apply exp_pos.
-  - apply exp_pos.
 Qed.
 
 Lemma ge_le_arith_2 : forall a b,
@@ -2635,11 +3000,94 @@ Proof.
            unfold arithmetic_mean in H15. nra.
 Qed.
 
-Lemma lemma_2_23 : forall (a : R) (n m : nat),
+Lemma lemma_2_23_a : forall (a : R) (n m : nat),
   a ^ (n + m) = a^n * a^m.    
 Proof.
   intros a n m. induction n as [| k IH].
   - simpl. lra.
   - replace (a ^ (S k + m)) with (a * (a ^ (k + m))) by (simpl; lra).
     rewrite IH. replace (a ^ S k) with (a * a ^ k) by (simpl; lra). lra.
+Qed.
+
+Lemma lemma_2_23_b : forall (a : R) (n m : nat),
+  (a ^ n) ^ m = a ^ (n * m).
+Proof.
+  intros a n m. induction m as [| k IH].
+  - simpl. rewrite Nat.mul_0_r. lra.
+  - simpl. rewrite IH. rewrite <- lemma_2_23_a. 
+    replace (n * S k)%nat with (n + n * k)%nat by lia. reflexivity.
+Qed.
+
+Open Scope nat_scope.
+
+Lemma lemma_2_24_a : forall a b c,
+  a * (b + c) = a * b + a * c.
+Proof.
+  intros a b c. induction a as [| k IH].
+  - simpl. reflexivity.
+  - simpl. rewrite IH. prove_equal_nat_add.
+Qed.
+
+Lemma lemma_2_24_b : forall a,
+  a * 1 = a.
+Proof.
+  intros a. induction a as [| k IH].
+  - simpl. reflexivity.
+  - simpl. rewrite IH. reflexivity.
+Qed.
+
+Lemma lemma_2_24_c : forall a b,
+  a * b = b * a.
+Proof.
+  intros a b. induction b as [| k IH].
+  - simpl. rewrite Nat.mul_0_r. reflexivity.
+  - simpl. rewrite <- IH. rewrite <- lemma_2_24_b with (a := a) at 2. rewrite <- lemma_2_24_a.
+    simpl. reflexivity.
+Qed.
+
+Close Scope nat_scope.
+
+Definition Inductive (A : R -> Prop) : Prop :=
+  A 1 /\ forall r : R, A r -> A (r + 1).
+
+Definition Natural (r : R) : Prop :=
+  forall A, Inductive A -> A r.
+
+Lemma lemma_2_25_a_i : Inductive (fun r => True).
+Proof.
+  split; auto.
+Qed.
+
+Lemma lemma_2_25_a_ii : Inductive (fun r => r > 0).
+Proof.
+  split; intros; nra.
+Qed.
+
+Lemma lemma_2_25_a_iii : Inductive (fun r => r <> 1 / 2 /\ r > 0).
+Proof.
+  split; intros; nra.
+Qed.
+
+Lemma lemma_2_25_a_iv : ~Inductive (fun r => r > 0 /\ r <> 5).
+Proof.
+  intros [[H1 H2] H3]. specialize (H3 4). nra.
+Qed.
+
+Lemma lemma_2_25_a_v : forall (A B : R -> Prop),
+  Inductive A /\ Inductive B -> Inductive (fun r => A r /\ B r).
+Proof.
+  intros A B [[H1 H2] [H3 H4]]. split.
+  - auto.
+  - intros r [H5 H6]. split; auto.
+Qed.
+
+Lemma lemma_2_25_b_i : Natural 1.
+Proof.
+  intros A [H1 H2]. auto.
+Qed.
+
+Lemma lemma_2_25_b_ii : forall k,
+  Natural k -> Natural (k + 1).
+Proof.
+  intros k H1 A [H2 H3]. apply H3. apply H1. split; auto.
 Qed.
