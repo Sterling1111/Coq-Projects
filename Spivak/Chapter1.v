@@ -166,6 +166,20 @@ Proof.
   unfold sum_f_R0. simpl. reflexivity.
 Qed.
 
+Lemma sum_f_const : forall c i n,
+  sum_f i n (fun _ => c) = c * INR (n - i + 1)%nat.
+Proof.
+  intros. induction n as [| k IH].
+  - unfold sum_f. simpl. lra.
+  - assert (H: (i < k)%nat \/ (i = k)%nat \/ (i > k)%nat) by lia. destruct H as [H | [H | H]].
+    -- repeat rewrite sum_f_i_Sn_f. 2 : { lia. } rewrite IH. repeat rewrite plus_INR. repeat rewrite minus_INR; try lia. 
+       rewrite S_INR with (n := k). lra.
+    -- rewrite H. unfold sum_f. replace (S k - k)%nat with 1%nat by lia. simpl. lra.
+    -- assert (H2 : (i > S k)%nat \/ (i = S k)%nat) by lia. destruct H2 as [H2 | H2].
+       --- rewrite sum_f_Sn_n. 2 : { lia. } replace (S k - i + 1)%nat with 1%nat by lia. simpl. lra.
+       --- rewrite <- H2. repeat rewrite sum_f_n_n. replace (i - i + 1)%nat with 1%nat by lia. simpl. lra.
+Qed.
+
 Lemma r_mult_sum_f_i_n_f :
   forall f i n r,
     r * (sum_f i n f) = sum_f i n (fun i => f i * r).

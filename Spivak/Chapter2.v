@@ -239,7 +239,7 @@ Proof.
        rewrite Rmult_1_r. rewrite lemma_2_3' with (n := (n + m)%nat). rewrite <- IH.
 Abort.
 
-Lemma lemma_2_5 : forall n r,
+Lemma lemma_2_5_a : forall n r,
   r <> 1 -> sum_f 0 n (fun i => r ^ i) = (1 - r ^ (n+1)) / (1 - r).
 Proof.
   intros n r H1. induction n as [| k IH].
@@ -258,6 +258,20 @@ Proof.
        replace (1 - r * (r * r ^ k) + r * (r * r ^ k)) with 1 by nra.
        replace (k+1)%nat with (S k) by lia. simpl. lra.
 Qed.
+
+Lemma lemma_2_5_b : forall n r,
+  r <> 1 -> sum_f 0 n (fun i => r ^ i) = (1 - r ^ (n+1)) / (1 - r).
+Proof.
+  intros n r H1. set (Sum := sum_f 0 n (fun i => r ^ i)).
+  assert (H2 : r * Sum = sum_f 0 n (fun i => r ^ (S i))).
+  { unfold Sum. rewrite r_mult_sum_f_i_n_f. apply sum_f_equiv. lia. intros k H2. simpl. lra. }
+  assert (r = 0 \/ r <> 0) as [H3 | H3] by lra; assert (n = 0 \/ n > 0)%nat as [H4 | H4] by lia.
+  - unfold Sum. rewrite H4. rewrite H3. rewrite sum_f_0_0. simpl. field.
+  - unfold Sum. rewrite H3 in *. replace (sum_f 0 n (fun i => 0 ^ i)) with (sum_f 0 n (fun i => 0)).
+    2 : { apply sum_f_equiv. lia. intros k H5. destruct k. simpl. lra. simpl. lra. }
+    replace (sum_f 0 n (fun i => 0)) with 0 by (apply sum_f_0_0). lra.
+  unfold Sum. apply Rmult_eq_reg_l with (r := r).
+Abort.
 
 Open Scope nat_scope.
 
