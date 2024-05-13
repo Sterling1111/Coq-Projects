@@ -223,7 +223,20 @@ Qed.
 Lemma lemma_2_4_a : forall l m n,
   sum_f 0 l (fun i => choose n i * choose m (l - i)) = choose (n + m) l.
 Proof.
-  intros l m n. assert (H1 : forall x, (sum_f 0 n (fun i => choose n i * x^i) * sum_f 0 m (fun i => choose m i * x^i) = sum_f 0 (n+m) (fun i => choose (n+m) i * x ^ i))).
+  intros l m n. assert (H1 : forall x, (1 + x)^(m + n) = (sum_f 0 m (fun i => choose m i * x^i)) * (sum_f 0 n (fun i => choose n i * x^i))).
+  { intros x. replace ((1 + x)^(m + n)) with ((1 + x)^m * (1 + x)^n). 2 : { rewrite <- pow_add. reflexivity. }
+    repeat rewrite lemma_2_3_d. 
+    replace (fun i : nat => choose m i * 1 ^ (m - i) * x^i) with (fun i : nat => choose m i * x ^ i).
+    2 : { apply functional_extensionality. intros x2. rewrite pow1. lra. }
+    replace (fun i : nat => choose n i * 1 ^ (n - i) * x^i) with (fun i : nat => choose n i * x ^ i).
+    2 : { apply functional_extensionality. intros x2. rewrite pow1. lra. }
+    reflexivity. }
+
+  
+  
+  
+  
+  assert (H1 : forall x, (sum_f 0 n (fun i => choose n i * x^i) * sum_f 0 m (fun i => choose m i * x^i) = sum_f 0 (n+m) (fun i => choose (n+m) i * x ^ i))).
   { intros x. pose proof pow_add (1 + x) (n) (m) as H1. apply eq_sym in H1.
     replace ((fun i : nat => choose n i * x ^ i)) with (fun i : nat => choose n i * 1 ^ (n - i) * (x ^ i)).
     2 : { apply functional_extensionality. intros k. rewrite pow1. nra. }
@@ -237,7 +250,7 @@ Proof.
    - rewrite sum_f_i_Sn_f.
     -- replace (choose m (S k - S k)) with 1. 2 : { replace (S k - S k)%nat with 0%nat by lia. rewrite n_choose_0. reflexivity. }
        rewrite Rmult_1_r. rewrite lemma_2_3' with (n := (n + m)%nat). rewrite <- IH.
-Abort.
+Abort. 
 
 Lemma lemma_2_5_a : forall n r,
   r <> 1 -> sum_f 0 n (fun i => r ^ i) = (1 - r ^ (n+1)) / (1 - r).
