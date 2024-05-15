@@ -112,20 +112,18 @@ Proof.
 Qed.
 
 Lemma sum_f_i_Sn_f : forall f i n,
-  (i < n)%nat -> sum_f i (S n) f = sum_f i n f + f (S n).
+  (i <= n)%nat -> sum_f i (S n) f = sum_f i n f + f (S n).
 Proof.
   intros f i n H.
   induction n as [| k IH].
   - replace i%nat with 0%nat by lia. unfold sum_f. simpl. lra.
-  - assert (H2 : (i = k \/ i < k)%nat) by lia. destruct H2 as [H2 | H2].
-    -- rewrite H2. unfold sum_f. replace ((S k - k)%nat) with 1%nat by lia.
-       replace (S (S k) - k)%nat with 2%nat by lia. simpl. lra.
-    -- rewrite IH.
-       --- unfold sum_f. replace ((S (S k) - i)%nat) with (S (S k - i))%nat by lia.
-           rewrite sum_f_R0_f_Sn. replace (S k - i)%nat with (S (k - i))%nat by lia.
-           rewrite sum_f_R0_f_Sn. replace ((S (k - i) + i)%nat) with (S k)%nat by lia.
-           replace (S (S (k - i)) + i)%nat with (S (S k))%nat by lia. reflexivity.
-       --- lia.
+  - assert (H3 : (i = S k \/ i <= k)%nat) by lia. destruct H3 as [H3 | H3].
+    -- rewrite H3. unfold sum_f. replace ((S k - S k)%nat) with 0%nat by lia.
+       replace ((S (S k) - S k)%nat) with 1%nat by lia. simpl. lra.
+    -- rewrite IH. 2 : { lia. } unfold sum_f. replace ((S (S k) - i)%nat) with (S (S k - i)%nat) by lia.
+       rewrite sum_f_R0_f_Sn. replace (S k - i)%nat with (S (k - i))%nat by lia.
+       rewrite sum_f_R0_f_Sn. replace ((S (k - i) + i)%nat) with (S k)%nat by lia. 
+       replace (S (S (k - i)) + i)%nat with (S (S k))%nat by lia. reflexivity.
 Qed.
 
 Lemma sum_f_Si_n_f : forall (f : nat -> R) (i n : nat),
@@ -205,6 +203,25 @@ Proof.
     -- assert (H2 : (i > S k)%nat \/ (i = S k)%nat) by lia. destruct H2 as [H2 | H2].
        --- repeat rewrite sum_f_Sn_n. 2 : { lia. } 2 : { lia. } 2 : { lia. } lra.
        --- rewrite <- H2. repeat rewrite sum_f_n_n. lra.
+Qed.
+
+Lemma sum_f_mult : forall l m n (f g : nat -> R),
+  (l <= m)%nat -> (l <= n)%nat ->
+  sum_f l m (fun i => f i) * sum_f l n (fun i => g i) = sum_f l m (fun i => sum_f l n (fun j => f i * g j)).
+Proof.
+  intros l m n f g H1 H2. 
+   induction m as [| k IH].
+  - destruct l. repeat rewrite sum_f_0_0. rewrite r_mult_sum_f_i_n_f. apply sum_f_equiv; try lia. intros k H. lra.
+    repeat rewrite sum_f_Sn_n; try lia.
+  - assert ((l = S k)%nat \/ (l <= k)%nat) as [H3 | H3] by lia.
+    -- rewrite <- H3. repeat rewrite sum_f_n_n. rewrite r_mult_sum_f_i_n_f. apply sum_f_equiv; try lia. intros k0 H. lra.
+    -- pose proof H3 as H4. apply IH in H3. assert ((l = k)%nat \/ (l < k)%nat) as [H5 | H5] by lia.
+       --- rewrite H5. repeat rewrite sum_f_i_Sn_f; try lia. rewrite H5 in H3. rewrite <- H3.
+           replace (fun j : nat => f (S k) * g j) with (fun j : nat => g j * f (S k)) by (apply functional_extensionality; intros; lra).
+           rewrite <- r_mult_sum_f_i_n_f. rewrite Rmult_plus_distr_r. reflexivity.
+       --- repeat rewrite sum_f_i_Sn_f; try lia. rewrite <- H3.
+           replace (fun j : nat => f (S k) * g j) with (fun j : nat => g j * f (S k)) by (apply functional_extensionality; intros; lra).
+           rewrite <- r_mult_sum_f_i_n_f. rewrite Rmult_plus_distr_r. reflexivity.
 Qed.
         
 Lemma sum_f_congruence: forall (f1 f2 : nat -> R) (i n : nat),

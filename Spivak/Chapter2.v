@@ -89,6 +89,12 @@ Proof.
   field. apply INR_fact_neq_0.
 Qed.
 
+Lemma O_choose_n : forall (n : nat),
+  (n <> 0)%nat -> choose 0 n = 0.
+Proof.
+  intros n H1. unfold choose. simpl. destruct n; try lia; simpl. lra.
+Qed.
+
 Lemma k_gt_n_n_choose_k : forall n k : nat,
   (n < k)%nat -> choose n k = 0.
 Proof.
@@ -220,37 +226,52 @@ Proof.
            nra.
 Qed.
 
+Lemma sum_f_l_n_0 : forall l n, (l <= n)%nat ->
+  sum_f l n (fun i => 0) = 0.
+Proof.
+  intros l n H1. induction n as [| k IH].
+  - destruct l. repeat rewrite sum_f_0_0. reflexivity. rewrite sum_f_Sn_n; try lia; try lra.
+  - assert (l = S k \/ l <= k)%nat as [H2 | H2] by lia.
+    -- rewrite <- H2. rewrite sum_f_n_n. reflexivity.
+    -- rewrite sum_f_i_Sn_f; try lia. rewrite IH; try lia. lra.
+Qed.
+
 Lemma lemma_2_4_a : forall l m n,
   sum_f 0 l (fun i => choose n i * choose m (l - i)) = choose (n + m) l.
 Proof.
-  intros l m n. assert (H1 : forall x, (1 + x)^(m + n) = (sum_f 0 m (fun i => choose m i * x^i)) * (sum_f 0 n (fun i => choose n i * x^i))).
-  { intros x. replace ((1 + x)^(m + n)) with ((1 + x)^m * (1 + x)^n). 2 : { rewrite <- pow_add. reflexivity. }
-    repeat rewrite lemma_2_3_d. 
-    replace (fun i : nat => choose m i * 1 ^ (m - i) * x^i) with (fun i : nat => choose m i * x ^ i).
-    2 : { apply functional_extensionality. intros x2. rewrite pow1. lra. }
-    replace (fun i : nat => choose n i * 1 ^ (n - i) * x^i) with (fun i : nat => choose n i * x ^ i).
-    2 : { apply functional_extensionality. intros x2. rewrite pow1. lra. }
-    reflexivity. }
-
-  
-  
-  
-  
-  assert (H1 : forall x, (sum_f 0 n (fun i => choose n i * x^i) * sum_f 0 m (fun i => choose m i * x^i) = sum_f 0 (n+m) (fun i => choose (n+m) i * x ^ i))).
-  { intros x. pose proof pow_add (1 + x) (n) (m) as H1. apply eq_sym in H1.
-    replace ((fun i : nat => choose n i * x ^ i)) with (fun i : nat => choose n i * 1 ^ (n - i) * (x ^ i)).
-    2 : { apply functional_extensionality. intros k. rewrite pow1. nra. }
-    replace ((fun i : nat => choose m i * x ^ i)) with (fun i : nat => choose m i * 1 ^ (m - i) * (x ^ i)).
-    2 : { apply functional_extensionality. intros k. rewrite pow1. nra. }
-    replace ((fun i : nat => choose (n + m) i * x ^ i)) with (fun i : nat => choose (n + m) i * 1 ^ (n + m - i) * (x ^ i)).
-    2 : { apply functional_extensionality. intros k. rewrite pow1. nra. }
-   repeat rewrite <- lemma_2_3_d. apply H1. } 
-   induction l as [| k IH].
-   - simpl. repeat rewrite n_choose_0. rewrite sum_f_0_0. rewrite n_choose_0. nra.
-   - rewrite sum_f_i_Sn_f.
-    -- replace (choose m (S k - S k)) with 1. 2 : { replace (S k - S k)%nat with 0%nat by lia. rewrite n_choose_0. reflexivity. }
-       rewrite Rmult_1_r. rewrite lemma_2_3' with (n := (n + m)%nat). rewrite <- IH.
-Abort. 
+  intros l m n.  generalize dependent l. induction m as [| m' IHn].
+  - induction n as [| n' IHm].
+    -- intros l. destruct l.
+      --- repeat rewrite sum_f_0_0. repeat rewrite n_choose_0. lra.
+      --- rewrite sum_f_i_Sn_f; try lia. rewrite O_choose_n; try lia. rewrite Rmult_0_l. rewrite Rplus_0_r. rewrite O_choose_n; try lia.
+          replace (fun i : nat => choose 0 i * choose 0 (S l - i)) with (fun i : nat => 0).
+          { rewrite sum_f_l_n_0; try lia. reflexivity. } apply functional_extensionality. intros x. assert (x = 0 \/ x <> 0)%nat as [H1 | H1] by lia.
+          rewrite H1. rewrite n_choose_0. rewrite O_choose_n. lra. lia. rewrite O_choose_n. lra. auto.
+    -- intros l. destruct l.
+      --- rewrite sum_f_0_0. repeat rewrite n_choose_0. lra.
+      --- rewrite sum_f_i_Sn_f; try lia. replace (S l - S l)%nat with 0%nat by lia. rewrite n_choose_0.
+          replace (sum_f 0 l (fun i : nat => choose (S n') i * choose 0 (S l - i))) with (sum_f 0 l (fun _ => 0)).
+          2 : { apply sum_f_congruence; try lia. intros x H1. rewrite O_choose_n; try lia. lra. }
+          rewrite sum_f_l_n_0; try lia. rewrite Nat.add_0_r. lra.
+  - intros l. replace (n + S m')%nat with (S (n + m')) by lia. assert (l = 0 \/ l >= 1)%nat as [H1 | H1] by lia.
+    -- rewrite H1. rewrite sum_f_0_0. repeat rewrite n_choose_0. lra.
+    -- rewrite lemma_2_3_a; try lia. pose proof IHn as H2. pose proof IHn as H3.
+       specialize (H2 l). specialize (H3 (l - 1)%nat). rewrite <- H2. rewrite <- H3.
+       replace (sum_f 0 l (fun i : nat => choose n i * choose m' (l - i))) with (choose n l + sum_f 0 (l -1) (fun i : nat => choose n i * choose m' (l - i))).
+       2 : { replace (l) with (S (l - 1)) by lia. rewrite sum_f_i_Sn_f; try lia. replace (S (l - 1) - (S (l - 1)))%nat with 0%nat by lia. 
+             rewrite n_choose_0. rewrite Rmult_1_r. replace (S (l - 1))%nat with l by lia. lra. }
+       rewrite Rplus_comm. rewrite Rplus_assoc. rewrite sum_f_sum.
+       replace (fun x : nat => choose n x * choose m' (l - x) + choose n x * choose m' (l - 1 - x)) with (fun x : nat => choose n x * (choose m' (l-x) + choose m' (l - 1- x))).
+       2 : { apply functional_extensionality. intros x. lra. }
+       replace (sum_f 0 (l - 1) (fun x : nat => choose n x * (choose m' (l - x) + choose m' (l - 1 - x)))) with (sum_f 0 (l-1) (fun x : nat => choose n x * choose (S m') (l - x))).
+       2 : { apply sum_f_equiv. lia. intros x H4. rewrite Rplus_comm. replace (l - 1 - x)%nat with ((l-x) -1)%nat by lia. rewrite <- lemma_2_3_a. lra. lia. }
+       replace (choose n l) with (choose n l * choose (S m') 0) by (rewrite n_choose_0; lra). rewrite Rplus_comm. replace (l - 1)%nat with (Nat.pred l) by lia.
+       set (f := fun x : nat => choose n x * choose (S m') (l - x)). replace (choose n l * choose (S m') 0) with (f l).
+       2 : { unfold f. replace (l - l)%nat with 0%nat by lia. lra. } rewrite <- sum_f_Pn; try lia. unfold f. apply sum_f_equiv. lia. intros x H5.
+       assert (l - x = 0 \/ l - x >= 1)%nat as [H6 | H6] by lia.
+       --- rewrite H6. repeat rewrite n_choose_0. repeat rewrite Rmult_1_r. lra.
+       --- lra.
+Qed.
 
 Lemma lemma_2_5_a : forall n r,
   r <> 1 -> sum_f 0 n (fun i => r ^ i) = (1 - r ^ (n+1)) / (1 - r).
