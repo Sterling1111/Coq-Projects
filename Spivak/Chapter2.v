@@ -273,6 +273,26 @@ Proof.
        --- lra.
 Qed.
 
+Lemma n_choose_k_equiv : forall n k : nat,
+  (k <= n)%nat -> choose n k = choose n (n - k).
+Proof.
+  intros n. induction n as [| n' IH].
+  - destruct k; try lia. simpl. reflexivity.
+  - intros k H1. assert (k = S n' \/ k <= n')%nat as [H2 | H2] by lia.
+    -- rewrite H2. rewrite n_choose_n. replace (S n' - S n')%nat with 0%nat by lia. rewrite n_choose_0. reflexivity.
+    -- assert (k = 0 \/ k >= 1)%nat as [H3 | H3] by lia.
+       --- rewrite H3. rewrite n_choose_0. replace (S n' - 0)%nat with (S n')%nat by lia. rewrite n_choose_n. reflexivity.
+       --- repeat rewrite lemma_2_3_a; try lia. replace (S n' - k - 1)%nat with (n' - k)%nat by lia. rewrite IH with (k := k); try lia.
+           replace (S n' - k)%nat with (n' - (k - 1))%nat by lia. rewrite <- IH with (k := (k-1)%nat); try lia. lra.
+Qed.
+
+Lemma lemma_2_4_b : forall n : nat,
+  sum_f 0 n (fun k : nat => (choose n k) ^ 2) = choose (2 * n)%nat n.
+Proof.
+  intros n. replace (2 * n)%nat with (n + n)%nat by lia. rewrite <- lemma_2_4_a with (m := n) (n := n).
+  apply sum_f_equiv; try lia. intros k H1. rewrite n_choose_k_equiv; try lia. lra.
+Qed.
+
 Lemma lemma_2_5_a : forall n r,
   r <> 1 -> sum_f 0 n (fun i => r ^ i) = (1 - r ^ (n+1)) / (1 - r).
 Proof.
