@@ -170,13 +170,33 @@ Proof.
   intros n k H1. rewrite lemma_2_3_a. 2 : { lia. } replace (S k - 1)%nat with k by lia. lra.
 Qed.
 
-(* nat to real*)
-Check (IZR (Z.of_nat 3%nat)).
+Lemma n_choose_1 : forall (n : nat),
+  choose n 1 = INR n.
+Proof.
+  intro n. induction n as [| k IH].
+  - compute. lra.
+  - rewrite lemma_2_3_a; try lia. rewrite IH. replace (1 - 1)%nat with 0%nat by lia. rewrite n_choose_0. rewrite S_INR. lra.
+Qed.
 
-(* real to nat *)
-Check (Z.to_nat (up 1.333)).
+Definition is_natural (r : R) : Prop :=
+  exists n : nat, r = INR n.
 
-Definition real_is_nat (r : R) : Prop := r = INR (Z.to_nat (up r)).
+Lemma lemma_2_3_b : forall n k : nat,
+  is_natural (choose n k).
+Proof.
+  intros n k. assert ((n < k \/ n = k \/ n > k)%nat) as [H1 | [H1 | H1]] by lia.
+  - exists 0%nat. rewrite k_gt_n_n_choose_k; try lia. reflexivity.
+  - exists 1%nat. rewrite H1. rewrite n_choose_n. reflexivity.
+  - generalize dependent k. induction n as [| n' IH].
+    -- intros n H1. exists 0%nat. rewrite O_choose_n; lia.
+    -- intros n H1. assert (n = 0 \/ n >= 1)%nat as [H2 | H2] by lia.
+       + rewrite H2. exists 1%nat. rewrite n_choose_0. reflexivity.
+       + assert (n' = n \/ n' > n)%nat as [H3 | H3] by lia.
+         * rewrite lemma_2_3_a; try lia. rewrite H3 at 2. rewrite n_choose_n. specialize (IH (n - 1)%nat). destruct IH as [m H4]; try lia.
+           exists (m+1)%nat. rewrite H4. rewrite plus_INR. reflexivity.
+         * rewrite lemma_2_3_a; try lia. pose proof IH as IH2. specialize (IH n). specialize (IH2 (n-1)%nat). destruct IH as [m H4]; try lia.
+           destruct IH2 as [m' H5]; try lia. exists (m + m')%nat. rewrite H4. rewrite H5. rewrite plus_INR. lra.
+Qed.
 
 Lemma lemma_2_3_d : forall a b n,
   (a + b) ^ n = sum_f 0 n (fun i => (choose n i) * a ^ (n - i) * b ^ i).
@@ -225,6 +245,60 @@ Proof.
            2 : { apply sum_f_equiv. lia. intros k0 H3. replace (S k - k0)%nat with (k - k0 + 1)%nat by lia. reflexivity. }
            nra.
 Qed.
+
+Lemma lemma_2_3_e_i : forall n,
+  sum_f 0 n (fun j => choose n j) = 2 ^ n.
+Proof.
+  intros n. replace 2 with (1 + 1) by lra.
+  rewrite lemma_2_3_d. apply sum_f_equiv; try lia.
+  intros k H1. repeat rewrite pow1. lra.
+Qed.
+
+Lemma lemma_2_3_e_ii : forall n, 
+  (n >= 1)%nat ->
+    sum_f 0 n (fun j => (-1) ^ j * choose n j) = 0.
+Proof.
+  intros n H1. replace 0 with ((1 + -1)^n). 2 : { replace (1 + -1) with 0 by lra. rewrite Rpow_0; auto. }
+  rewrite lemma_2_3_d. apply sum_f_equiv; try lia. intros k H2. rewrite pow1. lra.
+Qed.
+
+Lemma odd_spec_false : forall n : nat,
+  Nat.odd n = false -> Nat.even n = true.
+Proof.
+  intros n H1. pose proof Nat.orb_even_odd n as H2. apply orb_prop in H2 as [H2 | H2]; auto.
+  assert (true = false) as H3. rewrite <- H1, H2. reflexivity. inversion H3.
+Qed.
+
+Lemma even_spec_false : forall n : nat,
+  Nat.even n = false -> Nat.odd n = true.
+Proof.
+  intros n H1. pose proof Nat.orb_even_odd n as H2. apply orb_prop in H2 as [H2 | H2]; auto.
+  assert (true = false) as H3. rewrite <- H1, H2. reflexivity. inversion H3.
+Qed.
+
+Lemma lemma_2_3_e_iii : forall n,
+  (n >= 1)%nat -> sum_f 0 n (fun l => if Nat.odd l then choose n l else 0) = 2 ^ (n - 1).
+Proof.
+  intros n H1. assert (H2 : 2 * sum_f 0 n (fun l => if Nat.odd l then choose n l else 0) = sum_f 0 n (fun j => choose n j) - sum_f 0 n (fun j => (-1) ^ j * choose n j)).
+  - rewrite sum_f_minus; try lia. rewrite r_mult_sum_f_i_n_f. apply sum_f_equiv; try lia. intros k H2. destruct (Nat.odd k) eqn:H3.
+    -- rewrite Nat.odd_spec in H3. destruct H3 as [m H3]. replace (2 * m + 1)%nat with (S (2 * m)) in H3 by lia. rewrite H3 at 3. rewrite pow_1_odd. lra.
+    -- pose proof Nat.orb_even_odd n as H4. assert (H5 : Nat.even k = true) by (apply odd_spec_false; auto). rewrite Nat.even_spec in H5. destruct H5 as [m H5]. rewrite H5. rewrite pow_1_even. lra.
+  - apply Rmult_eq_compat_l with (r := / 2) in H2. rewrite <- Rmult_assoc in H2. rewrite Rinv_l in H2; try lra. rewrite Rmult_1_l in H2. rewrite H2. rewrite lemma_2_3_e_i. rewrite lemma_2_3_e_ii; try lia.
+    rewrite Rminus_0_r. replace n%nat with (S (n-1))%nat at 1 by lia. simpl. lra.
+Qed.
+
+Lemma lemma_2_3_e_iv : forall n,
+  (n >= 1)%nat -> sum_f 0 n (fun l => if Nat.even l then choose n l else 0) = 2 ^ (n - 1).
+Proof.
+  intros n H1. assert (H2 : 2 * sum_f 0 n (fun l => if Nat.even l then choose n l else 0) = sum_f 0 n (fun j => choose n j) + sum_f 0 n (fun j => (-1) ^ j * choose n j)).
+  - rewrite sum_f_plus; try lia. rewrite r_mult_sum_f_i_n_f. apply sum_f_equiv; try lia. intros k H2. destruct (Nat.even k) eqn:H3.
+    -- rewrite Nat.even_spec in H3. destruct H3 as [m H3]. rewrite H3. rewrite pow_1_even. lra.
+    -- pose proof Nat.orb_even_odd n as H4. assert (H5 : Nat.odd k = true) by (apply even_spec_false; auto). rewrite Nat.odd_spec in H5. destruct H5 as [m H5].
+       replace (2 * m + 1)%nat with (S (2 * m)) in H5 by lia. rewrite H5 at 2. rewrite pow_1_odd. lra. 
+  - apply Rmult_eq_compat_l with (r := / 2) in H2. rewrite <- Rmult_assoc in H2. rewrite Rinv_l in H2; try lra. rewrite Rmult_1_l in H2. rewrite H2. rewrite lemma_2_3_e_i. rewrite lemma_2_3_e_ii; try lia.
+    rewrite Rplus_0_r. replace n%nat with (S (n-1))%nat at 1 by lia. simpl. lra.
+Qed.
+
 
 Lemma sum_f_l_n_0 : forall l n, (l <= n)%nat ->
   sum_f l n (fun i => 0) = 0.

@@ -297,6 +297,26 @@ Proof.
            rewrite <- r_mult_sum_f_i_n_f. rewrite Rmult_plus_distr_r. reflexivity.
 Qed.
 
+Lemma sum_f_plus : forall l n (f g : nat -> R),
+  (l <= n)%nat -> sum_f l n f + sum_f l n g = sum_f l n (fun i => f i + g i).
+Proof.
+  intros l n f g H1. induction n as [| k IH].
+  - compute; lra.
+  - assert ((l = S k)%nat \/ (l <= k)%nat) as [H2 | H2] by lia.
+    -- rewrite <- H2. repeat rewrite sum_f_n_n. unfold sum_f. simpl. lra.
+    -- repeat rewrite sum_f_i_Sn_f; try lia. rewrite <- IH; try lia. lra.
+Qed.
+
+Lemma sum_f_minus : forall l n (f g : nat -> R),
+  (l <= n)%nat -> sum_f l n f - sum_f l n g = sum_f l n (fun i => f i - g i).
+Proof.
+  intros l n f g H1. induction n as [| k IH].
+  - compute; lra.
+  - assert ((l = S k)%nat \/ (l <= k)%nat) as [H2 | H2] by lia.
+    -- rewrite <- H2. repeat rewrite sum_f_n_n. unfold sum_f. simpl. lra.
+    -- repeat rewrite sum_f_i_Sn_f; try lia. rewrite <- IH; try lia. lra.
+Qed.
+
 Theorem pow_equ : forall (r: R) (a : nat),
   (a > 0)%nat -> r ^ a = r * r ^ (a - 1).
 Proof.
