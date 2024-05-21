@@ -7,38 +7,27 @@ Module Znt := ZArith.Znumtheory.
 Open Scope R_scope.
 
 Theorem sum_n_nat : forall n : nat,
-  sum_f 0 n (fun i => INR i) = (INR n * (INR n + 1)) / 2.
+  (n >= 1)%nat -> sum_f 1 n (fun i => INR i) = (INR n * (INR n + 1)) / 2.
 Proof.
-  intros n. induction n as [| k IH].
-  - rewrite sum_f_0_0. simpl. lra.
-  - assert (H1 : (k = 0 \/ k > 0)%nat) by lia. destruct H1 as [H1 | H1].
-    -- rewrite H1. unfold sum_f. simpl. lra.
-    -- rewrite sum_f_i_Sn_f. 2 : { lia. }
-       rewrite IH. rewrite S_INR. lra.
+  intros n H1. induction n as [| k IH]; try lia. assert (S k = 1 \/ k >= 1)%nat as [H2 | H2] by lia.
+  - rewrite H2. compute. lra.
+  - rewrite sum_f_i_Sn_f; try lia. rewrite IH; auto. rewrite S_INR. lra.
 Qed.
 
 Lemma lemma_2_1_i : forall n : nat,
-  sum_f 0 n (fun i => INR i ^ 2) = (INR n * (INR n + 1) * (2 * INR n + 1)) / 6.
+  (n >= 1)%nat -> sum_f 1 n (fun i => INR i ^ 2) = (INR n * (INR n + 1) * (2 * INR n + 1)) / 6.
 Proof.
-  intros n. induction n as [| k IH].
-  - unfold sum_f. simpl. lra.
-  - assert (H1 : (k = 0 \/ k > 0)%nat) by lia. destruct H1 as [H1 | H1].
-    -- rewrite H1. unfold sum_f. simpl. lra.
-    -- rewrite sum_f_i_Sn_f. 2 : { lia. }
-       rewrite IH. rewrite S_INR. lra.
+  intros n H1. induction n as [| k IH]; try lia. assert (S k = 1 \/ k >= 1)%nat as [H2 | H2] by lia.
+  - rewrite H2. compute. lra.
+  - rewrite sum_f_i_Sn_f; try lia. rewrite IH; auto. rewrite S_INR. lra.
 Qed.
 
 Lemma lemma_2_1_ii : forall n : nat,
-  sum_f 0 n (fun i => INR i ^ 3) = (sum_f 0 n (fun i => INR i)) ^ 2.
+  (n >= 1)%nat -> sum_f 1 n (fun i => INR i ^ 3) = (sum_f 1 n (fun i => INR i)) ^ 2.
 Proof.
-  induction n as [| k IH].
-  - unfold sum_f. simpl. lra.
-  - assert (H1 : (k = 0 \/ k > 0)%nat) by lia. destruct H1 as [H1 | H1].
-    -- rewrite H1. unfold sum_f. simpl. lra.
-    -- rewrite sum_f_i_Sn_f. 2 : { lia. }
-       rewrite IH. rewrite sum_n_nat.
-       rewrite sum_f_i_Sn_f. 2 : { lia. }
-       repeat rewrite S_INR. rewrite sum_n_nat. lra.
+  intros n H1. induction n as [| k IH]; try lia. assert (S k = 1 \/ k >= 1)%nat as [H2 | H2] by lia.
+  - rewrite H2. compute. lra.
+  - repeat rewrite sum_f_i_Sn_f; try lia. rewrite IH; auto. rewrite sum_n_nat; auto. repeat rewrite S_INR. lra.  
 Qed.
 
 Lemma lemma_2_2_i : forall n : nat,
@@ -299,7 +288,6 @@ Proof.
     rewrite Rplus_0_r. replace n%nat with (S (n-1))%nat at 1 by lia. simpl. lra.
 Qed.
 
-
 Lemma sum_f_l_n_0 : forall l n, (l <= n)%nat ->
   sum_f l n (fun i => 0) = 0.
 Proof.
@@ -411,7 +399,121 @@ Proof.
     assert (H7 : Sum * (1 - r) = 1 - r ^ (n+1)) by nra. apply Rmult_eq_compat_r with (r := 1 / (1 - r)) in H7.
     field_simplify in H7; try nra. rewrite H7. field; nra.
 Qed.
-  
+
+Lemma lemma_2_6_i : forall n,
+  (n >= 1)%nat -> sum_f 1 n (fun i => INR i ^ 3) = INR n^4 / 4 + INR n^3 / 2 + INR n^2 / 4.
+Proof.
+  intros n H1. 
+  assert (H2 : forall r, (r + 1)^4 - r^4 = 4 * r^3 + 6 * r^2 + 4 * r + 1) by (intros; nra).
+  assert (H3 : sum_f 1 n (fun k : nat => INR (k + 1) ^ 4 - INR k ^ 4) = INR (n+1)^4 - 1).
+  { 
+    induction n as [| n' IH]; try lia. assert (S n' = 1 \/ n' >= 1)%nat as [H3 | H3] by lia.
+    - rewrite H3. compute. nra.
+    - rewrite sum_f_i_Sn_f; try lia. rewrite IH; auto. repeat rewrite plus_INR. repeat rewrite S_INR. simpl. nra. 
+  }
+  assert (H4 : sum_f 1 n (fun k => 4 * INR k ^ 3 + 6 * INR k ^ 2 + 4 * INR k + 1) = 4 * sum_f 1 n (fun k => INR k^3) + 6 * sum_f 1 n (fun k => INR k^2) + 4 * sum_f 1 n (fun k => INR k) + INR n).
+  {
+    clear H3.
+    induction n as [| n' IH]; try lia. assert (S n' = 1 \/ n' >= 1)%nat as [H3 | H3] by lia.
+    - rewrite H3. compute. nra.
+    - repeat rewrite sum_f_i_Sn_f; try lia. rewrite IH; auto. repeat rewrite S_INR. simpl. nra.
+  }
+  replace (sum_f 1 n (fun k : nat => INR k)) with (INR n * (INR n + 1) / 2) in H4 by (rewrite sum_n_nat; auto).
+  replace (sum_f 1 n (fun k : nat => INR k ^ 2)) with (INR n * (INR n + 1) * (2 * INR n + 1) / 6) in H4 by (rewrite lemma_2_1_i; auto).
+  assert (H5 : (fun k : nat => INR (k + 1) ^ 4 - INR k ^ 4) = (fun k : nat => 4 * INR k ^ 3 + 6 * INR k ^ 2 + 4 * INR k + 1)).
+  { apply functional_extensionality. intros x. specialize (H2 (INR x)). rewrite plus_INR. replace (INR 1) with 1 by reflexivity. apply H2. }
+  rewrite <- H5 in H4. rewrite H3 in H4. replace (sum_f 1 n (fun i : nat => INR i ^ 3)) with 
+  ((INR (n + 1) ^ 4 - 1 - 6 * (INR n * (INR n + 1) * (2 * INR n + 1) / 6) - 4 * (INR n * (INR n + 1) / 2) - INR n) / 4) by nra.
+  rewrite plus_INR. simpl. nra.
+Qed.
+
+
+Lemma lemma_2_6_ii : forall n,
+  (n >= 1)%nat -> sum_f 1 n (fun i => INR i ^ 4) = INR n^5 / 5 + INR n^4 / 2 + INR n^3 / 3 - INR n / 30.
+Proof.
+  intros n H1.
+  assert (H2 : forall r, (r + 1)^5 - r^5 = 5 * r^4 + 10 * r^3 + 10 * r^2 + 5 * r + 1) by (intros; nra).
+  assert (H3 : sum_f 1 n (fun k : nat => INR (k + 1) ^ 5 - INR k ^ 5) = INR (n+1)^5 - 1).
+  { 
+    induction n as [| n' IH]; try lia. assert (S n' = 1 \/ n' >= 1)%nat as [H3 | H3] by lia.
+    - rewrite H3. compute. nra.
+    - rewrite sum_f_i_Sn_f; try lia. rewrite IH; auto. repeat rewrite plus_INR. repeat rewrite S_INR. simpl. nra. 
+  }
+  assert (H4 : sum_f 1 n (fun k => 5 * INR k ^ 4 + 10 * INR k ^ 3 + 10 * INR k ^ 2 + 5 * INR k + 1) = 5 * sum_f 1 n (fun k => INR k^4) + 10 * sum_f 1 n (fun k => INR k^3) + 10 * sum_f 1 n (fun k => INR k^2) + 5 * sum_f 1 n (fun k => INR k) + INR n).
+  {
+    clear H3.
+    induction n as [| n' IH]; try lia. assert (S n' = 1 \/ n' >= 1)%nat as [H3 | H3] by lia.
+    - rewrite H3. compute. nra.
+    - repeat rewrite sum_f_i_Sn_f; try lia. rewrite IH; auto. repeat rewrite S_INR. simpl. nra.
+  }
+  replace (sum_f 1 n (fun k : nat => INR k)) with (INR n * (INR n + 1) / 2) in H4 by (rewrite sum_n_nat; auto).
+  replace (sum_f 1 n (fun k : nat => INR k ^ 2)) with (INR n * (INR n + 1) * (2 * INR n + 1) / 6) in H4 by (rewrite lemma_2_1_i; auto).
+  replace (sum_f 1 n (fun k : nat => INR k ^ 3)) with (INR n^4 / 4 + INR n^3 / 2 + INR n^2 / 4) in H4 by (rewrite lemma_2_6_i; auto).
+  assert (H5 : (fun k : nat => INR (k + 1) ^ 5 - INR k ^ 5) = (fun k : nat => 5 * INR k ^ 4 + 10 * INR k ^ 3 + 10 * INR k ^ 2 + 5 * INR k + 1)).
+  { apply functional_extensionality. intros x. specialize (H2 (INR x)). rewrite plus_INR. replace (INR 1) with 1 by reflexivity. apply H2. }
+  rewrite <- H5 in H4. rewrite H3 in H4. replace (sum_f 1 n (fun i : nat => INR i ^ 4)) with 
+  ((INR (n + 1) ^ 5 - 1 - 10 * (INR n ^ 4 / 4 + INR n ^ 3 / 2 + INR n ^ 2 / 4) - (10 * (INR n * (INR n + 1) * (2 * INR n + 1) / 6)) - 5 * (INR n * (INR n + 1) / 2) - INR n) / 5) by nra.
+  rewrite plus_INR. simpl. nra.
+Qed.
+
+Lemma lemma_2_6_iii : forall n,
+  (n >= 1)%nat -> sum_f 1 n (fun i => 1 / INR (i * (i + 1))) = 1 - 1 / INR (n + 1).
+Proof.
+  intros n H1.
+  assert (H2 : forall r, r >= 1 -> 1 / (r * (r + 1)) = 1 / r - 1 / (r + 1)) by (intros; field; lra).
+  induction n as [| n' IH]; try lia. assert (S n' = 1 \/ n' >= 1)%nat as [H3 | H3] by lia.
+  - rewrite H3. compute. lra.
+  - rewrite sum_f_i_Sn_f; try lia. rewrite IH; auto. rewrite mult_INR. repeat rewrite plus_INR. repeat rewrite S_INR. simpl.
+    repeat rewrite Rplus_0_l. specialize (H2 (INR n' + 1)). assert (H4 : INR n' + 1 >= 1). apply Rle_ge. replace 1 with (INR 1) by apply INR_1. rewrite <- plus_INR. apply le_INR. lia.
+    rewrite H2; auto. nra.
+Qed.
+
+Lemma lemma_2_6_iii_prime : forall n,
+  (n >= 1)%nat -> sum_f 1 n (fun i => 1 / INR (i * (i + 1))) = 1 - 1 / INR (n + 1).
+Proof.
+  intros n H1.
+  induction n as [| n' IH]; try lia. assert (S n' = 1 \/ n' >= 1)%nat as [H2 | H2] by lia.
+  - rewrite H2. compute. lra.
+  - rewrite sum_f_i_Sn_f; try lia. rewrite IH; auto. rewrite mult_INR. repeat rewrite plus_INR. repeat rewrite S_INR. simpl.
+    repeat rewrite Rplus_0_l. field. split. repeat rewrite <- INR_1. repeat rewrite <- plus_INR. apply not_0_INR; lia. rewrite <- INR_1. repeat rewrite <- plus_INR. apply not_0_INR; lia.
+Qed.
+
+Lemma lemma_2_6_iv : forall n,
+  (n >= 1)%nat -> sum_f 1 n (fun i => INR (2 * i + 1) / INR (i^2 * (i + 1)^2)) = 1 - 1 / (INR (n + 1)^2).
+Proof.
+  intros n H1.
+  assert (H2 : forall r, r >= 1 -> (2 * r + 1) / (r^2 * (r+1)^2) = 1 / r^2 - 1 / (r + 1)^2) by (intros; field; lra).
+  induction n as [| n' IH]; try lia. assert (S n' = 1 \/ n' >= 1)%nat as [H3 | H3] by lia.
+  - rewrite H3. compute. lra.
+  - rewrite sum_f_i_Sn_f; try lia. rewrite IH; auto. rewrite mult_INR. repeat rewrite plus_INR. repeat rewrite S_INR. repeat rewrite INR_0.
+    repeat rewrite Rplus_0_l. specialize (H2 (INR n' + 1)). apply Rplus_eq_reg_r with (r := 1 / (INR n' + 1)^2).
+    replace (1 - 1 / (INR n' + 1) ^ 2 + (INR (2 * S n') + 1) / (INR (S n' ^ 2) * INR ((S n' + 1) ^ 2)) + 1 / (INR n' + 1) ^ 2) with 
+            (1 + (INR (2 * S n') + 1) / (INR (S n' ^ 2) * INR ((S n' + 1) ^ 2))) by nra.
+    replace (1 - 1 / (INR n' + 1 + 1) ^ 2 + 1 / (INR n' + 1) ^ 2) with (1 + (1 / (INR n' + 1) ^ 2 - 1 / (INR n' + 1 + 1) ^ 2)) by nra.
+    rewrite <- H2. 2 : { apply Rle_ge. replace 1 with (INR 1) by apply INR_1. rewrite <- plus_INR. apply le_INR. lia. }
+    replace (S n' ^ 2)%nat with (n' * n' + 2 * n' + 1)%nat by (simpl; lia). replace ((INR n' + 1)^2) with (INR (n' * n' + 2 * n' + 1)).
+    2 : { simpl. repeat rewrite plus_INR. repeat rewrite mult_INR. simpl. lra. }
+    replace ((S n' + 1) ^ 2)%nat with (n' * n' + 4 * n' + 4)%nat by (simpl; lia). repeat rewrite mult_INR. repeat rewrite plus_INR. repeat rewrite S_INR.
+    repeat rewrite mult_INR. simpl. field; repeat split.
+    -- rewrite <-INR_1. repeat rewrite <- plus_INR. apply not_0_INR. lia.
+    -- rewrite <-INR_1. replace 2 with (INR 2) by reflexivity. repeat rewrite <- mult_INR. repeat rewrite <- plus_INR. apply not_0_INR. lia.
+    -- replace 4 with (INR 4). 2 : { simpl. lra. } repeat rewrite <- mult_INR. repeat rewrite <- plus_INR. apply not_0_INR. lia.
+Qed.
+
+Lemma lemma_2_6_iv_prime : forall n,
+  (n >= 1)%nat -> sum_f 1 n (fun i => INR (2 * i + 1) / INR (i^2 * (i + 1)^2)) = 1 - 1 / (INR (n + 1)^2).
+Proof.
+  intros n H1. induction n as [| n' IH]; try lia. assert (S n' = 1 \/ n' >= 1)%nat as [H2 | H2] by lia.
+  - rewrite H2. compute. lra.
+  - rewrite sum_f_i_Sn_f; try lia. rewrite IH; auto. replace (S n' ^ 2)%nat with (n' * n' + 2 * n' + 1)%nat by (simpl; lia).
+    replace ((S n' + 1) ^ 2)%nat with (n' * n' + 4 * n' + 4)%nat by (simpl; lia). replace (INR (S n' + 1)^2) with (INR (n' * n' + 4 * n' + 4)).
+    2 : { repeat rewrite plus_INR. repeat rewrite S_INR.   repeat rewrite mult_INR. simpl. lra. }
+    repeat rewrite mult_INR. repeat rewrite plus_INR. repeat rewrite mult_INR. repeat rewrite S_INR. simpl. field; repeat split.
+    -- replace 4 with (INR 4). 2 : { simpl. lra. } repeat rewrite <- mult_INR. repeat rewrite <- plus_INR. apply not_0_INR. lia.
+    -- rewrite <- INR_1. replace 2 with (INR 2) by reflexivity. repeat rewrite <- mult_INR. repeat rewrite <- plus_INR. apply not_0_INR. lia.
+    -- rewrite <- INR_1. repeat rewrite <- plus_INR. apply not_0_INR. lia.
+Qed.
+
 Open Scope nat_scope. 
 
 Lemma lemma_2_8 : forall n : nat,
