@@ -511,23 +511,6 @@ Proof.
   - apply not_0_INR. lia.
 Qed.
 
-Fixpoint powers_list (n p : nat) : list R :=
-  match p with
-  | 0 => []
-  | S m => INR n ^ p :: powers_list n m
-  end.
-
-Lemma lemma_2_7 : forall n p,
-  (n >= 1)%nat -> (p >= 1)%nat -> 
-    exists l : list R,
-      sum_f 1 n (fun i => INR i ^ p) = fold_right Rplus 0 (((INR n ^ (p + 1)) / (INR (p + 1))) :: map (fun '(a, b) => Rmult a b) (combine l (powers_list n p))).
-Proof.
-  intros n p H1 H2. induction p as [| p' IH]; try lia. assert (S p' = 1 \/ p' >= 1)%nat as [H3 | H3] by lia.
-  - rewrite H3. exists [1/2]. simpl. replace (fun i : nat => INR i * 1) with (fun i : nat => INR i) by (apply functional_extensionality; intros; lra).
-    rewrite sum_n_nat; try nra; try lia.
-  - apply IH in H3 as [l H3]. simpl in H3. rewrite fold_right_cons.
-Qed.
-
 Open Scope nat_scope. 
 
 Lemma lemma_2_8 : forall n : nat,
@@ -612,6 +595,69 @@ Ltac strong_induction n :=
   apply (strong_induction_N (fun n => _));
   let n := fresh n in
   intros n IH.
+
+Open Scope R_scope.
+
+Lemma lemma_2_7 : forall n p,
+  (n >= 1)%nat -> (p >= 1)%nat ->
+    exists l : list R,
+      sum_f 1 n (fun i => INR i ^ p) = INR n ^ (p + 1) / INR (p + 1) + sum_f 0 (p-1) (fun i => nth i l 0 * INR n ^ (p-i)).
+Proof.
+  intros n p H1 H2. apply strong_induction_N with (n := p).
+  intros m IH. assert (m = 0 \/ m >= 1)%nat as [H3 | H3] by lia.
+  - rewrite H3. simpl. rewrite sum_f_const. exists [0]. rewrite sum_f_0_0. simpl. rewrite plus_INR.
+    rewrite minus_INR; try lia. simpl. lra.
+  - assert (H4 : forall k, (INR k + 1)^(p+1) - (INR k)^(p+1) = sum_f 1 (p+1) (fun i => choose (p+1) i * (INR k)^(p+1-i))).
+    {
+      intros k. rewrite lemma_2_3_d. rewrite sum_f_Si; try lia. rewrite n_choose_0. simpl. rewrite Rmult_1_r. rewrite Rmult_1_l. 
+      replace (p+1-0)%nat with (p+1)%nat by lia. unfold Rminus. rewrite Rplus_assoc.
+      field_simplify. apply sum_f_equiv; try lia.  intros k2 H4. rewrite pow1. rewrite Rmult_1_r. reflexivity. 
+    }
+
+
+Lemma lemma_2_7 : forall n p,
+  (n >= 1)%nat -> (p >= 1)%nat ->
+    exists l : list R,
+      sum_f 1 n (fun i => INR i ^ p) = INR n ^ (p + 1) / INR (p + 1) + sum_f 0 (p-1) (fun i => nth i l 0 * INR n ^ (p-i)).
+Proof.
+  intros n p H1 H2. induction p as [| p IH]; try lia. assert (S p = 1 \/ p >= 1)%nat as [H3 | H3] by lia.
+  - rewrite H3. exists [1/2]. replace (fun i : nat => INR i ^ 1) with (fun i : nat => INR i).
+    2 : { apply functional_extensionality. intros. lra. } rewrite sum_f_0_0. simpl. rewrite sum_n_nat; try lia; try lra.
+  - apply IH in H3 as [l H3]. clear IH.
+    assert (H4 : forall k, (INR k + 1)^(p+1) - (INR k)^(p+1) = sum_f 1 (p+1) (fun i => choose (p+1) i * (INR k)^(p+1-i))).
+    {
+      intros k. rewrite lemma_2_3_d. rewrite sum_f_Si; try lia. rewrite n_choose_0. simpl. rewrite Rmult_1_r. rewrite Rmult_1_l. 
+      replace (p+1-0)%nat with (p+1)%nat by lia. unfold Rminus. rewrite Rplus_assoc.
+      field_simplify. apply sum_f_equiv; try lia.  intros k2 H4. rewrite pow1. rewrite Rmult_1_r. reflexivity. 
+    }
+    assert (H5 : sum_f 1 n (fun i => (INR i + 1) ^ (p + 1) - INR i ^ (p + 1)) = (INR n + 1)^(p+1) - 1).
+    {
+      set (f := fun x => INR x ^ (p+1)). replace ((INR n + 1) ^ (p + 1)) with (f (n+1)%nat).
+      2 : { unfold f. rewrite plus_INR. reflexivity. }
+      replace 1 with (f 1%nat).
+      2 : { unfold f. simpl. rewrite pow1. reflexivity. }
+      rewrite <- sum_f_1_n_fSi_minus_fi with (n := n) (f := f); try lia. apply sum_f_equiv; try lia. intros k H5.
+      unfold f. rewrite plus_INR. simpl. rewrite pow1. reflexivity.
+    }
+    assert (H6 : sum_f 1 n (fun i => (INR i + 1)^(p+1) - (INR i)^(p+1)) = sum_f 1 n (fun i => sum_f 1 (p+1) (fun j => choose (p+1) j * (INR i)^(p+1-j)))).
+    { apply sum_f_equiv; try lia. intros k H6. rewrite (H4 k). apply sum_f_equiv; try lia. intros k2 H7. reflexivity. }
+    rewrite sum_swap in H6; try lia.
+    assert (S p = 1 \/ p + 1 > 1)%nat as [H7 | H7] by lia.
+    -- rewrite H7. replace (INR n ^ (1 + 1)) with (INR n ^ 2) by reflexivity. replace (INR (1 + 1)) with 2 by reflexivity.
+       replace (1 - 1)%nat with 0%nat by lia. replace (fun i => INR i ^ 1) with (fun i => INR i).
+       2 : { apply functional_extensionality. intros x. lra. } rewrite sum_n_nat; auto. exists [0.5].
+       rewrite sum_f_0_0; try lia. simpl. lra.
+    -- rewrite sum_f_Si with (n := (p+1)%nat) in H6; try lia. rewrite <- r_mult_sum_f_i_n_f_l with (i := 1%nat) (n := n) in H6.
+       rewrite n_choose_1 in H6. replace ((fun i : nat => INR i ^ (p + 1 - 1))) with ((fun i : nat => INR i ^ (p))) in H6.
+       2 : { apply functional_extensionality. intros x. replace (p + 1 - 1)%nat with p by lia. reflexivity. }
+       rewrite H5 in H6. rewrite lemma_2_3_d with (a := INR n) (b := 1) in H6. replace ((fun i : nat => choose (p + 1) i * INR n ^ (p + 1 - i) * 1 ^ i)) with 
+       ((fun i : nat => choose (p + 1) i * INR n ^ (p + 1 - i))) in H6. 2 : { apply functional_extensionality. intros x. rewrite pow1. lra. }
+       rewrite sum_f_Si with (i := 0%nat) in H6; try lia. rewrite n_choose_0 in H6. replace (p+1)%nat with (S p) in H6 at 1 by lia.
+       rewrite sum_f_i_Sn_f with (n := p%nat) in H6; try lia. replace (S p) with (p + 1)%nat in H6 by lia. rewrite n_choose_n in H6.
+       replace (p+1 - (p+1))%nat with 0%nat in H6 by lia. field_simplify in H6. rewrite Nat.sub_0_r in H6. 
+Abort.
+
+Close Scope R_scope.
 
 Lemma well_ordering_nat_contrapositive : forall E : nat -> Prop,
   (~(exists m, E m /\ forall k, E k -> m <= k)) ->

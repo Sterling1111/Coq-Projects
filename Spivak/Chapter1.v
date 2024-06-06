@@ -189,6 +189,17 @@ Proof.
   - simpl. rewrite <- IH. lra. 
 Qed.
 
+Lemma r_mult_sum_f_i_n_f_l : 
+  forall f i n r,
+    r * (sum_f i n f) = sum_f i n (fun i => r * f i).
+Proof.
+  intros. unfold sum_f.
+  set (k := (n - i)%nat).
+  induction k as [| k' IH].
+  - simpl. lra.
+  - simpl. rewrite <- IH. lra.
+Qed.
+
 Lemma sum_f_sum :
   forall f g i n, 
     sum_f i n f + sum_f i n g = sum_f i n (fun x : nat => f x + g x).
@@ -315,6 +326,21 @@ Proof.
   - assert ((l = S k)%nat \/ (l <= k)%nat) as [H2 | H2] by lia.
     -- rewrite <- H2. repeat rewrite sum_f_n_n. unfold sum_f. simpl. lra.
     -- repeat rewrite sum_f_i_Sn_f; try lia. rewrite <- IH; try lia. lra.
+Qed.
+
+Lemma sum_swap : forall l1 l2 n1 n2 (f : nat -> nat -> R),
+  (l1 <= n1)%nat -> (l2 <= n2)%nat ->
+  sum_f l1 n1 (fun i => sum_f l2 n2 (fun j => f i j)) = sum_f l2 n2 (fun j => sum_f l1 n1 (fun i => f i j)).
+Proof.
+  intros l1 l2 n1 n2 f H1 H2. induction n1 as [| k1 IH].
+  - replace l1 with 0%nat by lia. repeat rewrite sum_f_0_0. replace (fun j => sum_f 0 0 (fun i => f i j)) with (fun j => f 0%nat j).
+    2 : { apply functional_extensionality. intros j. rewrite sum_f_0_0. reflexivity. } reflexivity.
+  - assert (l1 = S k1 \/ l1 <= k1)%nat as [H3 | H3] by lia.
+    -- rewrite H3. rewrite sum_f_n_n. apply sum_f_equiv; auto. intros k H4. rewrite sum_f_n_n. reflexivity.
+    -- rewrite sum_f_i_Sn_f; auto. pose proof H3 as H4. apply IH in H3. rewrite H3. replace ((fun j : nat => sum_f l1 (S k1) (fun i : nat => f i j)))
+       with ((fun j => sum_f l1 k1 (fun i => f i j) + f (S k1) j)).
+       2 : { apply functional_extensionality. intros x. rewrite sum_f_i_Sn_f; auto. }
+       rewrite <- sum_f_plus; auto.
 Qed.
 
 Theorem pow_equ : forall (r: R) (a : nat),
