@@ -71,6 +71,15 @@ Proof.
   field. apply INR_fact_neq_0.
 Qed.
 
+Lemma Sn_choose_n : forall (n : nat),
+  choose (S n) n = INR (S n).
+Proof.
+  intro n. unfold choose. assert (S n <? n = false) as H1. apply Nat.ltb_ge. lia. rewrite H1. replace (S n - n)%nat with 1%nat by lia.
+  replace (fact 1) with 1%nat by reflexivity. replace (fact (S n)) with ((S n) * fact n)%nat. 2 : { simpl. reflexivity. }
+  rewrite mult_INR. unfold Rdiv. rewrite Rmult_assoc. field_simplify. replace (INR 1) with 1 by reflexivity. nra. split. apply not_0_INR. lia. apply not_0_INR.
+  apply fact_neq_0.
+Qed.
+
 Lemma n_choose_0 : forall (n : nat),
   choose n 0 = 1.
 Proof.
@@ -603,11 +612,29 @@ Proof.
   intros. destruct H as [l H]. exists l. split. apply H. lra.
 Qed.
 
-Fixpoint build_list_lemma_2_7 (m n i : nat) : list R :=
+Fixpoint build_list_lemma_2_7 (m i : nat) : list R :=
   match i with
   | 0 => []
-  | S i' => (choose (m + 1) i * INR n ^ i) :: build_list_lemma_2_7 m n i'
+  | S i' => (choose (m + 1) i) :: build_list_lemma_2_7 m i'
   end.
+
+Lemma build_list_lemma_2_7_length : forall m i,
+  length (build_list_lemma_2_7 m i) = i.
+Proof.
+  intros. induction i as [| i' IH].
+  - reflexivity.
+  - simpl. rewrite IH. reflexivity.
+Qed.
+
+Lemma build_list_lemma_2_7_sum : forall m n,
+  (m >= 2)%nat -> sum_f 1 m (fun i : nat => choose (m + 1) i * INR n ^ i) = sum_f 0 (m - 1) (fun i : nat => nth i (build_list_lemma_2_7 m m) 0 * INR n ^ (i + 1)).
+Proof.
+  intros. induction m as [| m' IH].
+  - lia.
+  - assert (S m' = 2 \/ m' >= 2)%nat as [H1 | H1] by lia.
+    -- rewrite H1; compute; lra.
+    -- apply IH in H1. rewrite sum_f_i_Sn_f; try lia. rewrite sum_f_Si_n_f; try lia. replace (S m' - 1)%nat with (m') by lia.
+       rewrite n_choose_0. replace (S m' + 1)%nat with (S (S m')) by lia. rewrite Sn_choose_n. simpl. rewrite Rmult_1_r.
 
 Lemma lemma_2_7 : forall n p,
   (n >= 1)%nat -> (p >= 1)%nat ->
@@ -698,7 +725,7 @@ Proof.
     }
     assert (H11 : exists l : list R, length l = m /\ sum_f 1 m (fun i : nat => choose (m + 1) i * INR n ^ i) = sum_f 0 (m - 1) (fun i : nat => nth i l 0 * INR n ^ (i + 1))).
     {
-      exists (build_list_lemma_2_7 m n m). split. induction m as [| m' IH2].
+      exists (build_list_lemma_2_7 m m). split. apply build_list_lemma_2_7_length. apply build_list_lemma_2_7_sum.
       - simpl. reflexivity.
       - simpl. rewrite IH2. reflexivity.
       apply H10. split; lia.
