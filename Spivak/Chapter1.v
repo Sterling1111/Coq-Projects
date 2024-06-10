@@ -343,6 +343,15 @@ Proof.
        rewrite <- sum_f_plus; auto.
 Qed.
 
+Lemma sum_f_split : forall l n m (f : nat -> R),
+  (l < n < m)%nat -> sum_f l m f = sum_f l n f + sum_f (S n) m f.
+Proof.
+  intros l n m f [H1 H2]. induction m as [| k IH]; try lia.
+  assert (n = k \/ n < k)%nat as [H3 | H3] by lia.
+  - rewrite H3. repeat rewrite sum_f_n_n. rewrite sum_f_i_Sn_f; try lia. lra.
+  - repeat rewrite sum_f_i_Sn_f; try lia. rewrite IH; try lia. lra.
+Qed.
+
 Theorem pow_equ : forall (r: R) (a : nat),
   (a > 0)%nat -> r ^ a = r * r ^ (a - 1).
 Proof.

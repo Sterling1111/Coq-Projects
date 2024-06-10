@@ -585,7 +585,6 @@ Proof.
     -- intros k Hk. intros k' Hk'. apply H1. intros k'' Hk''. apply Hk. lia.
   - apply H2. lia.
 Qed.
-
 Lemma strong_induction_N : strong_induction_nat.
 Proof.
   apply lemma_2_11. apply induction_imp_induction_nat.
@@ -598,23 +597,29 @@ Ltac strong_induction n :=
 
 Open Scope R_scope.
 
-Lemma exist_R_plus_eq_l : forall (r r1 : R) (f : list R -> R),
-  (exists l, r1 = (f l)) -> (exists l, r + r1 = r + f l).
+Lemma exist_R_plus_eq_l : forall (r r1 : R) (f : list R -> R) (s : nat),
+  (exists l, length l = s /\ r1 = (f l)) -> (exists l, length l = s /\ r + r1 = r + f l).
 Proof.
-  intros. destruct H as [l H]. exists l. lra.
+  intros. destruct H as [l H]. exists l. split. apply H. lra.
 Qed.
+
+Fixpoint build_list_lemma_2_7 (m n i : nat) : list R :=
+  match i with
+  | 0 => []
+  | S i' => (choose (m + 1) i * INR n ^ i) :: build_list_lemma_2_7 m n i'
+  end.
 
 Lemma lemma_2_7 : forall n p,
   (n >= 1)%nat -> (p >= 1)%nat ->
     exists l : list R,
-      sum_f 1 n (fun i => INR i ^ p) = INR n ^ (p + 1) / INR (p + 1) + sum_f 0 (p-1) (fun i => nth i l 0 * INR n ^ (p-i)).
+      length l = p /\ sum_f 1 n (fun i => INR i ^ p) = INR n ^ (p + 1) / INR (p + 1) + sum_f 0 (p-1) (fun i => nth i l 0 * INR n ^ (i + 1)).
 Proof.
   intros n p H1 H2. apply strong_induction_N with (n := p).
   intros m IH. assert (m = 0 \/ m = 1 \/ m >= 2)%nat as [H3 | [H3 | H3]] by lia.
-  - rewrite H3. simpl. rewrite sum_f_const. exists [0]. rewrite sum_f_0_0. simpl. rewrite plus_INR.
-    rewrite minus_INR; try lia. simpl. lra.
+  - rewrite H3. simpl. rewrite sum_f_const. exists []. rewrite sum_f_0_0. simpl. rewrite plus_INR.
+    rewrite minus_INR; try lia. simpl. split; try lra. lia. 
   - rewrite H3. replace ((fun i => INR i ^ 1)) with (fun i => INR i) by (apply functional_extensionality; intros; lra).
-    rewrite sum_n_nat; auto. exists [1/2]. rewrite sum_f_0_0. simpl. lra.
+    rewrite sum_n_nat; auto. exists [1/2]. rewrite sum_f_0_0. simpl. split; try lra. lia.
   - assert (H4 : forall k, (INR k + 1)^(m+1) - (INR k)^(m+1) = sum_f 2 (m+1) (fun i => choose (m+1) i * (INR k)^(m+1-i)) + INR (m + 1) * INR k ^ m).
     {
       intros k. rewrite lemma_2_3_d. rewrite sum_f_Si; try lia. rewrite n_choose_0. simpl. rewrite Rmult_1_r. rewrite Rmult_1_l. 
@@ -642,7 +647,64 @@ Proof.
     assert (H7 : INR (m + 1) * sum_f 1 n (fun i : nat => INR i ^ m) = INR n ^ (m + 1) + sum_f 1 m (fun i : nat => choose (m + 1) i * INR n ^ i) - sum_f 2 (m + 1) (fun j : nat => choose (m + 1) j * sum_f 1 n (fun i : nat => INR i ^ (m + 1 - j)))) by nra.
     assert (H8 : sum_f 1 n (fun i : nat => INR i ^ (m)) = INR n ^ (m + 1) / INR (m + 1) + (sum_f 1 m (fun i : nat => choose (m + 1) i * INR n ^ i) / INR (m + 1) - sum_f 2 (m + 1) (fun j : nat => choose (m + 1) j * sum_f 1 n (fun i : nat => INR i ^ (m + 1 - j))) / INR (m + 1))). 
     { apply Rmult_eq_reg_l with (r := INR (m + 1)). rewrite H7. field. apply not_0_INR. lia. apply not_0_INR. lia. }
-    rewrite H8.  apply exist_R_plus_eq_l. 
+    rewrite H8. apply exist_R_plus_eq_l. assert (H9 : forall j : nat, (2 <= j <= m + 1)%nat -> exists l : list R, length l = m%nat /\ sum_f 1 n (fun i : nat => INR i ^ (m + 1 - j)) = sum_f 0 (m-1) (fun i : nat => nth i l 0 * INR n ^ (i+1))).
+    {
+      intros j [H9 H10]. specialize (IH (m + 1 - j)%nat). assert (H11 : (m + 1 - j < m)%nat) by lia. apply IH in H11. destruct H11 as [l [H11 H12]]. rewrite H12.
+      exists (l ++ [1 / INR (m + 1 - j + 1)] ++ repeat 0 (j - 2)). assert (j = 2 \/ j > 2)%nat as [H13 | H13] by lia; assert (j = m + 1 \/ j < m + 1)%nat as [H14 | H14] by lia; try lia.
+      - rewrite H13 in *. simpl. replace (m + 1 - 2 + 1)%nat with m by lia. replace (m + 1 - 2 - 1)%nat with (m - 2)%nat by lia.
+        replace (m - 1)%nat with (S (m - 2)) by lia. rewrite sum_f_i_Sn_f with (n := (m - 2)%nat); try lia.
+        replace (sum_f 0 (m - 2) (fun i : nat => nth i (l ++ [1 / INR m]) 0 * INR n ^ (i + 1))) with (sum_f 0 (m - 2) (fun i : nat => nth i l 0 * INR n ^ (i + 1))).
+        2 : { apply sum_f_equiv; try lia. intros k H15. rewrite app_nth1; try lia. reflexivity. } replace (nth (S (m - 2)) (l ++ [1 / INR m]) 0) with (1 / INR m).
+        2 : { rewrite app_nth2; try lia. rewrite H11. replace (S (m - 2) - (m + 1 - 2))%nat with 0%nat by lia. simpl. reflexivity. } replace (S (m - 2) + 1)%nat with m by lia. split. rewrite app_length. rewrite H11. simpl. lia.
+
+        field. apply not_0_INR. lia.
+      - rewrite H14 in *. replace (m + 1 - (m + 1) + 1)%nat with 1%nat by lia. replace (INR n ^ 1 / INR 1) with (INR n) by (simpl; field).
+        replace (m + 1 - (m + 1) - 1)%nat with 0%nat by lia. assert (H15 : l = []) by (apply length_zero_iff_nil; lia). rewrite H15.
+        rewrite sum_f_0_0. replace ((fun i : nat => nth i ([] ++ [1 / INR 1] ++ repeat 0 (m + 1 - 2)) 0 * INR n ^ (i + 1))) with (fun i : nat => nth i [1 / INR 1] 0 * INR n ^ (i + 1)).
+        2 : { apply functional_extensionality. intros k. rewrite app_nth2. 2 : { simpl. lia. } replace (k - length [])%nat with k. 2 : { simpl. lia. } 
+              assert (k = 0 \/ k > 0)%nat as [H16 | H16] by lia. rewrite H16. simpl. reflexivity. assert (k <= m \/ k > m)%nat as [H17 | H17] by lia.
+              - rewrite nth_overflow. 2 : { simpl. lia. } rewrite app_nth2. 2 : { simpl. lia. } simpl. rewrite nth_repeat. reflexivity.
+              - rewrite nth_overflow. 2 : { simpl. lia. } rewrite app_nth2. 2 : { simpl. lia. } simpl. rewrite nth_repeat. reflexivity.
+            }
+            rewrite sum_f_Si. 2 : { lia. } replace (sum_f 1 (m - 1) (fun i : nat => nth i [1 / INR 1] 0 * INR n ^ (i + 1))) with (sum_f 1 (m -1) (fun i => 0)).
+            2 : { apply sum_f_equiv; try lia. intros k H16. rewrite nth_overflow. 2 : { simpl. lia. } lra. } simpl. rewrite sum_f_const. split. rewrite repeat_length. lia. lra.
+      - replace (m + 1 - j - 1)%nat with (m - j)%nat by lia. replace (m + 1 - j + 1)%nat with (m - j + 2)%nat by lia. assert (0 = m - j \/ 0 < m - j)%nat as [H15 | H15] by lia.
+        -- rewrite <- H15. rewrite sum_f_0_0. simpl. assert (H16 : length l = 1%nat) by lia. rewrite sum_f_Si; try lia. replace (sum_f 1 (m - 1) (fun i : nat => nth i (l ++ 1 / (1 + 1) :: repeat 0 (j - 2)) 0 * INR n ^ (i + 1))) with (INR n * INR n / 2).
+           2 : { rewrite sum_f_Si; try lia. replace (nth 1 (l ++ 1 / (1 + 1) :: repeat 0 (j - 2)) 0) with (1 / 2). 2 : { rewrite app_nth2; try lia. rewrite H16. simpl. reflexivity. }
+                 replace (sum_f 2 (m - 1) (fun i : nat => nth i (l ++ 1 / (1 + 1) :: repeat 0 (j - 2)) 0 * INR n ^ (i + 1))) with (sum_f 2 (m - 1) (fun i : nat => 0)).
+                 2 : { apply sum_f_equiv; try lia. intros k H17. rewrite app_nth2; try lia. rewrite H16. replace (1 / (1 + 1) :: repeat 0 (j - 2)) with ([1 / 2] ++ repeat 0 (j - 2)) by reflexivity.
+                       rewrite app_nth2. 2 : { simpl. lia. } simpl. rewrite nth_repeat. lra. }
+                 simpl. rewrite sum_f_const. lra.
+               }
+            simpl. rewrite app_nth1; try lia. split. repeat rewrite app_length. simpl. rewrite repeat_length. lia. lra.
+        -- rewrite sum_f_split with (l := 0%nat) (m := (m -1)%nat) (n := (m-j)%nat); try lia. replace (sum_f 0 (m - j) (fun i : nat => nth i (l ++ [1 / INR (m - j + 2)] ++ repeat 0 (j - 2)) 0 * INR n ^ (i + 1))) with (sum_f 0 (m - j) (fun i : nat => nth i l 0 * INR n ^ (i + 1))).
+           2 : { apply sum_f_equiv; try lia. intros k H16. rewrite app_nth1; try lia. reflexivity. } replace (sum_f (S (m - j)) (m - 1) (fun i : nat => nth i (l ++ [1 / INR (m - j + 2)] ++ repeat 0 (j - 2)) 0 * INR n ^ (i + 1))) with (INR n ^ (m - j + 2) / INR (m - j + 2)).
+           2 : { rewrite sum_f_Si_n_f; try lia. replace (nth (m - j) (l ++ [1 / INR (m - j + 2)] ++ repeat 0 (j - 1)) 0 * INR n ^ (m - j + 1)) with (nth (m-j) l 0 * INR n ^ (m - j + 1)).
+                2 : { rewrite app_nth1; try lia. lra. } rewrite sum_f_Si; try lia. replace (nth (m - j) (l ++ [1 / INR (m - j + 2)] ++ repeat 0 (j - 2)) 0 * INR n ^ (m - j + 1)) with (nth (m - j) l 0 * INR n ^ (m - j + 1)).
+                2 : { rewrite app_nth1; try lia. lra. } field_simplify. 2 : { apply not_0_INR. lia. } rewrite sum_f_Si; try lia.
+                replace (nth (S (m - j)) (l ++ [1 / INR (m - j + 2)] ++ repeat 0 (j - 2)) 0 * INR n ^ (S (m - j) + 1)) with (INR n ^ (m - j + 2) / INR (m - j + 2)).
+                2 : { rewrite app_nth2; try lia. rewrite H11. replace (S (m - j) - (m + 1 - j))%nat with 0%nat by lia. simpl. rewrite <- pow_1 with (x := INR n) at 2. rewrite <- pow_add. replace (1 + (m - j + 1))%nat with (m - j + 2)%nat by lia. lra. }
+                replace (sum_f (S (S (m - j))) (m - 1) (fun i : nat => nth i (l ++ [1 / INR (m - j + 2)] ++ repeat 0 (j - 2)) 0 * INR n ^ (i + 1))) with (sum_f (S (S (m - j))) (m - 1) (fun i : nat => 0)).
+                2 : { apply sum_f_equiv; try lia. intros k H17. rewrite app_nth2; try lia. rewrite H11. rewrite app_nth2. 2 : { simpl. lia. } simpl. rewrite nth_repeat. lra. }
+                rewrite sum_f_const. lra.
+           } split. repeat rewrite app_length. rewrite H11. rewrite repeat_length. simpl. lia. lra.
+    }
+    assert (H10 : forall j : nat, (2 <= j <= m + 1)%nat -> exists l : list R, length l = m /\ choose (m + 1) j * sum_f 1 n (fun i : nat => INR i ^ (m + 1 - j)) = sum_f 0 (m - 1) (fun i : nat => nth i l 0 * INR n ^ (i + 1))). 
+    {
+      intros j H10. specialize (H9 j). apply H9 in H10 as [l [H10 H11]]. exists (map (Rmult (choose (m + 1) j)) l). split. rewrite map_length. apply H10. rewrite H11. 
+      replace ((fun i : nat => nth i (map (Rmult (choose (m + 1) j)) l) 0 * INR n ^ (i + 1))) with ((fun i : nat => choose (m + 1) j * (nth i l 0) * INR n ^ (i + 1))).
+      2 : { apply functional_extensionality. intros k. rewrite <- map_nth. rewrite Rmult_0_r. reflexivity. }
+      rewrite r_mult_sum_f_i_n_f_l. apply sum_f_equiv; try lia. intros k H12. lra. 
+    }
+    assert (H11 : exists l : list R, length l = m /\ sum_f 1 m (fun i : nat => choose (m + 1) i * INR n ^ i) = sum_f 0 (m - 1) (fun i : nat => nth i l 0 * INR n ^ (i + 1))).
+    {
+      exists (build_list_lemma_2_7 m n m). split. induction m as [| m' IH2].
+      - simpl. reflexivity.
+      - simpl. rewrite IH2. reflexivity.
+      apply H10. split; lia.
+    }
+    assert (H11 : exists l : list R, length l = m /\ sum_f 2 (m + 1) (fun j : nat => choose (m + 1) j * sum_f 1 n (fun i : nat => INR i ^ (m + 1 - j))) = sum_f 0 (m-1) )
+
 Abort.
 
 Close Scope R_scope.
@@ -1018,7 +1080,7 @@ Proof.
   assert (H6 : z2 <> 0). { apply x_neq_0_IZR_den_neq_0 with (x := a) (y := z1) (z := z2). auto. }
   assert (H7 : rational (/ a)) by (exists z2, z1; rewrite H2; field; split; apply not_0_IZR; lia).
   assert (H8 : b <> 0%R) by (intros H8; apply H3; exists 0, 1; nra).
-  assert (H9 : / a <> 0%R) by (apply Rinv_neq_0_compat; auto).
+  assert (H9 : (/ a <> 0)%R) by (apply Rinv_neq_0_compat; auto).
   assert (H10 : rational b).
   { replace b with (a * b / a)%R by (field; auto). apply mult_rational; auto. }
   unfold irrational in H3. tauto.
