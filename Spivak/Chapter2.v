@@ -641,18 +641,82 @@ Proof.
        2 : { apply sum_f_equiv; try lia. intros k H2. simpl. rewrite app_nth1. reflexivity. rewrite build_list_lemma_2_7_length. lia. } lra.
 Qed.
 
-Lemma test_lemmos : forall (i1 i3 m : nat) (f : nat -> list R -> Prop),
-  (i1 <= i3)%nat ->
-  (forall i2 : nat, (i1 <= i2 <= i3)%nat -> exists l1 : list R, f i2 l1 /\ length l1 = m) -> exists l2 : list (list R), length l2 = (i3 - i1 + 1)%nat /\ Forall (fun l => forall i : nat, length l = m /\ (i < length l2)%nat /\ nth i l2 [] = l -> f i l) l2.
+Lemma test_lemma1 : forall (a c : nat) (f : nat -> list R -> Prop),
+  (a <= c)%nat -> (forall b : nat, (a <= b <= c)%nat -> exists l1 : list R, f b l1) -> exists l2 : list (list R), (length l2 = c - a + 1)%nat /\ Forall (fun l1 : list R => (forall i : nat, ((0 <= i < length l2)%nat /\ nth i l2 [] = l1) -> f (a + i)%nat l1)) l2.
 Proof.
-  (*
-  intros i1 i3 f H1 H2. induction i3 as [| i3' IH].
-  - replace i1 with 0%nat in * by lia. specialize (H2 0%nat). destruct H2 as [l1 H2]; try lia. exists [l1]. split.
+  intros a c f H1 H2. induction c as [| c' IH].
+  - replace a with 0%nat by lia. specialize (H2 0%nat). assert (H3 : (a <= 0 <= 0)%nat) by lia. apply H2 in H3. destruct H3 as [l1 H3]. exists [l1]. split.
     + simpl. lia.
-    + apply Forall_forall. intros l H3 i [H4 H5]. simpl in H4. replace i with 0%nat by lia. destruct H3. rewrite <- H. auto. simpl in H. tauto.
+    + apply Forall_cons. intros i H4. destruct H4 as [H4 H5]. simpl in H4. assert (i = 0)%nat by lia. rewrite H. apply H3.
+      rewrite Forall_forall. intros x H6 i [H7 H8]. inversion H6. 
+  - assert (a = S c' \/ a <= c')%nat as [H3 | H3] by lia.
+    -- rewrite H3. assert (H4 : (a <= a <= S c')%nat) by lia. apply H2 in H4. destruct H4 as [l1 H4]. exists [l1]. split. simpl. lia. apply Forall_cons.
+       intros i H5. destruct H5 as [H5 H6]. simpl in H5. assert (i = 0)%nat by lia. rewrite H. rewrite <- H3. simpl. rewrite Nat.add_0_r. apply H4. rewrite Forall_forall. intros x H7 i [H8 H9]. inversion H7.
+    -- specialize (IH H3). assert (H4 : forall b : nat, (a <= b <= c')%nat -> exists l1 : list R, f b l1).
+       { intros b H4. assert (H5 : (a <= b <= S c')%nat) by lia. apply H2 in H5. destruct H5 as [l1 H5]. exists l1. auto. }
+       specialize (IH H4). destruct IH as [l2 [H5 H6]]. rewrite Forall_forall in H6. pose proof H2 as H2'. specialize (H2 (S c')). assert (H7 : (a <= S c' <= S c')%nat) by lia. apply H2 in H7. destruct H7 as [l1 H7]. exists (l2 ++ [l1]). split.
+       + rewrite app_length. rewrite H5. replace (length [l1]) with 1%nat by reflexivity. lia.
+       + apply Forall_app. split.
+         * rewrite Forall_forall. intros x H8 i [H9 H10]. assert (H11 : (length (l2 ++ [l1]) = S (c' - a + 1))%nat). { rewrite app_length. rewrite H5. replace (length [l1]) with 1%nat by reflexivity. lia. }
+           assert (i = length l2 \/ i < length l2)%nat as [H12 | H12]. { lia. }
+           ++ rewrite H5 in H12. rewrite H12. replace (a + (c' - a + 1))%nat with (S c') by lia. rewrite app_nth2 in H10; try lia. rewrite H12 in H10. rewrite H5 in H10. replace (c' - a + 1 - (c' - a + 1))%nat with 0%nat in H10 by lia.
+              simpl in H10. rewrite <- H10. auto.
+           ++ apply H6; auto. split. lia. rewrite app_nth1 in H10; try lia. apply H10.
+         * rewrite Forall_forall. intros x H8 i [H9 H10]. simpl in H8. destruct H8 as [H8 | H8]; try tauto. rewrite <- H8. rewrite app_length in H9. rewrite H5 in H9. simpl in H9.
+           assert (i = (c' - a + 1) \/ i < (c' - a + 1))%nat as [H11 | H11] by lia.
+           ++ rewrite H11. replace (a + (c' - a + 1))%nat with (S c') by lia. auto.
+           ++ specialize (H6 x). rewrite app_nth1 in H10; try lia. assert (In x l2) as H12. { rewrite <- H5 in H11. apply nth_In with (d := []) in H11. rewrite H10 in H11. auto. }
+              specialize (H6 H12). rewrite H8. apply H6. split. lia. apply H10.
+Qed.
 
-    *)
-Abort.
+Lemma test_lemma2 : forall (a c n : nat) (f : nat -> list R -> Prop),
+  (a <= c)%nat -> (forall b : nat, (a <= b <= c)%nat -> exists l1 : list R, (length l1 = n /\ f b l1)) -> exists l2 : list (list R), (length l2 = c - a + 1)%nat /\ Forall (fun l1 : list R => length l1 = n /\ (forall i : nat, ((0 <= i < length l2)%nat /\ nth i l2 [] = l1) -> f (a + i)%nat l1)) l2.
+Proof.
+  intros a c n f H1 H2. induction c as [| c' IH].
+  - replace a with 0%nat by lia. specialize (H2 0%nat). assert (H3 : (a <= 0 <= 0)%nat) by lia. apply H2 in H3. destruct H3 as [l1 [H3 H4]]. exists [l1]. split.
+    -- simpl. lia.
+    -- apply Forall_cons. split;auto. intros i H5. destruct H5 as [H5 H6]. simpl in H5. assert (i = 0)%nat by lia. rewrite H. apply H4.
+       rewrite Forall_forall. intros x H7. inversion H7.
+  - assert (a = S c' \/ a <= c')%nat as [H3 | H3] by lia.
+    -- rewrite H3. assert (H4 : (a <= a <= S c')%nat) by lia. apply H2 in H4. destruct H4 as [l1 [H4 H5]]. exists [l1]. split. simpl. lia. apply Forall_cons. split;auto.
+       intros i H6. destruct H6 as [H6 H7]. simpl in H6. assert (i = 0)%nat by lia. rewrite H. rewrite <- H3. simpl. rewrite Nat.add_0_r. apply H5.
+       rewrite Forall_forall. intros x H8. inversion H8.
+    -- specialize (IH H3). assert (H4 : forall b : nat, (a <= b <= c')%nat -> exists l1 : list R, (length l1 = n /\ f b l1)).
+       { intros b H4. assert (H5 : (a <= b <= S c')%nat) by lia. apply H2 in H5. destruct H5 as [l1 [H5 H6]]. exists l1. auto. }
+       specialize (IH H4). destruct IH as [l2 [H5 H6]]. rewrite Forall_forall in H6. pose proof H2 as H2'. specialize (H2 (S c')). assert (H7 : (a <= S c' <= S c')%nat) by lia. apply H2 in H7. destruct H7 as [l1 [H7 H8]]. exists (l2 ++ [l1]). split.
+       + rewrite app_length. rewrite H5. replace (length [l1]) with 1%nat by reflexivity. lia.
+       + apply Forall_app. split.
+         * rewrite Forall_forall. intros x H9. split.
+           ++ specialize (H6 x). tauto.
+           ++ intros i [H10 H11]. assert (H12 : (length (l2 ++ [l1]) = S (c' - a + 1))%nat). { rewrite app_length. rewrite H5. replace (length [l1]) with 1%nat by reflexivity. lia. }
+              assert (i = length l2 \/ i < length l2)%nat as [H13 | H13] by lia.
+              ** rewrite H5 in H13. rewrite H13. replace (a + (c' - a + 1))%nat with (S c') by lia. rewrite app_nth2 in H11; try lia. rewrite H13 in H11. rewrite H5 in H11. replace (c' - a + 1 - (c' - a + 1))%nat with 0%nat in H11 by lia.
+                 simpl in H11. rewrite <- H11. auto.
+              ** apply H6; auto. split. lia. rewrite app_nth1 in H11; try lia. apply H11.
+         * rewrite Forall_forall. intros x H9. split.
+           ++ inversion H9 as [H10 | H10]; try tauto. rewrite <- H10. auto.
+           ++ intros i [H10 H11]. simpl in H9. destruct H9 as [H9 | H9]; try tauto. rewrite <- H9. rewrite app_length in H10. rewrite H5 in H10. simpl in H10.
+              assert (i = (c' - a + 1) \/ i < (c' - a + 1))%nat as [H12 | H12] by lia.
+              ** rewrite H12. replace (a + (c' - a + 1))%nat with (S c') by lia. auto.
+              ** specialize (H6 x). rewrite app_nth1 in H11; try lia. assert (In x l2) as H13. { rewrite <- H5 in H12. apply nth_In with (d := []) in H12. rewrite H11 in H12. auto. }
+                 specialize (H6 H13). rewrite H9. apply H6. split. lia. apply H11.
+Qed.
+
+Lemma test_lemmos2 : forall (m n : nat),
+  (m >= 2)%nat ->
+  (forall j : nat, (2 <= j <= m + 1)%nat -> exists l : list R, length l = m /\ choose (m + 1) j * sum_f 1 n (fun i : nat => INR i ^ (m + 1 - j)) = sum_f 0 (m - 1) (fun i : nat => nth i l 0 * INR n ^ (i + 1))) ->
+    exists l1 : list (list R), (length l1 = m)%nat /\ Forall (fun l2 : list R => length l2 = m /\ (forall (i : nat), nth i l1 [] = l2 -> choose (m + 1) (i+2) * sum_f 1 n (fun k : nat => INR k ^ (m + 1 - (i+2))) = sum_f 0 (m - 1) (fun i : nat => nth i l2 0 * INR n ^ (i + 1)))) l1.
+Proof.
+  intros m n H1 H2. set (f := fun j l => choose (m + 1) j * sum_f 1 n (fun i => INR i ^ (m + 1 - j)) = sum_f 0 (m - 1) (fun i => nth i l 0 * INR n ^ (i + 1))).
+  assert (H3: forall b : nat, (2 <= b <= m + 1)%nat -> exists l1 : list R, length l1 = m /\ f b l1). { intros b H3. apply H2 in H3 as [l [H3 H4]]. exists l. split; auto. }
+  pose proof (test_lemma2 2 (m + 1) m f) as H4. assert (H5 : (2 <= m + 1)%nat) by lia. specialize (H4 H5 H3). destruct H4 as [l1 H4]. exists l1. rewrite Forall_forall. split. destruct H4 as [H4 H7]; try lia.
+  intros x H6. destruct H4 as [H4 H7]. split.
+  - rewrite Forall_forall in H7. specialize (H7 x H6). tauto.
+  - intros i H8. assert (i >= length l1 \/ i < length l1)%nat as [H9 | H9] by lia. rewrite nth_overflow in H8; try lia. rewrite Forall_forall in H7. specialize (H7 x H6) as [H7 H10]. 
+    assert (length x = 0)%nat as H11. { rewrite length_zero_iff_nil. auto. } lia.
+    rewrite Forall_forall in H7. specialize (H7 x H6) as [H7 H10]. specialize (H10 i). assert ((0 <= i < length l1)%nat /\ nth i l1 [] = x) as H12. { split; auto; try lia. } apply H10 in H12. 
+    unfold f in H12. replace (i + 2)%nat with (2 + i)%nat by lia. auto.
+Qed.
 
 Definition add_lists (l1 l2 : list R) : list R := map (fun p => fst p + snd p) (combine l1 l2).
 
@@ -721,14 +785,14 @@ Proof.
     rewrite add_lists_length. specialize (H1 h1). rewrite H1. lia. left. reflexivity.
 Qed.
 
-Lemma add_lists_sum_f : forall (l1 : list (list R)) (k m n : nat),
-  (length l1 = m)%nat -> (0 <= k <= m-1)%nat ->
-    sum_f 0 (m - 1) (fun i : nat => nth i (nth k l1 []) 0 * INR n ^ (i + 1)) = nth k (fold_left add_lists l1 (repeat 0 m)) 0 * INR n ^ (k + 1).
+Lemma add_lists_sum_f : forall (m n : nat),
+  (m >= 2)%nat -> (n >= 1)%nat -> (exists l1 : list (list R), length l1 = m /\ Forall (fun l2 : list R => length l2 = m /\ (forall i : nat, nth i l1 [] = l2 -> choose (m + 1) (i + 2) * sum_f 1 n (fun k : nat => INR k ^ (m + 1 - (i + 2))) = sum_f 0 (m - 1) (fun i0 : nat => nth i0 l2 0 * INR n ^ (i0 + 1)))) l1)
+    -> exists l : list R, length l = m /\ sum_f 2 (m + 1) (fun j : nat => choose (m + 1) j * sum_f 1 n (fun i : nat => INR i ^ (m + 1 - j))) = sum_f 0 (m - 1) (fun i : nat => nth i l 0 * INR n ^ (i + 1)).
 Proof.
-  intros l1 k m n H1 H2. generalize dependent l1. induction k as [| k' IH].
-  - intros l1 H3. simpl. destruct l1 as [| h1 t1].
-    -- simpl in H3. rewrite <- H3. rewrite sum_f_0_0. simpl. reflexivity.
-    -- simpl. rewrite add_lists_comm. rewrite add_lists_repeat_0.
+  intros m n H1 H2 H3. destruct H3 as [l1 H3]. destruct H3 as [H3 H4]. rewrite Forall_forall in H4. 
+  exists (fold_left add_lists l1 (repeat 0 m)). split.
+  - apply add_lists_fold_left_length with (m := m); try lia. intros l2 H5. apply H4. apply H5. rewrite repeat_length. reflexivity.
+  - rewrite sum_f_reindex with (s := 2%nat); try lia. replace (2 - 2)%nat with 0%nat by lia. replace (m + 1 - 2)%nat with (m - 1)%nat by lia.
 Admitted.
 
 Lemma lemma_2_7 : forall n p,
@@ -827,15 +891,13 @@ Proof.
       2 : { apply functional_extensionality. intros k. rewrite <- map_nth. rewrite Rmult_0_r. reflexivity. }
       rewrite H12. unfold Rdiv. rewrite Rmult_comm. rewrite r_mult_sum_f_i_n_f_l. apply sum_f_equiv; try lia. intros k H13. lra.
     }
-    assert (H13 : exists l1 : list (list R), length l1 = m /\ Forall (fun l2 => length l2 = m /\ forall i j : nat, nth i l1 [] = l2 -> (j = i + 2)%nat -> choose (m + 1) j * sum_f 1 n (fun i : nat => INR i ^ (m + 1 - j)) = sum_f 0 (m - 1) (fun i : nat => nth i l2 0 * INR n ^ (i + 1)) ) l1).
-    { admit. }
-    assert (H14 : exists l1 : list R, length l1 = m /\ sum_f 2 (m + 1) (fun j : nat => choose (m + 1) j * sum_f 1 n (fun i : nat => INR i ^ (m + 1 - j))) = sum_f 0 (m - 1) (fun i : nat => nth i l1 0 * INR n ^ (i + 1))).
-    {
-      destruct H13 as [l1 [H13 H14]]. exists (fold_left add_lists l1 (repeat 0 m)). split. apply add_lists_fold_left_length. intros l2 H15. apply Forall_forall with (x := l2) in H14. apply H14. auto. apply repeat_length.
-      rewrite sum_f_reindex with (s := 2%nat); try lia. replace (2-2)%nat with 0%nat by lia. replace (m + 1 - 2)%nat with (m -1)%nat by lia.
-      apply sum_f_equiv; try lia. intros k H15. rewrite Forall_forall in H14. specialize (H14 (nth k l1 [])). assert (H16 : In (nth k l1 []) l1) by (apply nth_In; lia). apply H14 in H16 as [H16 H17].
-      rewrite H17 with (i := k); auto. apply add_lists_sum_f; auto.
+    assert (H13 : exists l1 : list (list R), length l1 = m /\ Forall (fun l2 => length l2 = m /\ (forall i : nat, nth i l1 [] = l2 -> choose (m + 1) (i+2) * sum_f 1 n (fun k : nat => INR k ^ (m + 1 - (i+2))) = sum_f 0 (m - 1) (fun i : nat => nth i l2 0 * INR n ^ (i + 1)) )) l1).
+    { 
+      pose proof (test_lemmos2 m n H3 H10) as H13. destruct H13 as [l1 H13]. exists l1. split. rewrite Forall_forall in H13. 2 : { apply Forall_forall. intros x H14. split. rewrite Forall_forall in H13. apply H13. auto. intros i H15 H16. rewrite Forall_forall in H13. destruct H13 as [H13 H17]. specialize (H17 x H14). apply H17. auto. auto. }
+      tauto.
     }
+    assert (H14 : exists l1 : list R, length l1 = m /\ sum_f 2 (m + 1) (fun j : nat => choose (m + 1) j * sum_f 1 n (fun i : nat => INR i ^ (m + 1 - j))) = sum_f 0 (m - 1) (fun i : nat => nth i l1 0 * INR n ^ (i + 1))).
+    { apply add_lists_sum_f; try lia. auto. }
     assert (H15 : exists l1 : list R, length l1 = m /\ sum_f 2 (m + 1) (fun j : nat => choose (m + 1) j * sum_f 1 n (fun i : nat => INR i ^ (m + 1 - j))) / INR (m + 1) = sum_f 0 (m - 1) (fun i : nat => nth i l1 0 * INR n ^ (i + 1))).
     {
       destruct H14 as [l1 [H14 H15]]. exists (map (Rmult (/ INR (m + 1))) l1). split. rewrite map_length. apply H14.
