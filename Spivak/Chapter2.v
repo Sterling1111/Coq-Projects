@@ -809,10 +809,11 @@ Proof.
   intros l1 l2; apply fold_symmetric; try apply add_lists_assoc; try apply add_lists_comm.
 Qed.
 
-Definition min_list_len (l : list (list R)) : nat :=
+Fixpoint min_list_len (l : list (list R)) : nat :=
   match l with
   | [] => 0
-  | x :: xs => fold_left (fun y x => min y (length x)) xs (length x)
+  | x :: nil => length x
+  | x :: xs => min (length x) (min_list_len xs)
   end.
 
 Lemma fold_left_add_lists_length' : forall (l1 : list (list R)) (l2 : list R),
@@ -820,32 +821,111 @@ Lemma fold_left_add_lists_length' : forall (l1 : list (list R)) (l2 : list R),
 Proof.
   intros l1 l2. generalize dependent l2. induction l1 as [| h1 t1 IH].
   - intros l2. simpl. reflexivity.
-  - intros l2. simpl. rewrite IH. simpl. rewrite add_lists_length. lia.
+  - intros l2. simpl. rewrite IH. destruct t1 as [| h2 t2].
+    -- simpl. rewrite add_lists_length. rewrite Nat.min_comm. reflexivity.
+    -- simpl. rewrite add_lists_length. rewrite Nat.min_assoc. reflexivity.
 Qed.
 
+Lemma fold_right_min_0 : forall (l : list (list R)),
+  fold_right (fun x y => min (length x) y) 0%nat l = 0%nat.
+Proof.
+  intros l. induction l as [| h t IH].
+  - simpl. reflexivity.
+  - simpl. rewrite IH. lia.
+Qed.
+
+Lemma min_list_len_cons : forall (l1 : list R) (l2 : list (list R)),
+  l2 <> [] -> min_list_len (l1 :: l2) = min (length l1) (min_list_len l2).
+Proof.
+  intros l1 l2 H1. destruct l2 as [| h2 t2].
+  - destruct H1. reflexivity.
+  - simpl. reflexivity.
+Qed.
+
+Lemma min_list_same_length : forall (l1 : list (list R)),
+  (forall l2 l3, In l2 l1 -> In l3 l1 -> length l2 = length l3) -> min_list_len l1 = length (nth 0 l1 []).
+Proof.
+  intros l1 H1. induction l1 as [| h1 t1 IH].
+  - simpl. reflexivity.
+  - assert (t1 = [] \/ t1 <> []) as [H4 | H4] by tauto.
+    -- rewrite H4. simpl. reflexivity.
+    -- rewrite min_list_len_cons. 2 : { tauto. } simpl. rewrite IH. 2 : { intros l2 l3 H5 H6. apply H1. right. apply H5. right. apply H6. }
+       specialize (H1 h1 (nth 0 t1 [])). rewrite H1. apply Nat.min_id. left. reflexivity. right. apply nth_In. assert (length t1 <> 0)%nat as H5.
+       { rewrite length_zero_iff_nil. auto. } lia.
+Qed.
+
+Lemma min_list_cons_switch : forall l1 l2,
+  min_list_len (l2 :: l1) = min_list_len (l1 ++ [l2]).
+Proof.
+  intros l1 l2. generalize dependent l2. induction l1 as [| h1 t1 IH].
+  - intros l2. simpl. reflexivity.
+  - intros l2. assert (t1 = [] \/ t1 <> []) as [H1 | H1] by tauto.
+    -- rewrite H1. simpl. rewrite Nat.min_comm. reflexivity.
+    -- assert (H2 : h1 :: t1 <> []) by discriminate. assert (H3 : t1 ++ [l2] <> []). { intros H3. apply app_eq_nil in H3. tauto. }
+       rewrite min_list_len_cons. 2 : { tauto. } rewrite min_list_len_cons. 2 : { tauto. }
+       replace ((h1 :: t1) ++ [l2]) with (h1 :: (t1 ++ [l2])) by reflexivity. rewrite min_list_len_cons. 2 : { simpl. tauto. } rewrite <- IH.
+       rewrite min_list_len_cons. 2 : { simpl. tauto. } rewrite Nat.min_assoc. rewrite Nat.min_comm. rewrite Nat.min_assoc.
+       rewrite Nat.min_comm. rewrite Nat.min_comm with (n := length l2). reflexivity.
+Qed.
+
+Lemma fold_right_add_lists_length : forall (l1 : list (list R)) (l2 : list R),
+  length (fold_right add_lists l2 l1) = min_list_len (l1 ++ [l2]).
+Proof.
+  intros l1 l2. rewrite <- fold_left_add_lists_symmetric. rewrite fold_left_add_lists_length'. 
+  rewrite min_list_cons_switch. reflexivity.
+Qed.
+
+Lemma sum_f_nth : forall (l1 : list (list R)) (l2 : list R) (i : nat),
+  nth i l2 0 + sum_f 0 (length l1 - 1) (fun j : nat => nth i (nth j l1 []) 0) = sum_f 0 (S (length l1 - 1)) (fun j : nat => nth i (nth j ([l2] ++ l1) []) 0).
+Proof.
+  intros l1 l2 i. assert (length l1 = 0 \/ length l1 > 0)%nat as [H1 | H1] by lia.
+  - rewrite length_zero_iff_nil in H1. rewrite H1. simpl. rewrite sum_f_0_0. rewrite sum_f_Si; try lia. rewrite sum_f_n_n. lra.
+  -
+  
+  rewrite sum_f_Si with (n := S (length l1 - 1)). 2 : { simpl. lia. } 
+  replace (sum_f 1 (S (length l1 - 1)) (fun j : nat => nth i (nth j ([l2] ++ l1) []) 0)) with (sum_f 1 (S (length l1 - 1)) (fun j : nat => nth i (nth (j-1) l1 []) 0)).
+  2 : { apply sum_f_congruence. 2 : { intros k H2. destruct k; simpl; try lia. rewrite Nat.sub_0_r. reflexivity. } lia. }
+  replace (nth i (nth 0 ([l2] ++ l1) []) 0) with (nth i l2 0). 2 : { reflexivity. } rewrite sum_f_reindex with (s := 1%nat) (i := 1%nat). 2 : { simpl. lia. }
+  replace (S (length l1 - 1)) with (length l1) by lia. replace (1-1)%nat with 0%nat by lia. replace ((fun x : nat => nth i (nth (x + 1 - 1) l1 []) 0)) with (fun x : nat => nth i (nth x l1 []) 0).
+  2 : { apply functional_extensionality. intros x. replace (x + 1 - 1)%nat with x by lia. reflexivity. } lra.
+Qed.
+  
 Lemma nth_fold_right_add_lists : forall (l1 : list (list R)) (i : nat),
   (forall x1 x2 : list R, In x1 l1 -> In x2 l1 -> length x1 = length x2) -> nth i (fold_right add_lists (repeat 0 (length (nth 0 l1 []))) l1) 0 = sum_f 0 (length l1 - 1) (fun j : nat => nth i (nth j l1 []) 0).
 Proof.
   intros l1 i H1. induction l1 as [| h1 t1 IH].
   - destruct i; reflexivity.
-  - replace (h1 :: t1) with ([h1] ++ t1) by reflexivity. rewrite fold_right_app. simpl.
-    rewrite add_lists_separate with (m := length h1). 4 : { rewrite <- fold_left_add_lists_symmetric. rewrite fold_left_add_lists_length'; try lia. simpl.   apply H1. left. reflexivity. }
-    -- simpl. destruct h1; try reflexivity. rewrite sum_f_0_0. simpl. lra.
-    -- replace (repeat 0 (length (nth 0 (h1 :: t1) []))) with (repeat 0 (length h1)) by reflexivity. rewrite fold_right_app. rewrite IH. rewrite add_lists_comm. rewrite add_lists_repeat_0. 2 : { lia. } simpl. lra.
-  
+  - replace (h1 :: t1) with ([h1] ++ t1) by reflexivity. rewrite fold_right_app.
+    assert (t1 = [] \/ t1 <> []) as [H2 | H2] by tauto.
+    -- rewrite H2. simpl. rewrite sum_f_0_0. rewrite add_lists_repeat_0. 2 : { lia. } simpl. lra.
+    -- assert (length t1 <> 0)%nat as H3. { rewrite length_zero_iff_nil; auto. } assert (i >= length h1 \/ i < length h1)%nat as [H4 | H4] by lia.
+       { rewrite nth_overflow.
+         2 : { simpl. rewrite add_lists_length. rewrite fold_right_add_lists_length. rewrite <- min_list_cons_switch. rewrite min_list_len_cons; auto. rewrite repeat_length.
+               rewrite min_list_same_length. 2 : { intros l2 l3 H5 H6. apply H1; (right; auto). } replace (length (nth 0 t1 [])) with (length h1).
+               2 : { specialize (H1 h1 (nth 0 t1 [])). apply H1. left. reflexivity. right. apply nth_In. lia. } rewrite Nat.min_id. lia. 
+             }
+         replace (sum_f 0 (length ([h1] ++ t1) - 1) (fun j : nat => nth i (nth j ([h1] ++ t1) []) 0)) with (sum_f 0 (length ([h1] ++ t1) - 1) (fun j : nat => 0)).
+         2 : { apply sum_f_equiv; try lia. intros k H5. rewrite nth_overflow. reflexivity. specialize (H1 (nth k ([h1] ++ t1) []) h1).
+               assert (H6 : In (nth k ([h1] ++ t1) []) (h1 :: t1)). { apply nth_In. simpl in *. lia. } assert (H7 : In h1 (h1 :: t1)). { left. reflexivity. } rewrite (H1 H6 H7). lia. }
+         rewrite sum_f_const. lra.
+       }
+    replace (nth i (fold_right add_lists (fold_right add_lists (repeat 0 (length (nth 0 ([h1] ++ t1) []))) t1) [h1]) 0) with (nth i (add_lists h1 (fold_right add_lists (repeat 0 (length h1)) t1)) 0) by reflexivity.
+       
+    rewrite add_lists_separate with (m := length h1). 
+    4 : { rewrite <- fold_left_add_lists_symmetric. rewrite fold_left_add_lists_length'; try lia. rewrite min_list_len_cons; try tauto. rewrite repeat_length. rewrite min_list_same_length.
+          2 : { intros l2 l3 H5 H6. apply H1; (right; auto). } replace (length h1) with (length (nth 0 (t1) [])). 2 : { apply H1. right. apply nth_In. lia. left. reflexivity. } apply Nat.min_id. }
+    2 : { lia.  }
+    2 : { reflexivity. }
+    replace (length h1) with (length (nth 0 t1 [])). 2 : { apply H1. right. apply nth_In. lia. left. reflexivity. }
+    rewrite IH. 2 : { intros x1 x2 H5 H6. apply H1; (right; auto). }
+    replace (length ([h1] ++ t1) - 1)%nat with (S (length t1 - 1)) by (simpl; lia). rewrite sum_f_nth; try lia. reflexivity.
+Qed.
 
 Lemma nth_fold_left_add_lists : forall (l1 : list (list R)) (i : nat),
   (forall x1 x2 : list R, In x1 l1 -> In x2 l1 -> length x1 = length x2) -> nth i (fold_left add_lists l1 (repeat 0 (length (nth 0 l1 [])))) 0 = sum_f 0 (length l1 - 1) (fun j : nat => nth i (nth j l1 []) 0).
 Proof.
-  intros l1 i H1. induction l1 as [| h1 t1 IH].
-  - destruct i; reflexivity.
-  - replace (nth i (fold_left add_lists (h1 :: t1) (repeat 0 (length (h1 :: t1)))) 0) with (nth i (fold_left add_lists t1 (add_lists (0 :: repeat 0 (length t1)) h1)) 0) by reflexivity.
-    rewrite fold_left_add_lists_symmetric. replace (repeat 0 (length (nth 0 (h1 :: t1) []))) with ((repeat 0 (length h1))) by reflexivity. replace (h1 :: t1) with ([h1] ++ t1) by reflexivity.
-    rewrite fold_right_app. destruct i. rewrite
-    -- simpl. destruct i; destruct h1; try reflexivity. rewrite sum_f_0_0. simpl. lra. rewrite sum_f_0_0. rewrite add_lists_comm. rewrite add_lists_repeat_0. 2 : { lia. } simpl. lra.
-    -- replace (repeat 0 (length (nth 0 (h1 :: h2 :: t2) []))) with (repeat 0 (length h1)) by reflexivity.
-
-Admitted.
+  intros l1 i H1. rewrite fold_left_add_lists_symmetric. apply nth_fold_right_add_lists; auto.
+Qed.
 
 Lemma add_lists_sum_f : forall (m n : nat),
   (m >= 2)%nat -> (n >= 1)%nat -> (exists l1 : list (list R), length l1 = m /\ Forall (fun l2 : list R => length l2 = m /\ (forall i : nat, nth i l1 [] = l2 -> choose (m + 1) (i + 2) * sum_f 1 n (fun k : nat => INR k ^ (m + 1 - (i + 2))) = sum_f 0 (m - 1) (fun i0 : nat => nth i0 l2 0 * INR n ^ (i0 + 1)))) l1)
@@ -856,13 +936,14 @@ Proof.
   - apply fold_left_add_lists_length with (m := m); try lia. intros l2 H5. apply H4. apply H5. rewrite repeat_length. reflexivity.
   - rewrite sum_f_reindex with (s := 2%nat); try lia. replace (2 - 2)%nat with 0%nat by lia. replace (m + 1 - 2)%nat with (m - 1)%nat by lia.
     replace (sum_f 0 (m - 1) (fun i : nat => nth i (fold_left add_lists l1 (repeat 0 m)) 0 * INR n ^ (i + 1))) with (sum_f 0 (m - 1) (fun i : nat => sum_f 0 (m - 1) (fun j : nat => nth i (nth j l1 []) 0) * INR n ^ (i + 1))).
-    2 : { apply sum_f_equiv; try lia. intros i H5. rewrite <- H3 at 2. rewrite nth_fold_left_add_lists; try lia. 2 : { intros x1 x2 H6 H7. apply H4 in H6 as [H6 H8]. apply H4 in H7 as [H7 H9]. lia. }
+    2 : { apply sum_f_equiv; try lia. intros i H5. rewrite <- H3 at 2. replace (length l1) with (length (nth 0 l1 [])). 2 : { specialize (H4 (nth 0 l1 [])). assert (H6 : In (nth 0 l1 []) l1). apply nth_In. lia. apply H4 in H6. lia. }
+    rewrite nth_fold_left_add_lists; try lia. 2 : { intros x1 x2 H6 H7. apply H4 in H6 as [H6 H8]. apply H4 in H7 as [H7 H9]. lia. }
           specialize (H4 (nth i l1 [])). assert (In (nth i l1 []) l1) as H6. { apply nth_In. rewrite H3. lia. } rewrite H3. reflexivity. }
     replace (sum_f 0 (m - 1) (fun x : nat => choose (m + 1) (x + 2) * sum_f 1 n (fun i : nat => INR i ^ (m + 1 - (x + 2))))) with (sum_f 0 (m-1) (fun x : nat => sum_f 0 (m-1) (fun j : nat => nth j (nth (x) l1 []) 0 * INR n ^ (j + 1)))).
     2 : { apply sum_f_equiv; try lia. intros i H5. specialize (H4 (nth i l1 [])). assert (In (nth i l1 []) l1) as H6. { apply nth_In. rewrite H3. lia. } apply H4 in H6 as [H6 H7].
     specialize (H7 i). assert (nth i l1 [] = nth i l1 []) as H8 by reflexivity. apply H7 in H8. rewrite H8. reflexivity. }
     rewrite sum_swap; try lia. apply sum_f_equiv; try lia. intros i H5. rewrite <- r_mult_sum_f_i_n_f. apply Rmult_comm.
-Admitted.
+Qed.
 
 Lemma lemma_2_7 : forall n p,
   (n >= 1)%nat -> (p >= 1)%nat ->
@@ -992,8 +1073,7 @@ Proof.
       rewrite sum_f_plus; try lia. apply sum_f_equiv; try lia. intros k H19. rewrite <- Rmult_plus_distr_r. rewrite Rplus_comm. rewrite <- add_lists_separate with (k := k) (m := m); try lia. lra.
     }
     rewrite add_lists_length. rewrite H16. rewrite H12. lia. 
-Admitted.
-
+Qed.
 
 Close Scope R_scope.
 
@@ -2868,7 +2948,6 @@ Proof.
   - intros [m H1]. exists (Z.to_nat m). lia.
 Qed.
 
-Search (Z.Odd).
 
 Lemma Zpow_neg1_nat_even : forall n : nat,
   Nat.Even n -> (-1) ^ (Z.of_nat n) = 1.
