@@ -3590,6 +3590,69 @@ Proof.
        assert (H17 : (a > 1)%Z) by (destruct H12; lia). specialize (H7 a H17); tauto.
 Qed.
 
+(* TODO -- I still need to do 18 b c, 21, 22a, 26, 27, 28*)
+
+Lemma sqrt_2_lt_sqrt_3 : sqrt 2 < sqrt 3.
+Proof.
+  apply Rsqr_incrst_0; try (apply sqrt_positivity; lra). unfold Rsqr. repeat rewrite sqrt_sqrt; lra.
+Qed.
+
+Lemma sqrt_6_lt_sqrt_2_plus_sqrt_3 : sqrt 6 < sqrt 2 + sqrt 3.
+Proof.
+  assert (0 <= sqrt 6 /\ 0 <= sqrt 2 /\ 0 <= sqrt 3) as [H1 [H2 H3]] by (repeat split; apply sqrt_positivity; lra).
+  apply Rsqr_incrst_0; try lra.
+  unfold Rsqr. rewrite sqrt_sqrt; try lra. field_simplify.
+  repeat rewrite pow2_sqrt; try lra. rewrite Rmult_assoc. rewrite <- sqrt_mult; try lra. replace (2 * 3) with 6 by lra.
+  apply Rsqr_incrst_0; try lra. unfold Rsqr. field_simplify. repeat rewrite pow2_sqrt; try lra.
+Qed.
+
+Lemma sqrt_2_plus_sqrt_3_lt_1_plus_sqrt_6 : sqrt 2 + sqrt 3 < 1 + sqrt 6.
+Proof.
+  assert (0 <= sqrt 6 /\ 0 <= sqrt 2 /\ 0 <= sqrt 3) as [H1 [H2 H3]] by (repeat split; apply sqrt_positivity; lra).
+  apply Rsqr_incrst_0; try lra.
+  unfold Rsqr. field_simplify. repeat rewrite pow2_sqrt; try lra. field_simplify.
+  replace (2 * sqrt 2 * sqrt 3) with (2 * sqrt 6) by (rewrite Rmult_assoc; rewrite <- sqrt_mult; try lra; replace (2 * 3) with 6 by lra; lra).
+  apply Rplus_lt_compat_l; lra.
+Qed.
+
+Lemma sqrt_2_plus_sqrt_3_minus_sqrt_6_gt_0 : sqrt 2 + sqrt 3 - sqrt 6 > 0.
+Proof.
+  pose proof sqrt_6_lt_sqrt_2_plus_sqrt_3 as H1. lra.
+Qed.
+
+Lemma sqrt_2_plus_sqrt_3_minus_sqrt_6_lt_1 : sqrt 2 + sqrt 3 - sqrt 6 < 1.
+Proof.
+  pose proof sqrt_2_plus_sqrt_3_lt_1_plus_sqrt_6 as H1. lra.
+Qed.
+
+Lemma lemma_2_18_b : irrational (sqrt 6 - sqrt 2 - sqrt 3).
+Proof.
+  set (x := sqrt 6 - sqrt 2 - sqrt 3). assert (x^2 = 11 + 2 * sqrt 6 * (1 - (sqrt 2 + sqrt 3))) as H1.
+  { 
+    unfold x. field_simplify. repeat rewrite pow2_sqrt; try lra. field_simplify.
+    replace ( 2 * sqrt 2 * sqrt 3) with (2 * sqrt 6).
+    2 : { rewrite Rmult_assoc. rewrite <- sqrt_mult; try lra. replace (2 * 3) with 6 by lra. lra. } lra. 
+  }
+  assert (H2 : (x^2 - 11)^2 = 144 + 48 * x).
+  {
+    replace ((x^2 - 11)^2) with (24 * (1 - (sqrt 2 + sqrt 3))^2). 2 : { rewrite H1. field_simplify. repeat rewrite pow2_sqrt; try lra. }
+    replace ((1 - (sqrt 2 + sqrt 3)) ^ 2) with ((1 + (sqrt 2 + sqrt 3)^2 - 2 * (sqrt 2 + sqrt 3))) by lra.
+    replace ((1 + (sqrt 2 + sqrt 3) ^ 2 - 2 * (sqrt 2 + sqrt 3))) with (6 + 2 * (sqrt 6 - sqrt 2 - sqrt 3)).
+    2 : { field_simplify. repeat rewrite pow2_sqrt; try lra. field_simplify. replace (2 * sqrt 2 * sqrt 3) with (2 * sqrt 6).
+      2 : { rewrite Rmult_assoc. rewrite <- sqrt_mult; try nra. replace (2 * 3) with 6 by lra. lra. } lra. }
+    fold x. lra.
+  }
+  assert (H3 : (x^2 - 11)^2 = x^4 - 22 * x^2 + 121) by nra.
+  assert (H4 : x^4 - 22 * x^2 - 48 * x - 23 = 0) by nra.
+  assert (H5 : sum_f 0 4 (fun i => IZR (nth i [-23; -48; -22; 0]%Z 1%Z) * x ^ i) = 0).
+  { repeat rewrite sum_f_i_Sn_f; try rewrite sum_f_0_0; try lia. simpl. field_simplify. nra. }
+  apply lemma_2_18_a in H5 as [H5 | H5]; auto. assert (H6 : sqrt 6 - sqrt 2 - sqrt 3 > -1).
+  { pose proof sqrt_2_plus_sqrt_3_lt_1_plus_sqrt_6; lra. } assert (H7 : sqrt 6 - sqrt 2 - sqrt 3 < 0).
+  { pose proof sqrt_2_plus_sqrt_3_minus_sqrt_6_gt_0; lra. } 
+  destruct H5 as [n H5]. fold x in H6. fold x in H7.  assert (n < 0)%Z as H8. { apply lt_IZR. lra. }
+  assert (n > - 1)%Z as H9. { apply Z.lt_gt. apply lt_IZR. lra. } lia.
+Qed.
+
 Lemma Rpow_lt_1 : forall r n,
   0 < r < 1 -> (n > 0)%nat -> r ^ n < 1.
 Proof.
