@@ -2025,6 +2025,14 @@ Proof.
             ++ apply div_trans with (b := p); (try apply IH; try apply H5).
 Qed.
 
+Lemma prime_divides_2 : forall z,
+  (z < -1 \/ z > 1) -> (exists p, Znt.prime' p /\ (p | z)).
+Proof.
+  intros z [H1 | H2]. 
+  - pose proof prime_divides (-z) as H3. assert (-z > 1) as H4 by lia. apply H3 in H4. destruct H4 as [p [H4 [r H5]]]. exists p. split; auto. exists (-r). lia.
+  - apply prime_divides in H2. auto.
+Qed.
+
 Lemma prime_no_div : forall p z,
   Znt.prime' p -> (p | z) -> ~(p | z + 1).
 Proof.
@@ -3457,6 +3465,130 @@ Qed.
 Close Scope Z_scope.
 
 Open Scope R_scope.
+
+Definition integer (x : R) : Prop :=
+  exists n : Z, x = IZR n.
+
+Lemma pow_sub : forall (x:R) (n m:nat), x <> 0 -> (n >= m)%nat -> x ^ (n - m) = x ^ n / x ^ m.
+Proof.
+  intros x n m H1 H2. induction m as [| k IH].
+  - simpl. rewrite Nat.sub_0_r. lra.
+  - assert (n = S k \/ n >= k)%nat as [H3 | H3] by lia.
+    -- rewrite H3. replace (S k - S k)%nat with 0%nat by lia. rewrite pow_O. field. apply pow_nonzero; auto.
+    -- apply Rmult_eq_reg_l with (r := x); auto. replace x with (x^1) at 1 by lra. rewrite <- pow_add. replace (1 + (n - S k))%nat with (n - k)%nat by lia.
+        rewrite IH; try lia. simpl. field. split; auto. apply pow_nonzero; auto.
+Qed.
+
+Lemma div_nonzero: forall x y : R, x <> 0 -> y <> 0 -> x / y <> 0.
+Proof.
+  intros x y Hx Hy.
+  unfold Rdiv.
+  apply Rmult_integral_contrapositive_currified; auto.
+  apply Rinv_neq_0_compat; auto.
+Qed.
+
+Lemma sum_divides_Z : forall a b c : Z,
+  (c <> 0)%Z -> (a + b = 0)%Z -> (c | a)%Z -> (c | b)%Z.
+Proof.
+  intros a b c H1 H2 [d H3]. exists (-a / c)%Z. assert (H4 : (a = -b)%Z) by lia. rewrite Z.mul_comm. rewrite z_mul_div. rewrite Z_div_mult_good. lia. 
+  3 : { exists (-d)%Z. lia. } lia. lia.
+Qed.
+
+Definition R_divides (r1 r2 : R) : Prop :=
+  exists a b : Z, r1 = IZR a /\ r2 = IZR b /\ (a | b)%Z.
+
+Notation "( x | y )" := (R_divides x y) (at level 0) : R_scope.
+
+Lemma R_divides_refl : (3 | 6)%R.
+Proof.
+  exists (3%Z), (6%Z); repeat split; try reflexivity. exists 2%Z. reflexivity.
+Qed.
+
+Lemma R_divides_plus : forall r r1 r2,
+  (r | r1) -> (r | r2) -> (r | (r1 + r2)).
+Proof.
+  intros r r1 r2 [a [b [H1 [H2 [c H3]]]]] [e [f [H4 [H5 [g H6]]]]]. exists (a%Z), (b + f)%Z. repeat split; auto.
+  - rewrite plus_IZR. lra.
+  - exists (c + g)%Z. rewrite H3. rewrite H6. apply eq_IZR. rewrite plus_IZR. repeat rewrite mult_IZR. rewrite plus_IZR.
+    apply IZR_eq in H6, H3. rewrite mult_IZR in H3, H6. nra. 
+Qed.
+
+Lemma R_divides_sum : forall i n (f : nat -> R) (r : R),
+  (i <= n)%nat -> (forall j, (i <= j <= n)%nat -> (r | f j)) -> (r | sum_f i n f).
+Proof.
+  intros i n f r H1 H2. induction n as [| k IH].
+  - assert (i = 0)%nat as H5 by lia. rewrite H5. rewrite sum_f_0_0. specialize (H2 0%nat). auto.
+  - assert (i = S k \/ i = k \/ i < k)%nat as [H3 | [H3 | H3]] by lia.
+    -- rewrite H3. rewrite sum_f_n_n. specialize (H2 (S k)). auto.
+    -- rewrite sum_f_i_Sn_f; try lia. apply R_divides_plus; auto. apply IH; try lia. intros j H4. apply H2. lia.
+    -- rewrite sum_f_i_Sn_f; try lia. apply R_divides_plus; auto. apply IH; try lia. intros j H4. apply H2. lia.
+Qed.
+
+Lemma IZR_divides : forall a b,
+  (a | b)%Z <-> (IZR a | IZR b).
+Proof.
+  intros a b. split.
+  - exists a, b. repeat split; auto.
+  - intros [c [d [H1 [H2 H3]]]]. apply eq_IZR in H1, H2. rewrite H1, H2. auto.
+Qed.
+
+Lemma divides_neg_R : forall r1 r2,
+  (r1 | r2) -> (r1 | -r2).
+Proof.
+  intros r1 r2 [a [b [H1 [H2 H3]]]]. rewrite H1, H2. rewrite <- opp_IZR. apply IZR_divides. apply Z.divide_opp_r. auto.
+Qed.
+
+Lemma prime_div_pow_div_Z : forall p a n,
+  Znt.prime p -> (p | a ^ Z.of_nat n)%Z -> (p | a)%Z.
+Proof.
+  intros p a n H1 H2. induction n as [| k IH].
+  - simpl in H2. destruct H2 as [b H2]. apply Znt.prime_alt in H1 as [H1 H1']. assert (b = 1)%Z as H3 by lia. lia.
+  - replace (Z.of_nat (S k)) with (Z.succ (Z.of_nat k)) in H2 by lia. rewrite Z.pow_succ_r in H2; try lia. apply Znt.prime_mult in H2 as [H2 | H2]; auto.
+Qed.
+
+Lemma lemma_2_18_a : forall (x : R) (l : list Z),
+  (sum_f 0 (length l) (fun i => IZR (nth i l 1%Z) * x ^ i) = 0) -> (irrational x \/ integer x).
+Proof.
+  intros x l H1. assert (rational x \/ irrational x) as [H2 | H2] by apply classic; auto; right.
+  destruct H2 as [p [q H2]]. assert ((p = 0 \/ q = 0) \/ (p <> 0 /\ q <> 0))%Z as [[H3 | H3] | [H3 H4]] by lia.
+  - assert (x = 0) as H4. { rewrite H2. rewrite H3. lra. } rewrite H4. exists 0%Z. reflexivity.
+  - assert (x = 0) as H4. { rewrite H2. rewrite H3. unfold Rdiv. rewrite Rinv_0. lra. } rewrite H4. exists 0%Z. reflexivity.
+  - pose proof (rational_representation x p q H3 H4 H2) as [p' [q' [H6 H7]]]. assert (H8 : x <> 0). { rewrite H2. apply div_nonzero. apply not_0_IZR. apply H3. apply not_0_IZR. apply H4. }
+    assert (H9 : (p' <> 0)%Z). { apply x_neq_0_IZR_num_neq_0 with (x := x) (z := q'); tauto. } assert (H10 : (q' <> 0)%Z). { apply x_neq_0_IZR_den_neq_0 with (x := x) (y := p'); tauto. }
+    rewrite H6 in H1. apply Rmult_eq_compat_l with (r := IZR q' ^ (length l)) in H1.
+    rewrite Rmult_0_r in H1. rewrite r_mult_sum_f_i_n_f in H1. replace (sum_f 0 (length l) (fun i : nat => IZR (nth i l 1%Z) * (IZR p' / IZR q') ^ i * IZR q' ^ length l)) with 
+    (sum_f 0 (length l) (fun i : nat => IZR (nth i l 1%Z) * IZR p' ^ i * IZR q' ^ (length l - i))) in H1.
+     2 : { apply sum_f_equiv; try lia. intros i H11. rewrite Rmult_assoc with (r2 := (IZR p' / IZR q') ^ i). rewrite Rpow_div_l; try (apply not_0_IZR; tauto). field_simplify.
+           2 : { rewrite pow_IZR. apply not_0_IZR. apply Z.pow_nonzero; lia. }
+          rewrite pow_sub; try lia. lra. apply not_0_IZR; auto.
+         }
+    assert (q' = 1 \/ q' = -1 \/ (q' <> 1 /\ q' <> -1))%Z as [H11 | [H11 | H11]] by lia.
+    -- exists p'. rewrite H6. rewrite H11. lra.
+    -- exists (-p')%Z. rewrite H6. rewrite H11. replace (-p')%Z with (-1 * p')%Z by lia. rewrite mult_IZR. nra.
+    -- pose proof (prime_divides_2 (q')) as [a [H12 [b H13]]]; try lia.
+       replace ((fun i : nat => IZR (nth i l 1%Z) * IZR p' ^ i * IZR q' ^ (length l - i))) with ((fun i : nat => IZR ((nth i l 1%Z) * p' ^ Z.of_nat i * q' ^ Z.of_nat(length l - i)))) in H1.
+       2 : { apply functional_extensionality. intros i. repeat rewrite pow_IZR. repeat rewrite <- mult_IZR. reflexivity. }
+       destruct l as [| h t]. { rewrite sum_f_0_0 in H1. simpl in H1; lra. } replace (length (h :: t)) with (S (length t)) in H1 by reflexivity.
+       rewrite sum_f_i_Sn_f in H1; try lia. assert (H14 : (IZR a | sum_f 0 (length t) (fun i : nat => IZR (nth i (h :: t) 1%Z * p' ^ Z.of_nat i * q' ^ Z.of_nat (S (length t) - i))))).
+       { 
+          apply R_divides_sum; try lia. intros j H14. apply IZR_divides. exists (nth j (h :: t) 1 * p' ^ Z.of_nat j * q' ^ Z.of_nat (length t - j) * b)%Z.
+          assert (nth j (h :: t) 1 * p' ^ Z.of_nat j = 0 \/ nth j (h :: t) 1 * p' ^ Z.of_nat j <> 0)%Z as [H15 | H15] by lia.
+          - rewrite H15. lia.
+          - pose proof Z.mul_cancel_l (q' ^ Z.of_nat (S (length t) - j))%Z (q' ^ Z.of_nat (length t - j) * b * a)%Z (nth j (h :: t) 1 * p' ^ Z.of_nat j)%Z as [_ H16]; auto.
+            replace ((nth j (h :: t) 1 * p' ^ Z.of_nat j * q' ^ Z.of_nat (length t - j) * b * a)%Z) with ((nth j (h :: t) 1 * p' ^ Z.of_nat j * (q' ^ Z.of_nat (length t - j) * b * a))%Z) by lia. apply H16. clear H15 H16.
+            replace (S (length t) - j)%nat with (S (length t - j))%nat by lia. replace (Z.of_nat (S (length t - j))) with (Z.succ (Z.of_nat (length t - j))) by lia. rewrite Z.pow_succ_r; lia.
+       }
+       assert (H15 : (IZR a | IZR (nth (S (length t)) (h :: t) 1%Z * p' ^ Z.of_nat (S (length t)) * q' ^ Z.of_nat (S (length t) - S (length t))))).
+       {
+          replace (IZR (nth (S (length t)) (h :: t) 1%Z * p' ^ Z.of_nat (S (length t)) * q' ^ Z.of_nat (S (length t) - S (length t)))) with 
+          (- sum_f 0 (length t) (fun i : nat => IZR (nth i (h :: t) 1%Z * p' ^ Z.of_nat i * q' ^ Z.of_nat (S (length t) - i)))) by lra.
+          apply divides_neg_R. apply H14.
+       }
+       apply IZR_divides in H15. replace (nth (S (length t)) (h :: t) 1)%Z with 1%Z in H15. 2 : { simpl. rewrite nth_overflow; lia. } rewrite Z.mul_1_l in H15.
+       replace (q' ^ Z.of_nat (S (length t) - S (length t)))%Z with 1%Z in H15. 2 : { replace (S (length t) - S (length t))%nat with 0%nat by lia. lia. }
+       rewrite Z.mul_1_r in H15.  apply prime_div_pow_div_Z in H15. 2 : { apply Znt.prime_alt; auto. } assert (H16 : (a | q')%Z). { exists b. lia. }
+       assert (H17 : (a > 1)%Z) by (destruct H12; lia). specialize (H7 a H17); tauto.
+Qed.
 
 Lemma Rpow_lt_1 : forall r n,
   0 < r < 1 -> (n > 0)%nat -> r ^ n < 1.
