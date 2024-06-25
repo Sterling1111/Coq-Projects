@@ -3590,7 +3590,7 @@ Proof.
        assert (H17 : (a > 1)%Z) by (destruct H12; lia). specialize (H7 a H17); tauto.
 Qed.
 
-(* TODO -- I still need to do 18 c, 21, 22a, 26, 27, 28*)
+(* TODO -- I still need to do 21, 22a, 26, 27, 28*)
 
 Lemma sqrt_2_lt_sqrt_3 : sqrt 2 < sqrt 3.
 Proof.
