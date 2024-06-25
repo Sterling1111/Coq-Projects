@@ -3590,7 +3590,7 @@ Proof.
        assert (H17 : (a > 1)%Z) by (destruct H12; lia). specialize (H7 a H17); tauto.
 Qed.
 
-(* TODO -- I still need to do 18 b c, 21, 22a, 26, 27, 28*)
+(* TODO -- I still need to do 18 c, 21, 22a, 26, 27, 28*)
 
 Lemma sqrt_2_lt_sqrt_3 : sqrt 2 < sqrt 3.
 Proof.
@@ -3651,6 +3651,72 @@ Proof.
   { pose proof sqrt_2_plus_sqrt_3_minus_sqrt_6_gt_0; lra. } 
   destruct H5 as [n H5]. fold x in H6. fold x in H7.  assert (n < 0)%Z as H8. { apply lt_IZR. lra. }
   assert (n > - 1)%Z as H9. { apply Z.lt_gt. apply lt_IZR. lra. } lia.
+Qed.
+
+Lemma pow_incrst_1 : forall r1 r2 n,
+  (n > 0)%nat -> r1 > 0 -> r2 > 0 -> r1 < r2 -> r1^n < r2^n.
+Proof.
+  intros r1 r2 n H1 H2 H3 H4. generalize dependent r1. generalize dependent r2. induction n as [| k IH].
+  - lia.
+  - intros r2 H2 r1 H3 H4. simpl. destruct k; try nra. assert (H6 : r1^(S k) < r2 ^(S k)). { apply IH; try lia; try nra. }
+    apply Rmult_gt_0_lt_compat; try nra. simpl. assert (r1 ^ k > 0). { apply pow_lt; nra. } nra. 
+Qed.
+
+Lemma pow_incrst_0 : forall r1 r2 n,
+  r1 > 0 -> r2 > 0 -> r1^n < r2^n -> r1 < r2.
+Proof.
+  intros r1 r2 n H1 H2 H3. generalize dependent r1. generalize dependent r2. induction n as [| k IH].
+  - intros r2 H1 r1 H2 H3. simpl in H3. lra.
+  - intros r2 H1 r1 H2 H3. assert (k = 0 \/ k > 0)%nat as [H4 | H4] by lia.
+    -- rewrite H4 in H3. simpl in H3. lra.
+    -- simpl in H3. pose proof (Rtotal_order r1 r2) as [H5 | [H5 | H5]]; try nra.
+       + rewrite H5 in H3. nra.
+       + pose proof (pow_incrst_1 r2 r1 k H4 H1 H2) as H6. apply Rgt_lt in H5. specialize (H6 H5). assert (r1 ^ k > 0). { apply pow_lt; nra. } nra.
+Qed.
+
+Lemma sqrt_2_weak_bound : 1.4 < sqrt 2 < 1.5.
+Proof.
+   split; (apply Rsqr_incrst_0; try lra; unfold Rsqr; repeat rewrite sqrt_sqrt; try lra; apply sqrt_pos).
+Qed.
+
+Lemma cbrt_2_weak_bound : 1.2 < Rpower 2 (1/3) < 1.3.
+Proof.
+  split; apply pow_incrst_0 with (n := 3%nat); try nra; try apply Rpower_gt_0; try lra; simpl; repeat rewrite Rmult_1_r; repeat rewrite <- Rpower_plus;
+  replace (1 / 3 + (1 / 3 + 1 / 3)) with (INR 1); try rewrite Rpower_1; try nra; try nra; simpl; nra.
+Qed.
+
+Lemma not_integer : forall r n,
+  IZR n < r < IZR (n + 1) -> ~ integer r.
+Proof.
+  intros r n [H1 H2] [m H3]. rewrite H3 in H1, H2. apply lt_IZR in H1, H2. lia.
+Qed.
+
+Lemma lemma_2_18_d : irrational (Rpower 2 (1/2) + Rpower 2 (1/3)).
+Proof.
+  set (x := Rpower 2 (1/2) + Rpower 2 (1/3)). assert (((x - (Rpower 2 (1/2)))^3 - 2) * ((x + (Rpower 2 (1/2)))^3 - 2) = 0) as H1.
+  {
+    unfold x. field_simplify. repeat rewrite <- Rpower_pow; try (apply Rpower_gt_0; lra).
+    repeat rewrite Rpower_mult. replace (1/2 * INR 3) with (3/2) by (simpl; lra). replace (1/3 * INR 3) with (INR 1) by (simpl; lra).
+    replace (1/2 * INR 2) with (INR 1) by (simpl; lra). 
+    replace (1/3 * INR 5) with (5/3) by (simpl; lra). replace (1/3 * INR 2) with (2/3) by (simpl; lra).
+    replace (1/3 * INR 6) with (INR 2) by (simpl; lra). repeat rewrite Rpower_pow; try lra. field_simplify.
+    replace (6 * Rpower 2 (1 / 2) * Rpower 2 (5 / 3)) with (6 * Rpower 2 (INR 2 + 1 / 6)). 2 : { rewrite Rmult_assoc. rewrite <- Rpower_plus. replace (1/2 + 5/3) with (INR 2 + 1/6) by (simpl; lra). reflexivity. }
+    replace (12 * Rpower 2 (1 / 2) * Rpower 2 (2 / 3)) with (12 * Rpower 2 (INR 1 + 1/6)). 2 : { rewrite Rmult_assoc. rewrite <- Rpower_plus. replace (1/2 + 2/3) with (INR 1 + 1/6) by (simpl; lra). reflexivity. }
+    rewrite <- Rpower_mult. repeat rewrite Rpower_plus. repeat rewrite Rpower_pow; try apply Rpower_gt_0; try lra. field_simplify.
+    replace (Rpower 2 (1/3) ^ 4) with (Rpower 2 (1/3) * Rpower 2 (1/3)^3) by reflexivity. rewrite <- Rpower_pow; try apply Rpower_gt_0; try lra. rewrite Rpower_mult. replace (1/3 * INR 3) with 1 by (simpl; lra).
+    rewrite Rpower_1; lra.
+  }
+  assert (H2 : ((x - (Rpower 2 (1/2)))^3 - 2) * ((x + (Rpower 2 (1/2)))^3 - 2) = x^6 - 6 * x^4 - 4 * x^3 + 12 * x^2 - 24 * x - 4).
+  {
+    replace (Rpower 2 (1/2)) with (sqrt 2). 2 : { unfold Rdiv. rewrite Rmult_1_l. rewrite Rpower_sqrt; lra. }
+    field_simplify. replace (sqrt 2 ^ 6) with (sqrt 2 ^2 * sqrt 2^4). 2 : { simpl. lra. } replace (sqrt 2 ^ 4) with (sqrt 2 ^2 * sqrt 2 ^ 2) by (simpl; lra). replace (sqrt 2 ^ 2) with 2. 2 : { rewrite pow2_sqrt; lra. }
+    nra.
+  }
+  assert (H3 : sum_f 0 6 (fun i => IZR (nth i [-4; -24; 12; -4; -6; 0]%Z 1%Z) * x ^ i) = 0).
+  { repeat rewrite sum_f_i_Sn_f; try rewrite sum_f_0_0; try lia. simpl. field_simplify. nra. }
+  apply lemma_2_18_a in H3 as [H3 | H3]; auto.
+  pose proof (sqrt_2_weak_bound) as H4. pose proof (cbrt_2_weak_bound) as H5. replace (sqrt 2) with (Rpower 2 (1/2)) in H4. 2 : { rewrite <- Rpower_sqrt; try lra. unfold Rdiv. rewrite Rmult_1_l. reflexivity. }
+  assert (H6 : 2.6 < x < 2.8). { unfold x. nra. } assert (H7 : IZR 2 < x < IZR (2 + 1)) by (simpl; lra). apply (not_integer x 2%Z) in H7; tauto.
 Qed.
 
 Lemma Rpow_lt_1 : forall r n,
