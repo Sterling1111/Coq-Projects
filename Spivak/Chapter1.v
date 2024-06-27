@@ -437,6 +437,7 @@ Proof.
   replace ((-y) ^ 2) with (y ^ 2) by lra. lra.
 Qed.
 
+(*
 Lemma lemma_1_2 : forall x y : R,
   x = y -> 1 = 2.
 Proof.
@@ -455,8 +456,9 @@ Proof.
        --- rewrite Rmult_1_r in H1. rewrite H1. reflexivity.
        --- apply H3.
     -- (*we fail here because y is 0 so cant apply Rinv_l*) admit.
-  - apply Rminus_diag_eq in H2. (* we fail here again because x - y = 0*) 
-Abort.
+  - apply Rminus_diag_eq in H2. admit. (* we fail here again because x - y = 0*) 
+Admitted.
+*)
 
 (*we dont need b <> 0 in this proof because in coq r / 0 = 0 so it hold true anyway*)
 Lemma lemma_1_3_i : forall a b c : R,

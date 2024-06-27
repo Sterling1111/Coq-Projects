@@ -3691,7 +3691,7 @@ Proof.
   intros r n [H1 H2] [m H3]. rewrite H3 in H1, H2. apply lt_IZR in H1, H2. lia.
 Qed.
 
-Lemma lemma_2_18_d : irrational (Rpower 2 (1/2) + Rpower 2 (1/3)).
+Lemma lemma_2_18_c : irrational (Rpower 2 (1/2) + Rpower 2 (1/3)).
 Proof.
   set (x := Rpower 2 (1/2) + Rpower 2 (1/3)). assert (((x - (Rpower 2 (1/2)))^3 - 2) * ((x + (Rpower 2 (1/2)))^3 - 2) = 0) as H1.
   {

@@ -1,6 +1,4 @@
 Require Import Lia ZArith List.
-From Cpdt Require Import CpdtTactics.
-
 
 Lemma strong_induction :
   forall P : nat -> Prop,
