@@ -61,7 +61,7 @@ Qed.
 Lemma sum_f_R0_f_Sn : forall f n,
   sum_f_R0 f (S n) = sum_f_R0 f n + f (S n).
 Proof.
-  destruct n; simpl; lra.
+  destruct n; simpl; reflexivity.
 Qed.
 
 Lemma sum_f_R0_fSx_n : forall n f,
@@ -229,6 +229,19 @@ Proof.
        2 : { lia. } reflexivity.
     -- replace (S n' - i)%nat with (S (n' - i)%nat) by lia. repeat rewrite sum_f_R0_f_Sn.
        rewrite IH. 2 : { lia. } rewrite H2. 2 : { lia. } reflexivity. intros k H4. apply H2. lia.
+Qed.
+
+Lemma sum_f_nonneg : forall f i n,
+  (i <= n)%nat ->
+  (forall k, (i <= k <= n)%nat -> 0 <= f k) -> 0 <= sum_f i n f.
+Proof.
+  intros f i n H1 H2. unfold sum_f. induction n as [| n' IH].
+  - simpl. apply H2. lia.
+  - assert (H3 : (i = S n')%nat \/ (i < S n')%nat) by lia. destruct H3 as [H3 | H3].
+    -- replace (S n' - i)%nat with 0%nat by lia. simpl. apply H2. lia.
+    -- replace (S n' - i)%nat with (S (n' - i)%nat) by lia. repeat rewrite sum_f_R0_f_Sn.
+       rewrite IH; try lia. replace (S (n' - i) + i)%nat with (S n')%nat by lia. assert (0 <= f (S n')) as H4.
+       { apply H2. lia. } lra. intros k H5. apply H2. lia.
 Qed.
 
 Theorem sum_f_equiv : forall (i n : nat) (f1 f2 : nat -> R),
@@ -437,7 +450,7 @@ Proof.
   replace ((-y) ^ 2) with (y ^ 2) by lra. lra.
 Qed.
 
-(*
+
 Lemma lemma_1_2 : forall x y : R,
   x = y -> 1 = 2.
 Proof.
@@ -457,8 +470,8 @@ Proof.
        --- apply H3.
     -- (*we fail here because y is 0 so cant apply Rinv_l*) admit.
   - apply Rminus_diag_eq in H2. admit. (* we fail here again because x - y = 0*) 
-Admitted.
-*)
+Abort.
+
 
 (*we dont need b <> 0 in this proof because in coq r / 0 = 0 so it hold true anyway*)
 Lemma lemma_1_3_i : forall a b c : R,
