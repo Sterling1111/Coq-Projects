@@ -231,6 +231,20 @@ Proof.
        rewrite IH. 2 : { lia. } rewrite H2. 2 : { lia. } reflexivity. intros k H4. apply H2. lia.
 Qed.
 
+Lemma sum_f_congruence_le : forall (f1 f2 : nat -> R) (i n : nat),
+  (i <= n)%nat ->
+  (forall k, (i <= k <= n)%nat -> f1 k <= f2 k) ->
+  sum_f i n f1 <= sum_f i n f2.
+Proof.
+  intros f1 f2 i n H1 H2. unfold sum_f. induction n as [| n' IH].
+  - simpl. apply H2. lia.
+  - assert (H3 : (i = S n')%nat \/ (i < S n')%nat) by lia. destruct H3 as [H3 | H3].
+    -- replace (S n' - i)%nat with 0%nat by lia. simpl. apply H2. lia.
+    -- replace (S n' - i)%nat with (S (n' - i)%nat) by lia. repeat rewrite sum_f_R0_f_Sn.
+       replace (S (n' - i) + i)%nat with (S n')%nat by lia. assert (f1 (S n') <= f2 (S n')) as H4.
+       { apply H2. lia. } apply Rplus_le_compat. apply IH. lia. intros k H5. apply H2. lia. apply H4.
+Qed.
+
 Lemma sum_f_nonneg : forall f i n,
   (i <= n)%nat ->
   (forall k, (i <= k <= n)%nat -> 0 <= f k) -> 0 <= sum_f i n f.
