@@ -29,7 +29,7 @@ Lemma strong_induction_list :
   (forall l, (forall l', length l' < length l -> P l') -> P l) ->
   forall l, P l.
 Proof.
-  intros P H1 l. assert (H2: forall l', length l' <= length l -> P l').¢
+  intros P H1 l. assert (H2: forall l', length l' <= length l -> P l').
   - induction l.
     -- intros l' Hl'. inversion Hl'. apply H1. intros l'' Hl''. lia.
     -- intros l' Hl'. apply H1. intros l'' Hl''. apply IHl. simpl in Hl'. lia.

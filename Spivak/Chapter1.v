@@ -151,6 +151,12 @@ Proof.
   intros. unfold sum_f. simpl. lra.
 Qed.
 
+Lemma sum_f_n_0 : forall f n,
+  sum_f n 0 f = f n%nat.
+Proof.
+  intros. unfold sum_f. simpl. reflexivity.
+Qed.
+
 Lemma sum_f_n_n : forall f n,
   sum_f n n f = f n.
 Proof.
@@ -256,6 +262,34 @@ Proof.
     -- replace (S n' - i)%nat with (S (n' - i)%nat) by lia. repeat rewrite sum_f_R0_f_Sn.
        rewrite IH; try lia. replace (S (n' - i) + i)%nat with (S n')%nat by lia. assert (0 <= f (S n')) as H4.
        { apply H2. lia. } lra. intros k H5. apply H2. lia.
+Qed.
+
+Lemma sum_f_pos : forall f i n,
+  (i <= n)%nat ->
+  (forall k, (i <= k <= n)%nat -> 0 < f k) -> 0 < sum_f i n f.
+Proof.
+  intros f i n H1 H2. unfold sum_f. induction n as [| n' IH].
+  - simpl. apply H2. lia.
+  - assert (H3 : (i = S n')%nat \/ (i < S n')%nat) by lia. destruct H3 as [H3 | H3].
+    -- replace (S n' - i)%nat with 0%nat by lia. simpl. apply H2. lia.
+    -- replace (S n' - i)%nat with (S (n' - i)%nat) by lia. repeat rewrite sum_f_R0_f_Sn.
+       rewrite IH; try lia. replace (S (n' - i) + i)%nat with (S n')%nat by lia. assert (0 < f (S n')) as H4.
+       { apply H2. lia. } lra. intros k H5. apply H2. lia.
+Qed.
+
+Lemma sum_f_pos' : forall f i n,
+  (i <= n)%nat ->
+  (forall k, (i <= k <= n)%nat -> 0 <= f k) -> (exists k, (i <= k <= n)%nat /\ 0 < f k) -> 0 < sum_f i n f.
+Proof.
+  intros f i n H1 H2 H3. induction n as [| n' IH].
+  - rewrite sum_f_n_0. destruct H3 as [k [H4 H5]]. replace i with k by lia. apply H5.
+  - assert ((i = S n')%nat \/ (i < S n')%nat) as [H4 | H4] by lia.
+    -- rewrite <- H4. rewrite sum_f_n_n. destruct H3 as [k [H5 H6]]. replace i with k by lia. apply H6.
+    -- rewrite sum_f_i_Sn_f; try lia. assert (0 <= f (S n')) as [H5 | H5] by (apply H2; lia).
+       + assert (H6 : 0 <= sum_f i n' f). { apply sum_f_nonneg; try lia. intros k H6. apply H2. lia. } lra.
+       + destruct H3 as [k [H6 H7]]. assert (k = S n' \/ k < S n')%nat as [H8 | H8] by lia.
+         * rewrite <- H8 in H5. lra.
+         * rewrite <- H5. rewrite Rplus_0_r. apply IH; try lia. intros k2 H9. apply H2. lia. exists k; split. lia. lra.
 Qed.
 
 Theorem sum_f_equiv : forall (i n : nat) (f1 f2 : nat -> R),
@@ -1809,28 +1843,26 @@ Proof.
       rewrite H20 in H5. rewrite Rdiv_0_l in H5. repeat rewrite <- Rsqr_pow2 in H5. rewrite <- Rsqr_div' in H5. 
       assert (H21 : 0 <= ((x1 * y1 + x2 * y2) / (y1² + y2²))² ) by (apply Rle_0_sqr). nra.
     }
-    {
-      apply Rmult_lt_compat_r with (r := (y1 ^ 2 + y2 ^ 2) ^ 2) in H5. 2 : { nra. }
-      assert (0 < sqrt (y1 ^ 2 + y2 ^ 2)) as H7. { apply sqrt_lt_R0. nra. }
-      replace ((x1 * y1 + x2 * y2) ^ 2 / (y1 ^ 2 + y2 ^ 2) ^ 2 * (y1 ^ 2 + y2 ^ 2) ^ 2) with ((x1 * y1 + x2 * y2) ^ 2) in H5 by (field; nra).
-      replace ((x1 ^ 2 + x2 ^ 2) / (y1 ^ 2 + y2 ^ 2) * (y1 ^ 2 + y2 ^ 2) ^ 2) with ((x1 ^ 2 + x2 ^ 2) * (y1 ^ 2 + y2 ^ 2)) in H5 by (field; nra).
-      apply sqrt_lt_1 in H5. 2 : { rewrite <- Rsqr_pow2. apply Rle_0_sqr. } 2 : { nra. }
-      pose proof Rtotal_order (x1 * y1 + x2 * y2) 0 as [H8 | [H8 | H8]].
-      2 : {
-          assert (H9 : (x1^2 + x2^2 = 0) \/ (x1^2 + x2^2 <> 0)) by lra. destruct H9 as [H9 | H9].
-          - rewrite H9 in H5. rewrite H8 in H4. replace (0^2) with 0 in H5 by nra. rewrite Rmult_0_l in H5. rewrite sqrt_0 in H5.
-            assert (H10 : 0 <= sqrt ((x1 * y1 + x2 * y2)^2)) by (apply sqrt_pos). nra.
-          - rewrite H8. rewrite <- sqrt_mult. 2 : { nra. } 2 : { nra. } apply sqrt_lt_R0. nra.
-      }
-      2 : {
+    apply Rmult_lt_compat_r with (r := (y1 ^ 2 + y2 ^ 2) ^ 2) in H5. 2 : { nra. }
+    assert (0 < sqrt (y1 ^ 2 + y2 ^ 2)) as H7. { apply sqrt_lt_R0. nra. }
+    replace ((x1 * y1 + x2 * y2) ^ 2 / (y1 ^ 2 + y2 ^ 2) ^ 2 * (y1 ^ 2 + y2 ^ 2) ^ 2) with ((x1 * y1 + x2 * y2) ^ 2) in H5 by (field; nra).
+    replace ((x1 ^ 2 + x2 ^ 2) / (y1 ^ 2 + y2 ^ 2) * (y1 ^ 2 + y2 ^ 2) ^ 2) with ((x1 ^ 2 + x2 ^ 2) * (y1 ^ 2 + y2 ^ 2)) in H5 by (field; nra).
+    apply sqrt_lt_1 in H5. 2 : { rewrite <- Rsqr_pow2. apply Rle_0_sqr. } 2 : { nra. }
+    pose proof Rtotal_order (x1 * y1 + x2 * y2) 0 as [H8 | [H8 | H8]].
+    2 : {
         assert (H9 : (x1^2 + x2^2 = 0) \/ (x1^2 + x2^2 <> 0)) by lra. destruct H9 as [H9 | H9].
-        - rewrite H9 in H5. rewrite Rmult_0_l in H5. rewrite sqrt_0 in H5.
+        - rewrite H9 in H5. rewrite H8 in H4. replace (0^2) with 0 in H5 by nra. rewrite Rmult_0_l in H5. rewrite sqrt_0 in H5.
           assert (H10 : 0 <= sqrt ((x1 * y1 + x2 * y2)^2)) by (apply sqrt_pos). nra.
-        - rewrite <- sqrt_mult. 2 : { nra. } 2 : { nra. } rewrite sqrt_pow2 in H5. 2 : { nra. } nra.
-      }
-      rewrite <- sqrt_mult. 2 : { nra. } 2 : { nra. } 
-      assert (H9 : 0 <= sqrt ((x1 ^ 2 + x2 ^ 2) * (y1 ^ 2 + y2 ^ 2))) by (apply sqrt_pos). nra.
+        - rewrite H8. rewrite <- sqrt_mult. 2 : { nra. } 2 : { nra. } apply sqrt_lt_R0. nra.
     }
+    2 : {
+      assert (H9 : (x1^2 + x2^2 = 0) \/ (x1^2 + x2^2 <> 0)) by lra. destruct H9 as [H9 | H9].
+      - rewrite H9 in H5. rewrite Rmult_0_l in H5. rewrite sqrt_0 in H5.
+        assert (H10 : 0 <= sqrt ((x1 * y1 + x2 * y2)^2)) by (apply sqrt_pos). nra.
+      - rewrite <- sqrt_mult. 2 : { nra. } 2 : { nra. } rewrite sqrt_pow2 in H5. 2 : { nra. } nra.
+    }
+    rewrite <- sqrt_mult. 2 : { nra. } 2 : { nra. } 
+    assert (H9 : 0 <= sqrt ((x1 ^ 2 + x2 ^ 2) * (y1 ^ 2 + y2 ^ 2))) by (apply sqrt_pos). nra.
 Qed.
 
 Lemma lemma_1_19_b : forall x y x1 y1 x2 y2,
