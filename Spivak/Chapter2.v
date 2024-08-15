@@ -4356,6 +4356,41 @@ Proof.
   - simpl. rewrite IH. lra.
 Qed.
 
+Lemma sum_f_fold_right_equiv : forall (l : list R),
+  sum_f 0 (length l - 1) (fun i => nth i l 0) = fold_right Rplus 0 l.
+Proof.
+  induction l as [| h t IH].
+  - simpl. rewrite sum_f_0_0. reflexivity.
+  - replace (length (h :: t) - 1)%nat with (length t) by (simpl; lia).
+    replace (h :: t) with ([h] ++ t) by (reflexivity). replace (fold_right Rplus 0 ([h] ++ t)) with (h + fold_right Rplus 0 t).
+    2 : { rewrite fold_right_app. reflexivity. } assert (length t = 0 \/ length t > 0)%nat as [H1 | H1] by lia.
+    -- rewrite H1. rewrite sum_f_0_0. rewrite length_zero_iff_nil in H1. rewrite H1. simpl; lra.
+    -- rewrite sum_f_Si; try lia. rewrite sum_f_reindex with (s := 1%nat); try lia. replace (fun x : nat => nth (x + 1) ([h] ++ t) 0) with (fun x : nat => nth x t 0).
+       2 : { apply functional_extensionality. intro x. rewrite app_nth2. 2 : { simpl. lia. } simpl. replace (x + 1 - 1)%nat with x by lia. reflexivity. } 
+       simpl. rewrite <- IH. lra.
+Qed.
+
+Lemma lemma_2_22_a : forall (l : list R),
+  (nth 0 l 0) < arithmetic_mean l -> exists i, (0 < i < length l)%nat /\ nth i l 0 > arithmetic_mean l.
+Proof.
+  intros l H1. pose proof (classic (exists i, (0 < i < length l)%nat /\ nth i l 0 > arithmetic_mean l)) as [H2 | H2]; auto.
+  assert (H3 : forall i, ~(0 < i < (length l))%nat \/ ~nth i l 0 > arithmetic_mean l). 
+  { intro i. apply not_and_or. intro H3. apply H2. exists i. apply H3. }
+  assert (H4 : forall i, (0 >= i \/ i >= length l)%nat \/ nth i l 0 <= arithmetic_mean l).
+  { intro i. specialize (H3 i). destruct H3 as [H3 | H3]. left. lia. right. lra. }
+  assert (H5 : forall i, (0 <= i < length l)%nat -> nth i l 0 <= arithmetic_mean l). { intros i H5. specialize (H4 i). destruct H4 as [[H4 | H4] | H4]. destruct i. apply Rlt_le. apply H1. lia. lia. auto. }
+  assert (length l = 0 \/ length l > 0)%nat as [H6 | H6] by lia. apply length_zero_iff_nil in H6. rewrite H6 in H1. compute in H1; lra.
+  assert (H7 : sum_f 0 (length l - 1) (fun i => nth i l 0) < arithmetic_mean l * INR (length l)).
+  { replace (length l) with (length l - 1 - 0 + 1)%nat at 2 by lia. apply sum_f_lt; try lia. exists 0%nat. split. lia. auto. intros k H7. apply H5. lia. }
+  unfold arithmetic_mean in H7. rewrite <- sum_f_fold_right_equiv in H7. field_simplify in H7. lra. apply not_0_INR. lia.
+Qed.
+
+Fixpoint thing (n : nat) (l : list R) : R :=
+  match n with
+  | O => arithmetic_mean l
+  | S n' => sum_f 0 n (fun i => nth i l 0) - thing n' l
+  end.  
+
 Lemma lemma_2_22_b : forall (l : list R) k,
   pos_list l ->
     (length l = 2 ^ k)%nat -> geometric_mean l <= arithmetic_mean l.

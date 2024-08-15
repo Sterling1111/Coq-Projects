@@ -277,6 +277,37 @@ Proof.
        { apply H2. lia. } lra. intros k H5. apply H2. lia.
 Qed.
 
+Lemma sum_f_le : forall f i n r,
+  (i <= n)%nat ->
+  (forall k, (i <= k <= n)%nat -> f k <= r) -> sum_f i n f <= r * INR (n - i + 1).
+Proof.
+  intros f i n r H1 H2. unfold sum_f. induction n as [| n' IH].
+  - simpl. rewrite Rmult_1_r. apply H2. lia.
+  - assert ((i = S n')%nat \/ (i < S n')%nat) as [H3 | H3] by lia.
+    -- replace (S n' - i)%nat with 0%nat by lia. simpl. rewrite Rmult_1_r. apply H2. lia.
+    -- replace (S n' - i)%nat with (S (n' - i)%nat) by lia. repeat rewrite sum_f_R0_f_Sn. replace (INR (S (n' - i) + 1)) with (INR (n' - i + 1) + 1).
+       2 : { repeat rewrite plus_INR. rewrite <- S_INR. reflexivity. }
+       rewrite Rmult_plus_distr_l. rewrite Rmult_1_r. apply Rplus_le_compat. apply IH; try lia. intros k H4. apply H2; try lia. apply H2. lia.
+Qed.
+
+Lemma sum_f_lt : forall f i n r,
+  (i <= n)%nat -> (exists k, (i <= k <= n)%nat /\ f k < r) -> 
+  (forall k, (i <= k <= n)%nat -> f k <= r) -> sum_f i n f < r * INR (n - i + 1).
+Proof.
+  intros f i n r H1 [k [H2 H3]] H4. induction n as [| n' IH].
+  - rewrite sum_f_n_0. replace i with k by lia. replace (0 - k + 1)%nat with 1%nat by lia. rewrite Rmult_1_r. apply H3.
+  - assert ((i = S n')%nat \/ (i < S n')%nat) as [H5 | H5] by lia.
+    -- rewrite <- H5. rewrite sum_f_n_n. replace i with k by lia. replace (k - k + 1)%nat with 1%nat by lia. rewrite Rmult_1_r. apply H3. 
+    -- rewrite sum_f_i_Sn_f; try lia. assert (f (S n') <= r) as [H6 | H6] by (apply H4; lia).
+       + replace (S n' - i + 1)%nat with ((n' - i + 1) + 1)%nat by lia. rewrite plus_INR. rewrite Rmult_plus_distr_l.
+         rewrite Rmult_1_r. apply Rplus_le_lt_compat. apply sum_f_le; try lia. intros j H7. apply H4; try lia. apply H6.
+       + assert (k = S n' \/ k < S n')%nat as [H7 | H7] by lia.
+         * replace (S n' - i + 1)%nat with ((n' - i + 1) + 1)%nat by lia. rewrite plus_INR. rewrite Rmult_plus_distr_l.
+           rewrite Rmult_1_r. rewrite <- H7. apply Rplus_le_lt_compat. apply sum_f_le; try lia. intros j H8. apply H4; try lia. apply H3.
+         * replace (S n' - i + 1)%nat with ((n' - i + 1) + 1)%nat by lia. rewrite plus_INR. rewrite Rmult_plus_distr_l.
+           rewrite Rmult_1_r. apply Rplus_lt_le_compat. apply IH; try lia. intros j H8. apply H4; try lia. apply Req_le. apply H6.
+Qed.
+
 Lemma sum_f_pos' : forall f i n,
   (i <= n)%nat ->
   (forall k, (i <= k <= n)%nat -> 0 <= f k) -> (exists k, (i <= k <= n)%nat /\ 0 < f k) -> 0 < sum_f i n f.
