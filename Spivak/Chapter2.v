@@ -4248,6 +4248,9 @@ Definition pos_list (l : list R) : Prop :=
 Definition arithmetic_mean (l : list R) : R :=
   fold_right Rplus 0 l / INR (length l).
 
+Definition arithmetic_mean_prime (l : list R) : R :=
+  sum_f 0 (length l - 1) (fun i => nth i l 0) / INR (length l).
+
 Definition geometric_mean (l : list R) : R :=
   if eq_nat_dec (length l) 0 then 0 else
   Rpower (fold_right Rmult 1 l) (1 / INR (length l)).
@@ -4370,6 +4373,13 @@ Proof.
        simpl. rewrite <- IH. lra.
 Qed.
 
+Lemma arith_mean_equiv : forall l : list R,
+  arithmetic_mean l = arithmetic_mean_prime l.
+Proof.
+  intros l. unfold arithmetic_mean. unfold arithmetic_mean_prime.
+  rewrite sum_f_fold_right_equiv. reflexivity.
+Qed.
+
 Lemma lemma_2_22_a : forall (l : list R),
   (nth 0 l 0) < arithmetic_mean l -> exists i, (0 < i < length l)%nat /\ nth i l 0 > arithmetic_mean l.
 Proof.
@@ -4385,11 +4395,146 @@ Proof.
   unfold arithmetic_mean in H7. rewrite <- sum_f_fold_right_equiv in H7. field_simplify in H7. lra. apply not_0_INR. lia.
 Qed.
 
-Fixpoint thing (n : nat) (l : list R) : R :=
-  match n with
-  | O => arithmetic_mean l
-  | S n' => sum_f 0 n (fun i => nth i l 0) - thing n' l
-  end.  
+Require Import Sorted Permutation RList.
+
+Lemma ordered_Rlist_Sorted : forall l : list R,
+  ordered_Rlist l -> Sorted Rle l.
+Proof.
+  intros l H1. induction l as [| h t IH].
+  - apply Sorted_nil.
+  - constructor.
+    -- apply RList_P4 in H1. apply IH. apply H1.
+    -- destruct t. constructor. constructor. specialize (H1 0%nat). simpl in H1. apply H1. lia.
+Qed.
+
+Lemma ordered_Rlist_cons : forall h l,
+  ordered_Rlist l -> h <= hd 0 l -> ordered_Rlist (h :: l).
+Proof.
+  intros h l H1 H2. replace (h :: l) with ([h] ++ l) by reflexivity. apply RList_P25; auto.
+  - intros i H3. simpl in H3. lia.
+  - simpl. destruct l; auto.
+Qed.
+
+Lemma Sorted_ordered_Rlist : forall l : list R,
+  Sorted Rle l -> ordered_Rlist l.
+Proof.
+  intros l H1. induction l as [| h t IH].
+  - intros i H2. simpl. lra.
+  - apply Sorted_inv in H1 as [H1 H3]. apply IH in H1. destruct t.
+    -- intros i H4. simpl in H4. lia.
+    -- apply ordered_Rlist_cons; auto. apply HdRel_inv in H3. simpl. lra.
+Qed.
+
+Lemma insert_count_occ_eq : forall l x,
+  count_occ Req_dec_T (insert l x) x = S (count_occ Req_dec_T l x).
+Proof.
+  intros l x. induction l as [| h t IH].
+  - simpl. destruct Req_dec_T; tauto.
+  - simpl. destruct Req_dec_T as [H1 | H1].
+    -- simpl. rewrite <- IH. replace (if Rle_dec h x then h :: insert t x else x :: h :: t) with (h :: insert t x).
+       2 : { destruct (Rle_dec h x); auto; lra. } rewrite H1. rewrite count_occ_cons_eq; auto.
+    -- assert (h < x \/ h > x) as [H2 | H2] by lra.
+       + rewrite <- IH. replace (if Rle_dec h x then h :: insert t x else x :: h :: t) with (h :: insert t x).
+         2 : { destruct (Rle_dec h x); auto; lra. } rewrite count_occ_cons_neq; auto.
+       + rewrite <- IH. replace (if Rle_dec h x then h :: insert t x else x :: h :: t) with (x :: h :: t).
+         2 : { destruct (Rle_dec h x); auto; lra. } rewrite count_occ_cons_eq; auto. rewrite count_occ_cons_neq; auto.
+Qed.
+
+Lemma insert_count_occ_neq : forall l x y,
+  x <> y -> count_occ Req_dec_T (insert l x) y = count_occ Req_dec_T l y.
+Proof.
+  intros l x y H1. induction l as [| h t IH].
+  - simpl. destruct Req_dec_T; tauto.
+  - simpl. destruct Req_dec_T as [H2 | H2].
+    -- simpl. rewrite <- IH. assert (h < x \/ h > x) as [H3 | H3] by lra.
+       + replace (if Rle_dec h x then h :: insert t x else x :: h :: t) with (h :: insert t x).
+         2 : { destruct (Rle_dec h x); auto; lra. } rewrite count_occ_cons_eq; auto.
+       + replace (if Rle_dec h x then h :: insert t x else x :: h :: t) with (x :: h :: t).
+         2 : { destruct (Rle_dec h x); auto; lra. } rewrite count_occ_cons_neq; auto. rewrite count_occ_cons_eq; auto.
+    -- assert (h <= x \/ h > x) as [H3 | H3] by lra.
+       + rewrite <- IH. replace (if Rle_dec h x then h :: insert t x else x :: h :: t) with (h :: insert t x).
+         2 : { destruct (Rle_dec h x); auto; lra. } rewrite count_occ_cons_neq; auto.
+       + rewrite <- IH. replace (if Rle_dec h x then h :: insert t x else x :: h :: t) with (x :: h :: t).
+         2 : { destruct (Rle_dec h x); auto; lra. } rewrite count_occ_cons_neq; auto. rewrite count_occ_cons_neq; auto.
+Qed.
+
+Lemma exists_sorted_list_R : forall l1 : list R,
+  exists l2 : list R, Sorted Rle l2 /\ Permutation l1 l2.
+Proof.
+  induction l1 as [| h t IH].
+  - exists []. split. apply Sorted_nil. apply Permutation_refl.
+  - destruct IH as [l3 [H1 H2]]. assert (length l3 = 0 \/ length l3 = 1 \/ length l3 >= 2)%nat as [H3 | [H3 | H3]] by lia.
+    -- apply length_zero_iff_nil in H3. rewrite H3 in *. exists [h]. split. apply Sorted_cons; auto. apply Permutation_sym in H2. 
+       apply Permutation_nil in H2. rewrite H2. apply Permutation_refl.
+    -- assert (h <= hd 0 l3 \/ h > hd 0 l3) as [H4 | H4] by lra.
+       + exists (h :: l3); split. apply Sorted_cons; auto. destruct l3. pose proof (length_zero_iff_nil ([] : list R)); auto.
+         constructor. simpl in H4. lra. apply Permutation_cons; auto.
+       + exists (l3 ++ [h]); split. destruct l3. simpl. pose proof (length_zero_iff_nil ([] : list R)); auto. assert (l3 = []) as H5.
+         { simpl in H3. inversion H3 as [H5]. apply length_zero_iff_nil in H5; auto. } rewrite H5. apply Sorted_cons; auto. constructor. simpl in H4. lra.
+          apply Permutation_cons_app; auto. rewrite app_nil_r. auto.
+    -- exists (insert l3 h); split. apply ordered_Rlist_Sorted. apply RList_P1. apply Sorted_ordered_Rlist; auto. rewrite (Permutation_count_occ Req_dec_T). intros x.
+       assert (x = h \/ x <> h) as [H4 | H4] by lra. rewrite H4. rewrite count_occ_cons_eq; auto. rewrite insert_count_occ_eq. rewrite (Permutation_count_occ Req_dec_T) in H2.
+       specialize (H2 x). rewrite H4 in H2. rewrite H2. reflexivity. rewrite count_occ_cons_neq; auto. rewrite insert_count_occ_neq; auto. rewrite (Permutation_count_occ Req_dec_T) in H2.
+       specialize (H2 x). rewrite H2. reflexivity.        
+Qed.
+
+Lemma sum_f_Permutation : forall l1 l2,
+  Permutation l1 l2 -> sum_f 0 (length l1 - 1) (fun i => nth i l1 0) = sum_f 0 (length l2 - 1) (fun i => nth i l2 0).
+Proof.
+  intros l1 l2 H1. rewrite (Permutation_count_occ Req_dec_T) in H1. repeat rewrite sum_f_fold_right_equiv. apply count_occ_eq_sum_right_prime.
+  apply functional_extensionality. apply H1.
+Qed.
+
+Lemma lemma_2_22_a' : forall (l : list R) r,
+  (length l > 0)%nat -> Forall (fun x => x = r) l -> arithmetic_mean l = r.
+Proof.
+  intros l r H1 H2. rewrite arith_mean_equiv. unfold arithmetic_mean_prime. rewrite Forall_forall in H2.
+  replace (sum_f 0 (length l - 1) (fun i : nat => nth i l 0)) with (sum_f 0 (length l - 1) (fun _ => r)).
+  2 : { 
+        apply sum_f_equiv; try lia. intros i H3. rewrite H2; try lra. assert (i < length l \/ i >= length l)%nat as [H4 | H4] by lia.
+        apply nth_In; lia. lia.
+      }
+  rewrite sum_f_const. replace (length l - 1 - 0 + 1)%nat with (length l) by lia. field. apply not_0_INR. lia.
+Qed.
+
+Lemma list_eq {A : Type} : forall (h1 h2 : A) (t1 t2 : list A),
+  h1 = h2 /\ t1 = t2 -> h1 :: t1 = h2 :: t2.
+Proof.
+  intros h1 h2 t1 t2 [Hh Ht].
+  rewrite Hh, Ht.
+  reflexivity.
+Qed.
+
+Ltac list_arith :=
+  match goal with
+  | |- ?l1 = ?l2 =>
+    let rec compare l1 l2 :=
+        match l1 with
+        | [] => match l2 with
+                | [] => reflexivity
+                | _ => fail
+                end
+        | ?h1 :: ?t1 => match l2 with
+                        | [] => fail 
+                        | ?h2 :: ?t2 => apply list_eq; split; [try nra; try nia; auto | compare t1 t2]
+                        end
+        end in
+    compare l1 l2
+  | _ => fail 
+  end.
+
+Example ex_list_compare : forall a b, a = b -> [1;2;3;a] = [1;2;3;b].
+Proof.
+  intros a b H1.
+  list_arith.
+Qed.
+
+Lemma sum_f_list_cons : forall h t, 
+  sum_f 0 (length (h :: t) - 1) (fun i => nth i (h :: t) 0) = h + sum_f 0 (length t - 1) (fun i => nth i t 0).
+Proof.
+  intros h t. repeat rewrite sum_f_fold_right_equiv. replace (h :: t) with ([h] ++ t) by reflexivity.
+  rewrite fold_right_app. simpl. lra.
+Qed.
 
 Lemma lemma_2_22_b : forall (l : list R) k,
   pos_list l ->
@@ -4565,7 +4710,7 @@ Lemma lemma_2_24_a : forall a b c,
 Proof.
   intros a b c. induction a as [| k IH].
   - simpl. reflexivity.
-  - simpl. rewrite IH. prove_equal_nat_add.
+  - simpl. rewrite IH. lia.
 Qed.
 
 Lemma lemma_2_24_b : forall a,
