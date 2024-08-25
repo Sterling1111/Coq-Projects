@@ -2292,8 +2292,21 @@ Fixpoint standard_sum (l : list R) : R :=
   | x :: xs => x + standard_sum xs
   end.
 
+Fixpoint standard_prod (l : list R) : R := 
+  match l with
+  | [] => 1
+  | [x] => x
+  | x :: xs => x * standard_prod xs
+  end.
+
 Lemma lemma_1_24_a : forall l a,
   a + standard_sum l = standard_sum (a :: l).
+Proof.
+  intros; destruct l; simpl; lra.
+Qed.
+
+Lemma lemma_1_24_a' : forall l a,
+  a * standard_prod l = standard_prod (a :: l).
 Proof.
   intros; destruct l; simpl; lra.
 Qed.
@@ -2307,9 +2320,22 @@ Proof.
     repeat rewrite <- lemma_1_24_a. lra.
 Qed.
 
+Lemma lemma_1_24_b' : forall l1 l2,
+  standard_prod l1 * standard_prod l2 = standard_prod (l1 ++ l2).
+Proof.
+  intros l1 l2. induction l1 as [| a' l1' IH].
+  - (simpl; lra).
+  - replace ((a' :: l1') ++ l2) with (a' :: (l1' ++ l2)) by (simpl; reflexivity). 
+    repeat rewrite <- lemma_1_24_a'. rewrite <- IH. lra.
+Qed.
+
 Inductive add_expr : Type := 
 | Num (a : R) 
 | Sum (e1 e2 : add_expr).
+
+Inductive prod_expr : Type :=
+| Factor (a : R)
+| Prod (e1 e2 : prod_expr).
 
 Fixpoint eval_add_expr (e : add_expr) : R := 
   match e with
@@ -2323,6 +2349,18 @@ Fixpoint elements (e : add_expr) : list R :=
   | Sum e1 e2 => elements e1 ++ elements e2
   end.
 
+Fixpoint eval_prod_expr (e : prod_expr) : R :=
+  match e with
+  | Factor a => a
+  | Prod e1 e2 => eval_prod_expr e1 * eval_prod_expr e2
+  end.
+
+Fixpoint factors (e : prod_expr) : list R :=
+  match e with
+  | Factor a => [a]
+  | Prod e1 e2 => factors e1 ++ factors e2
+  end.
+
 Lemma lemma_1_24_c : forall e : add_expr,
   eval_add_expr e = standard_sum (elements e).
 Proof.
@@ -2331,10 +2369,24 @@ Proof.
   - simpl. rewrite <- lemma_1_24_b. lra.
 Qed.
 
+Lemma lemma_1_24_c' : forall e : prod_expr,
+  eval_prod_expr e = standard_prod (factors e).
+Proof.
+  intros e. induction e as [a | e1 IH1 e2 IH2].
+  - simpl. reflexivity.
+  - simpl. rewrite <- lemma_1_24_b'. rewrite IH1, IH2. lra.
+Qed.
+
 Lemma R_add_assoc_general : forall e1 e2,
   elements e1 = elements e2 -> eval_add_expr e1 = eval_add_expr e2.
 Proof.
   intros e1 e2 H. repeat rewrite lemma_1_24_c. rewrite H. reflexivity.
+Qed.
+
+Lemma R_prod_assoc_general : forall e1 e2,
+  factors e1 = factors e2 -> eval_prod_expr e1 = eval_prod_expr e2.
+Proof.
+  intros e1 e2 H. repeat rewrite lemma_1_24_c'. rewrite H. reflexivity.
 Qed.
 
 Ltac prove_equal :=
@@ -2429,7 +2481,7 @@ Proof.
       * simpl. destruct (eq_dec h b) as [H4 | H4]; try contradiction. rewrite IH. reflexivity.
 Qed.
 
-Lemma fold_right_remove_one_In : forall a l,
+Lemma fold_right_Rplus_remove_one_In : forall a l,
   In a l -> fold_right Rplus 0 (remove_one Req_dec_T a l) = fold_right Rplus 0 l - a.
 Proof.
   intros a l H1. induction l as [| h t IH].
@@ -2438,6 +2490,27 @@ Proof.
     destruct H1 as [H1 | H1].
     + nra.
     + specialize (IH H1). simpl. rewrite IH. nra.
+Qed.
+
+Lemma In_0_fold_right_eq_0_R: forall l,
+  In 0 l -> fold_right Rmult 1 l = 0.
+Proof.
+  intros l H1. induction l as [| h t IH].
+  - inversion H1.
+  - simpl. destruct H1 as [H1 | H1].
+    + rewrite H1. nra.
+    + specialize (IH H1). simpl. nra.
+Qed.
+
+Lemma fold_right_Rmult_remove_one_In : forall a l,
+  In a l -> (a <> 0) -> fold_right Rmult 1 (remove_one Req_dec_T a l) = fold_right Rmult 1 l / a.
+Proof.
+  intros a l H1 H2. induction l as [| h t IH].
+  - inversion H1.
+  - simpl. destruct H1 as [H1 | H1].
+    + rewrite H1. destruct (Req_dec_T a a) as [H3 | H3]; try contradiction. field. auto.
+    + specialize (IH H1). destruct (Req_dec_T h a) as [H3 | H3]. rewrite H3. field. auto.
+      simpl. nra.
 Qed.
 
 Lemma count_occ_eq_sum_right : forall l1 l2,
@@ -2458,7 +2531,28 @@ Proof.
          + specialize (H1 z). rewrite count_occ_cons_neq in H1; auto. rewrite count_occ_remove_one_not_eq; auto.
     }
     specialize (H1 h). rewrite count_occ_cons_eq in H1; auto. assert (In h l2) as H3.
-    { rewrite (count_occ_In Req_dec_T). lia. } rewrite fold_right_remove_one_In; auto. lra.
+    { rewrite (count_occ_In Req_dec_T). lia. } rewrite fold_right_Rplus_remove_one_In; auto. lra.
+Qed.
+
+Lemma count_occ_eq_prod_right : forall l1 l2,
+  (forall n, count_occ Req_dec_T l1 n = count_occ Req_dec_T l2 n) -> fold_right Rmult 1 l1 = fold_right Rmult 1 l2.
+Proof.
+  intros l1 l2 H1. generalize dependent l2. induction l1 as [| h t IH].
+  - intros l2 H1. simpl in *. assert (H2 : forall n, count_occ Req_dec_T l2 n = 0%nat) by (intros n; specialize (H1 n); lia). 
+    apply count_occ_inv_nil in H2. rewrite H2. reflexivity.
+  - intros l2 H1. simpl. specialize (IH (remove_one Req_dec_T h l2)). rewrite IH.
+    2 : { 
+      intros z. assert (In z l2 \/ ~In z l2) as [H3 | H3] by apply classic.
+      - assert (h = z \/ h <> z) as [H4 | H4] by apply classic.
+         + rewrite H4 in *. specialize (H1 z). rewrite count_occ_cons_eq in H1; auto. rewrite remove_one_In; auto. lia.
+         + specialize (H1 z). rewrite count_occ_cons_neq in H1; auto. rewrite count_occ_remove_one_not_eq; auto.
+       - assert (h = z \/ h <> z) as [H4 | H4] by apply classic.
+         + rewrite H4 in *. specialize (H1 z). apply (count_occ_not_In Req_dec_T) in H3. rewrite H3 in H1. rewrite count_occ_cons_eq in H1; auto. lia.
+         + specialize (H1 z). rewrite count_occ_cons_neq in H1; auto. rewrite count_occ_remove_one_not_eq; auto.
+    }
+    specialize (H1 h). rewrite count_occ_cons_eq in H1; auto. assert (In h l2) as H3.
+    { rewrite (count_occ_In Req_dec_T). lia. } assert (h = 0 \/ h <> 0) as [H4 | H4] by nra. rewrite H4. rewrite In_0_fold_right_eq_0_R with (l := l2); try lra. rewrite <- H4. auto.
+     rewrite fold_right_Rmult_remove_one_In; auto. field. auto.
 Qed.
 
 Lemma count_occ_eq_sum_right_prime : forall l1 l2,
@@ -2467,8 +2561,24 @@ Proof.
   intros l1 l2 H1. apply count_occ_eq_sum_right. intros n. rewrite H1. reflexivity.
 Qed.
 
+Lemma count_occ_eq_prod_right_prime : forall l1 l2,
+  count_occ Req_dec_T l1 = count_occ Req_dec_T l2 -> fold_right Rmult 1 l1 = fold_right Rmult 1 l2.
+Proof.
+  intros l1 l2 H1. apply count_occ_eq_prod_right. intros n. rewrite H1. reflexivity.
+Qed.
+
 Lemma standard_sum_eq_sum_right : forall l1,
   standard_sum l1 = fold_right Rplus 0 l1.
+Proof.
+  intros l1. induction l1 as [| h t IH].
+  - simpl. reflexivity.
+  - simpl. rewrite IH. destruct t.
+    + simpl. lra.
+    + simpl. lra.
+Qed.
+
+Lemma standard_prod_eq_prod_right : forall l1,
+  standard_prod l1 = fold_right Rmult 1 l1.
 Proof.
   intros l1. induction l1 as [| h t IH].
   - simpl. reflexivity.
@@ -2482,6 +2592,13 @@ Lemma R_add_comm_general : forall e1 e2,
 Proof.
   intros e1 e2 H1. apply count_occ_eq_sum_right in H1. repeat rewrite <- standard_sum_eq_sum_right in H1.
   repeat rewrite <- lemma_1_24_c in H1. auto.
+Qed.
+
+Lemma R_prod_comm_general : forall e1 e2,
+  (forall n, count_occ Req_dec_T (factors e1) n = count_occ Req_dec_T (factors e2) n) -> eval_prod_expr e1 = eval_prod_expr e2.
+Proof.
+  intros e1 e2 H1. apply count_occ_eq_prod_right in H1. repeat rewrite <- standard_prod_eq_prod_right in H1.
+  repeat rewrite <- lemma_1_24_c' in H1. auto.
 Qed.
 
 Ltac prove_count_occ :=

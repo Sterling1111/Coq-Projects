@@ -1,4 +1,4 @@
-Require Import Reals Lra Lia ZArith FunctionalExtensionality List Classical Arith QArith.
+Require Import Reals Lra Lia ZArith FunctionalExtensionality List Classical Arith QArith Sorted Permutation RList.
 Import ListNotations.
 From Spivak Require Export Chapter1.
 
@@ -4395,8 +4395,6 @@ Proof.
   unfold arithmetic_mean in H7. rewrite <- sum_f_fold_right_equiv in H7. field_simplify in H7. lra. apply not_0_INR. lia.
 Qed.
 
-Require Import Sorted Permutation RList.
-
 Lemma ordered_Rlist_Sorted : forall l : list R,
   ordered_Rlist l -> Sorted Rle l.
 Proof.
@@ -4485,6 +4483,13 @@ Proof.
   apply functional_extensionality. apply H1.
 Qed.
 
+Lemma fold_right_Rmult_Permutation : forall l1 l2,
+  Permutation l1 l2 -> fold_right Rmult 1 l1 = fold_right Rmult 1 l2.
+Proof.
+  intros l1 l2 H1. rewrite (Permutation_count_occ Req_dec_T) in H1. apply count_occ_eq_prod_right_prime.
+  apply functional_extensionality. apply H1.
+Qed.
+
 Lemma lemma_2_22_a' : forall (l : list R) r,
   (length l > 0)%nat -> Forall (fun x => x = r) l -> arithmetic_mean l = r.
 Proof.
@@ -4496,6 +4501,184 @@ Proof.
       }
   rewrite sum_f_const. replace (length l - 1 - 0 + 1)%nat with (length l) by lia. field. apply not_0_INR. lia.
 Qed.
+
+Lemma MinRlist_cons : forall h t,
+  (length t > 0)%nat -> MinRlist (h :: t) = Rmin h (MinRlist t).
+Proof.
+  intros h t H1. destruct t.
+  - simpl in H1. lia.
+  - reflexivity.
+Qed.
+
+Lemma MaxRlist_cons : forall h t,
+  (length t > 0)%nat -> MaxRlist (h :: t) = Rmax h (MaxRlist t).
+Proof.
+  intros h t H1. destruct t.
+  - simpl in H1. lia.
+  - reflexivity.
+Qed.
+
+Lemma MinRlist_In : forall l,
+  (length l > 0)%nat -> In (MinRlist l) l.
+Proof.
+  intros l H1. induction l as [| h t IH].
+  - simpl in H1. lia.
+  - assert (length t = 0 \/ length t > 0)%nat as [H2 | H2] by lia.
+    -- apply length_zero_iff_nil in H2. rewrite H2. simpl. left. reflexivity.
+    -- pose proof H2 as H3. apply IH in H2. destruct (Rle_dec h (MinRlist t)) as [H4 | H4].
+       + left. rewrite MinRlist_cons; auto. unfold Rmin; destruct (Rle_dec h (MinRlist t)); lra.
+       + right. rewrite MinRlist_cons; auto. assert (H5 : h > MinRlist t) by lra. unfold Rmin. destruct (Rle_dec h (MinRlist t)); try lra. apply IH. auto.
+Qed.
+
+Lemma MaxRlist_In : forall l,
+  (length l > 0)%nat -> In (MaxRlist l) l.
+Proof.
+  intros l H1. induction l as [| h t IH].
+  - simpl in H1. lia.
+  - assert (length t = 0 \/ length t > 0)%nat as [H2 | H2] by lia.
+    -- apply length_zero_iff_nil in H2. rewrite H2. simpl. left. reflexivity.
+    -- pose proof H2 as H3. apply IH in H2. destruct (Rle_dec h (MaxRlist t)) as [H4 | H4].
+       + right. rewrite MaxRlist_cons; auto. assert (H5 : h <= MaxRlist t) by lra. unfold Rmax. destruct (Rle_dec h (MaxRlist t)); try lra. apply IH. auto.
+       + left. rewrite MaxRlist_cons; auto. unfold Rmax. destruct (Rle_dec h (MaxRlist t)); lra.
+Qed.
+
+Lemma nth_pos_Rl : forall l i,
+  nth i l 0 = pos_Rl l i.
+Proof.
+  intros l i. generalize dependent i. induction l as [| h t IH].
+  - destruct i; reflexivity.
+  - intros i. destruct i.
+    -- reflexivity.
+    -- simpl. apply IH.
+Qed.
+
+Lemma Sorted_MinRlist : forall l,
+  Sorted Rle l -> (length l > 0)%nat -> MinRlist l = nth 0 l 0.
+Proof.
+  intros l H1 H2. assert (H3 : In (MinRlist l) l) by (apply MinRlist_In; auto). apply Sorted_ordered_Rlist in H1.
+  assert (H4 : In (nth 0 l 0) l). { apply nth_In. lia. } pose proof (MinRlist_P1 l (nth 0 l 0) H4) as H5.
+  pose proof (RList_P5 l (MinRlist l) H1 H3) as H6. rewrite nth_pos_Rl in *. lra.
+Qed.
+
+Lemma Sorted_MaxRlist : forall l,
+  Sorted Rle l -> (length l > 0)%nat -> MaxRlist l = nth (length l - 1) l 0.
+Proof.
+  intros l H1 H2. assert (H3 : In (MaxRlist l) l) by (apply MaxRlist_In; auto). apply Sorted_ordered_Rlist in H1.
+  assert (H4 : In (nth (length l - 1) l 0) l). { apply nth_In. lia. } pose proof (MaxRlist_P1 l (nth (length l - 1) l 0) H4) as H5.
+  pose proof (RList_P7 l (MaxRlist l) H1 H3) as H6. rewrite nth_pos_Rl in *. replace (Init.Nat.pred (length l)) with (length l - 1)%nat in H6 by lia. lra.
+Qed.
+
+Lemma Sorted_tail_unique : forall l,
+  Sorted Rle l -> (length l > 0)%nat -> (~Forall (fun x => x = nth 0 l 0) l) -> nth 0 l 0 < nth (length l - 1) l 0.
+Proof.
+  intros l H1 H2 H3. assert (H4 : In (nth 0 l 0) l) by (apply nth_In; lia). assert (H5 : In (nth (length l - 1) l 0) l) by (apply nth_In; lia).
+  pose proof (Sorted_MinRlist l H1 H2) as H6.  pose proof (Sorted_MaxRlist l H1 H2) as H7. apply neg_Forall_Exists_neg in H3. 2 : { intros x. apply Req_dec_T. } 
+  apply Sorted_ordered_Rlist in H1. pose proof (RList_P7  l (nth 0 l 0) H1 H4) as H8. replace (Init.Nat.pred (length l)) with (length l - 1)%nat in H8 by lia. 
+  destruct H8 as [H8 | H8].
+  - rewrite <- nth_pos_Rl in H8. lra.
+  - rewrite <- nth_pos_Rl in H8. apply Exists_exists in H3 as [x [H3 H9]]. pose proof (Rtotal_order (nth (length l - 1) l 0) x) as [H10 | [H10 | H10]]; try lra.
+    -- pose proof (MaxRlist_P1 l x H3) as H11. lra.
+    -- pose proof (MaxRlist_P1 l x H3) as H11. pose proof (MinRlist_P1 l x H3); lra.
+Qed.
+
+Lemma MinElementLessThanMean : forall (l : list R),
+  ~Forall (fun x => x = nth 0 l 0) l -> (length l > 0)%nat -> Sorted Rle l -> nth 0 l 0 < arithmetic_mean l.
+Proof.
+  intros l H1 H2 H3. assert (nth 0 l 0 = MinRlist l) as H4. { rewrite nth_pos_Rl. rewrite Sorted_MinRlist; auto. rewrite nth_pos_Rl. reflexivity. }
+  pose proof (Sorted_tail_unique l H3 H2 H1) as H5. rewrite arith_mean_equiv. unfold arithmetic_mean_prime. apply Rmult_lt_reg_r with (r := INR (length l)).
+  apply lt_0_INR; lia. field_simplify. 2 : { apply not_0_INR. lia. } assert (H6 : (length l > 1)%nat).
+  { assert (length l = 1 \/ length l > 1)%nat as [H6 | H6] by lia. rewrite H6 in H5. simpl in H5. lra. lia. }
+  replace (length l - 1)%nat with (S (length l - 2)) by lia. rewrite sum_f_i_Sn_f; try lia. replace (S (length l - 2)) with (length l - 1)%nat by lia.
+  assert (nth 0 l 0 * INR (length l - 2 - 0 + 1) <= sum_f 0 (length l - 2) (fun i => nth i l 0)) as H7.
+  { rewrite <- sum_f_const. apply sum_f_congruence_le; try lia. intros i H7. assert (In (nth i l 0) l) as H8. { apply nth_In. lia. } 
+    pose proof (MinRlist_P1 l (nth i l 0) H8) as H9. lra. }
+  replace (length l - 2 - 0 + 1)%nat with (length l - 1)%nat in H7 by lia. replace (length l) with (length l - 1 + 1)%nat at 1 by lia.
+  rewrite plus_INR. rewrite Rmult_plus_distr_l. rewrite Rmult_1_r. apply Rplus_le_lt_compat; lra.
+Qed.
+
+Fixpoint MinRlist_index (l : list R) : nat := 
+  let min := MinRlist l in
+  match l with
+  | [] => 0%nat
+  | h :: t => match Req_dec_T h min with 
+              | left _ => 0%nat
+              | right _ => S (MinRlist_index t)
+              end
+  end.
+
+Fixpoint MaxRlist_index (l : list R) : nat := 
+  let max := MaxRlist l in
+  match l with
+  | [] => 0%nat
+  | h :: t => match Req_dec_T h max with 
+              | left _ => 0%nat
+              | right _ => S (MaxRlist_index t)
+              end
+  end.
+
+Lemma MinRlist_index_cons : forall h t,
+  (length t > 0)%nat -> MinRlist_index (h :: t) = if Req_dec_T h (MinRlist (h :: t)) then 0%nat else S (MinRlist_index t).
+Proof.
+  intros h t H1. simpl. destruct (Req_dec_T h (MinRlist (h :: t))); reflexivity.
+Qed.
+
+Lemma MaxRlist_index_cons : forall h t,
+  (length t > 0)%nat -> MaxRlist_index (h :: t) = if Req_dec_T h (MaxRlist (h :: t)) then 0%nat else S (MaxRlist_index t).
+Proof.
+  intros h t H1. simpl. destruct (Req_dec_T h (MinRlist (h :: t))); reflexivity.
+Qed.
+
+Lemma Rmin_neq_r : forall r1 r2,
+  r1 <> Rmin r1 r2 -> r2 < r1.
+Proof.
+  intros r1 r2 H1. unfold Rmin in H1. destruct (Rle_dec r1 r2); lra.
+Qed.
+
+Lemma Rmax_neq_r : forall r1 r2,
+  r1 <> Rmax r1 r2 -> r2 > r1.
+Proof.
+  intros r1 r2 H1. unfold Rmax in H1. destruct (Rle_dec r1 r2); lra.
+Qed.
+
+Lemma MinRlst_index_correct : forall l,
+  (length l > 0)%nat -> MinRlist l = nth (MinRlist_index l) l 0.
+Proof.
+  intros l H1. induction l as [| h t IH].
+  - inversion H1.
+  - assert (length t = 0 \/ length t > 0)%nat as [H2 | H2] by lia.
+    -- apply length_zero_iff_nil in H2. rewrite H2. simpl. destruct (Req_dec_T h h) as [H3 | H3]; lra.
+    -- specialize (IH H2). rewrite MinRlist_cons; auto. rewrite MinRlist_index_cons; auto. destruct (Req_dec_T h (MinRlist (h :: t))) as [H3 | H3].
+       + simpl. rewrite MinRlist_cons in H3; auto.
+       + simpl. rewrite MinRlist_cons in H3; auto. rewrite <- IH. pose proof (Rmin_neq_r h (MinRlist t) H3) as H4. unfold Rmin.
+         destruct (Rle_dec h (MinRlist t)); lra.
+Qed.
+
+Lemma MaxRlist_index_correct : forall l, 
+  (length l > 0)%nat -> MaxRlist l = nth (MaxRlist_index l) l 0.
+Proof.
+  intros l H1. induction l as [| h t IH].
+  - inversion H1.
+  - assert (length t = 0 \/ length t > 0)%nat as [H2 | H2] by lia.
+    -- apply length_zero_iff_nil in H2. rewrite H2. simpl. destruct (Req_dec_T h h) as [H3 | H3]; lra.
+    -- specialize (IH H2). rewrite MaxRlist_cons; auto. rewrite MaxRlist_index_cons; auto. destruct (Req_dec_T h (MaxRlist (h :: t))) as [H3 | H3].
+       + simpl. rewrite MaxRlist_cons in H3; auto.
+       + simpl. rewrite MaxRlist_cons in H3; auto. rewrite <- IH. pose proof (Rmax_neq_r h (MaxRlist t) H3) as H4. unfold Rmax.
+         destruct (Rle_dec h (MaxRlist t)); lra.
+Qed.
+
+Definition build_list_for_lemma_2_22_a (l : list R) : list R :=
+  let i := MinRlist_index l in
+  let j := MaxRlist_index l in
+  match (Req_dec_T (nth i l 0) (nth j l 0)) with 
+  | left _ => l
+  | 
+
+Definition build_list_for_lemma_2_22_a (l : list R) : list R :=
+  match l with
+  | [] => []
+  | x1 :: [] => [x1]
+  | x1 :: x2 :: xs => arithmetic_mean l :: x1 + x2 - arithmetic_mean l :: xs
+  end.
 
 Lemma list_eq {A : Type} : forall (h1 h2 : A) (t1 t2 : list A),
   h1 = h2 /\ t1 = t2 -> h1 :: t1 = h2 :: t2.
@@ -4534,6 +4717,18 @@ Lemma sum_f_list_cons : forall h t,
 Proof.
   intros h t. repeat rewrite sum_f_fold_right_equiv. replace (h :: t) with ([h] ++ t) by reflexivity.
   rewrite fold_right_app. simpl. lra.
+Qed.
+
+Lemma arithmetic_mean_build_list_2_22_a_equiv : forall l,
+  arithmetic_mean (build_list_for_lemma_2_22_a l) = arithmetic_mean l.
+Proof.
+  intros l. unfold build_list_for_lemma_2_22_a. destruct l; try reflexivity. destruct l; try reflexivity; compute; lra.
+Qed.
+
+Lemma lemma_2_22_a'' : forall l,
+  ~Forall (fun x => x = nth 0 l 0) l -> geometric_mean l <= geometric_mean (build_list_for_lemma_2_22_a l).
+Proof.
+  intros l H1. 
 Qed.
 
 Lemma lemma_2_22_b : forall (l : list R) k,
