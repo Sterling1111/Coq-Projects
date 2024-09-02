@@ -2513,6 +2513,32 @@ Proof.
       simpl. nra.
 Qed.
 
+Lemma In_remove_one : forall {A : Type} eq_dec (a b : A) l,
+  In a l -> a <> b -> In a (remove_one eq_dec b l).
+Proof.
+  intros A eq_dec a b l H1 H2. induction l as [| h t IH].
+  - inversion H1.
+  - simpl. destruct (eq_dec h b) as [H3 | H3].
+    + destruct H1 as [H1 | H1].
+      * rewrite H1 in H3. contradiction.
+      * auto.
+    + destruct H1 as [H1 | H1].
+      * rewrite H1. left. reflexivity.
+      * right. apply IH; auto.
+Qed.
+
+Lemma In_remove_one_In_l : forall {A : Type} eq_dec (a b : A) l,
+  In a (remove_one eq_dec b l) -> In a l.
+Proof.
+  intros A eq_dec a b l H1. induction l as [| h t IH].
+  - simpl in H1. contradiction.
+  - simpl in H1. destruct (eq_dec h b) as [H2 | H2].
+    + right; auto.
+    + destruct H1 as [H1 | H1].
+      * left. auto.
+      * right. apply IH; auto.
+Qed.
+
 Lemma count_occ_eq_sum_right : forall l1 l2,
   (forall n, count_occ Req_dec_T l1 n = count_occ Req_dec_T l2 n) ->
   fold_right Rplus 0 l1 = fold_right Rplus 0 l2.
