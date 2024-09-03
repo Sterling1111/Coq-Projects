@@ -5511,28 +5511,56 @@ Proof.
   - simpl. rewrite  IH. apply H1.
 Qed.
 
-Lemma f_repeat_all_equal_x : forall (l : list R) (n : nat) (f : list R -> list R),
-  (length l > 0)%nat ->
-  (* Property 1: Preservation of length *)
-  (forall l, length l = length (f l)) ->
-
-  (* Property 2: Count of elements equal to x increases by one if not all are equal to x *)
-  (forall l, (exists x, ~(Forall (eq x) l) -> 
-     (count_occ Req_dec_T (f l) x > count_occ Req_dec_T l x)%nat)) ->
-
-  (* Property 3: If all elements are equal to x, the list remains unchanged *)
-  (forall l x, Forall (eq x) l -> f l = l) ->
-
-  (* Property 4: f_repeat applied n times to a list l results in a list where all elements are equal to x *)
-  length l = n ->
-  forall x, (Forall (eq x) (f_repeat n f l)).
+Lemma arithmetic_mean_f_repeat_build_list_for_lemma_2_22_a : forall l n,
+  (length l > 0)%nat -> arithmetic_mean (f_repeat n build_list_for_lemma_2_22_a l) = arithmetic_mean l.
 Proof.
-  intros l n f H1 H2 H3 H4 H5 x. generalize dependent l. induction n as [| k IH].
-  - intros l H5 H6. lia.
-  - intros l H5 H6. simpl. assert (Forall (eq x) (f_repeat k f l) \/ ~Forall (eq x) (f_repeat k f l)) as [H7 | H7] by apply classic.
-    -- apply H4 in H7. rewrite H7. apply IH; auto. apply H3; auto.
-    -- apply H3 in H7 as H8. apply IH with (x := x) in H8; auto. apply H3 in H7 as H9. rewrite H9. apply H8.
+  intros l n H1. generalize dependent l. induction n as [| k IH].
+  - intros l H1. simpl. reflexivity.
+  - intros l H1. simpl. rewrite arithmetic_mean_build_list_2_22_a_equiv. apply IH; auto.
+Qed.
+
+Lemma f_repeat_all_equal : forall (l : list R) (n : nat) (f : list R -> list R) (g : list R -> R),
+  (length l > 0)%nat ->
+  (forall l, length l = length (f l)) ->
+  (forall l, ~Forall (eq (g l)) l -> 
+     (count_occ Req_dec_T (f l) (g l) > count_occ Req_dec_T l (g l))%nat) ->
+  (forall l, Forall (eq (g l)) l -> f l = l) ->
+  (length l > n)%nat ->
+  (forall l, g (f l) = g l) ->
+  (forall l x, Forall (eq x) l -> x = g l) ->
+  (forall l, g (f_repeat n f l) = g l) ->
+  (count_occ Req_dec_T (f_repeat n f l) (g l) >= n)%nat.
+Proof.
+  intros l n f g H1 H2 H3 H4 H5 H6 H7 H8. generalize dependent l. induction n as [| k IH].
+  - intros l H9 H10. lia.
+  - intros l H9 H10. simpl. assert (Forall (eq (g l)) l \/ ~Forall (eq (g l)) l) as [H11 | H11] by apply classic.
+    -- rewrite f_repeat_involution. rewrite (H4 l); auto. rewrite count_occ_forall_eq; auto; lia. apply (H4 l); auto.
+    -- assert ((Forall (eq (g l)) (f_repeat k f l)) \/ ~(Forall (eq (g l)) (f_repeat k f l))) as [H12 | H12] by apply classic.
+       + rewrite H4; auto. specialize (H8 l). simpl in H8. rewrite count_occ_forall_eq. replace (g (f_repeat k f l)) with (g l). 2 : { rewrite <- H7 with (l := f_repeat k f l) (x := (g l)); auto. }
+         admit. admit. admit.
+       + specialize (H3 (f_repeat k f l)) as H13. specialize (H8 l) as H14. simpl in H14. rewrite H6 in H14. rewrite H14 in H13. specialize (H13 H12).
+         assert (count_occ Req_dec_T (f_repeat k f l) (g l) >= k)%nat as H15. { apply IH; auto; try lia. intro l2. specialize (H8 l2) as H16. simpl in H16. rewrite H6 in H16. rewrite H16. auto. }
+          assert (count_occ Req_dec_T (f l) (g l) > count_occ Req_dec_T l (g l))%nat as H16. { apply H3; auto. } lia.
 Admitted.
+
+Lemma count_occ_f_repeat_build_list_for_lemma_2_22_a_n_minus_1 : forall l,
+  (count_occ Req_dec_T (f_repeat (length l - 1) build_list_for_lemma_2_22_a l) (arithmetic_mean l) >= length l - 1)%nat.
+Proof.
+  intros l. assert (length l = 0 \/ length l > 0)%nat as [H1 | H1] by lia.
+  - apply length_zero_iff_nil in H1. rewrite H1. simpl. lia.
+  - apply f_repeat_all_equal; auto; try lia.
+    -- intros l2. rewrite build_list_for_lemma_2_22_a_length; auto.
+    -- intros l2 H2. assert (length l2 = 0 \/ length l2 > 0)%nat as [H3 | H3] by lia.
+       + apply length_zero_iff_nil in H3. rewrite H3 in H2. rewrite arithmetic_mean_nil in H2. exfalso. apply H2. apply Forall_nil.
+       + apply count_arithmetic_mean_build_list_2_22_a_neq; auto. assert (MinRlist l2 = MaxRlist l2 \/ MinRlist l2 <> MaxRlist l2) as [H4 | H4] by apply classic; auto.
+         rewrite <- MinRlist_eq_MaxRlist_eq_arith_mean in H2; auto. apply MinRlist_neq_MaxRlist in H2; auto.
+    -- intros l2 H2. apply build_list_for_lemma_2_22_a_unchanged; auto. assert (length l2 = 0 \/ length l2 > 0)%nat as [H3 | H3] by lia.
+       + apply length_zero_iff_nil in H3. rewrite H3. apply Forall_nil.
+       + apply Forall_eq_imp_eq_nth; auto. intros y H4. apply Forall_forall. intros z H5. rewrite Forall_forall in H2. specialize (H2 z H5) as H6.
+         specialize (H2 y H4) as H7. nra.
+    -- intros l2. apply arithmetic_mean_build_list_2_22_a_equiv.
+    -- intros l2 x H2. apply eq_sym. apply arithmetic_mean_all_equal with (l := l2); auto. apply Forall_forall. intros y H3. rewrite Forall_forall in H2. specialize (H2 y H3). auto.
+Qed.
 
 Lemma length_f_repeat_length_build_list_for_lemma_2_22_a : forall l n,
   length (f_repeat (n) build_list_for_lemma_2_22_a l) = length l.
@@ -5547,13 +5575,13 @@ Lemma f_repeat_build_list_for_lemma_2_22_a_all_equal : forall l,
 Proof.
   intros l. assert (length l = 0 \/ length l > 0)%nat as [H1 | H1] by lia. 
   - apply length_zero_iff_nil in H1. rewrite H1. simpl. apply Forall_nil.
-  - apply f_repeat_all_equal_x with (n := length l) (f := build_list_for_lemma_2_22_a) (x := arithmetic_mean l); auto.
+  - apply f_repeat_all_equal with (n := length l) (f := build_list_for_lemma_2_22_a) (g := arithmetic_mean); auto.
     -- intros l2. rewrite build_list_for_lemma_2_22_a_length; auto.
-    -- intros l2. exists (arithmetic_mean l2). intro H2. assert (length l2 = 0 \/ length l2 > 0)%nat as [H3 | H3] by lia.
+    -- intros l2 H2.  assert (length l2 = 0 \/ length l2 > 0)%nat as [H3 | H3] by lia.
        + apply length_zero_iff_nil in H3. rewrite H3 in H2. rewrite arithmetic_mean_nil in H2. exfalso. apply H2. apply Forall_nil.
        + apply count_arithmetic_mean_build_list_2_22_a_neq; auto. assert (MinRlist l2 = MaxRlist l2 \/ MinRlist l2 <> MaxRlist l2) as [H4 | H4] by apply classic; auto.
          rewrite <- MinRlist_eq_MaxRlist_eq_arith_mean in H2; auto. apply MinRlist_neq_MaxRlist in H2; auto.
-    -- intros l2 x H2. apply build_list_for_lemma_2_22_a_unchanged; auto. assert (length l2 = 0 \/ length l2 > 0)%nat as [H3 | H3] by lia.
+    -- intros l2 H2. apply build_list_for_lemma_2_22_a_unchanged; auto. assert (length l2 = 0 \/ length l2 > 0)%nat as [H3 | H3] by lia.
        + apply length_zero_iff_nil in H3. rewrite H3. apply Forall_nil.
        + apply Forall_eq_imp_eq_nth; auto. intros y H4. apply Forall_forall. intros z H5. rewrite Forall_forall in H2. specialize (H2 z H5) as H6.
          specialize (H2 y H4) as H7. nra.
