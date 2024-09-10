@@ -5966,3 +5966,71 @@ Lemma lemma_2_25_b_ii : forall k,
 Proof.
   intros k H1 A [H2 H3]. apply H3. apply H1. split; auto.
 Qed.
+
+Open Scope nat_scope.
+
+Definition towers := (list nat * list nat * list nat)%type.
+Definition tower1 (t : towers) : list nat := match t with (l, _, _) => l end.
+Definition tower2 (t : towers) : list nat := match t with (_, l, _) => l end.
+Definition tower3 (t : towers) : list nat := match t with (_, _, l) => l end.
+
+Definition valid_start_state (t : towers) : Prop :=
+  Sorted lt (tower1 t) /\ tower2 t = [] /\ tower3 t = [].
+
+Definition valid_state (t : towers) : Prop :=
+  Sorted lt (tower1 t) /\ Sorted lt (tower2 t) /\ Sorted lt (tower3 t).
+
+Definition valid_stop_state (t : towers) : Prop :=
+  tower1 t = [] /\ tower2 t = [] /\ Sorted lt (tower3 t).
+
+Inductive moves : Type :=
+  | Move12 | Move13 | Move21 | Move23 | Move31 | Move32.
+
+Definition get_src_dst (m : moves) (t : towers) : (list nat * list nat) :=
+  match m with
+  | Move12 => (tower1 t, tower2 t)
+  | Move13 => (tower1 t, tower3 t)
+  | Move21 => (tower2 t, tower1 t)
+  | Move23 => (tower2 t, tower3 t)
+  | Move31 => (tower3 t, tower1 t)
+  | Move32 => (tower3 t, tower2 t)
+  end.
+
+Definition valid_move (m : moves) (t : towers) : bool :=
+  let (src, dst) := get_src_dst m t in
+  match src, dst with
+  | _, [] => true
+  | h1 :: t1, h2 :: t2 => h1 <? h2
+  | _, _ => false
+  end.
+
+Definition apply_move (m : moves) (t : towers) : towers :=
+  if (valid_move m t) then 
+    match m with
+    | Move12 => match t with (t1, t2, t3) => (tl t1, hd 0 t1 :: t2, t3) end
+    | Move13 => match t with (t1, t2, t3) => (tl t1, t2, hd 0 t1 :: t3) end
+    | Move21 => match t with (t1, t2, t3) => (hd 0 t2 :: t1, tl t2, t3) end
+    | Move23 => match t with (t1, t2, t3) => (t1, tl t2, hd 0 t2 :: t3) end
+    | Move31 => match t with (t1, t2, t3) => (hd 0 t3 :: t1, t2, tl t3) end
+    | Move32 => match t with (t1, t2, t3) => (t1, hd 0 t3 :: t2, tl t3) end
+    end else t.
+
+Fixpoint apply_moves (l : list moves) (t : towers) : towers := 
+  match l with
+  | [] => t
+  | x :: xs => apply_moves xs (apply_move x t)
+  end.
+
+Lemma solve_hanoi_min_len : forall (l : list moves) (t : towers),
+  valid_start_state t -> valid_stop_state (apply_moves l t) -> length l >= 2 ^ (length (tower1 t) - 1).
+Proof.
+  intros l t H1 H2. induction l as [| x xs IH].
+  - simpl in *. unfold valid_stop_state in H2. destruct H2 as [H2 _]. apply length_zero_iff_nil in H2. rewrite H2. simpl. lia.
+    rewrite H3 in H6. rewrite H4 in H7. rewrite H5 in H6. rewrite H6 in H7. rewrite H7. simpl. lia.
+Admitted.
+
+Lemma solve_hanoi_exists_min_len : forall (t : towers),
+  valid_start_state t -> exists l, valid_stop_state (apply_moves l t) /\ length l = 2 ^ (length (tower1 t) - 1).
+Proof.
+  
+Admitted.
