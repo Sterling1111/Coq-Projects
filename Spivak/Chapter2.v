@@ -5981,7 +5981,8 @@ Definition valid_state (t : towers) : Prop :=
   Sorted lt (tower1 t) /\ Sorted lt (tower2 t) /\ Sorted lt (tower3 t).
 
 Definition valid_stop_state (t : towers) : Prop :=
-  tower1 t = [] /\ tower2 t = [] /\ Sorted lt (tower3 t).
+  (tower1 t = [] /\ tower2 t = [] /\ Sorted lt (tower3 t)) \/ 
+  (tower1 t = [] /\ tower3 t = [] /\ Sorted lt (tower2 t)).
 
 Inductive moves : Type :=
   | Move12 | Move13 | Move21 | Move23 | Move31 | Move32.
@@ -6021,16 +6022,21 @@ Fixpoint apply_moves (l : list moves) (t : towers) : towers :=
   | x :: xs => apply_moves xs (apply_move x t)
   end.
 
-Lemma solve_hanoi_min_len : forall (l : list moves) (t : towers),
-  valid_start_state t -> valid_stop_state (apply_moves l t) -> length l >= 2 ^ (length (tower1 t) - 1).
+Lemma Sorted_firstn_nat : forall (l : list nat) n,
+  Sorted lt l -> Sorted lt (firstn n l).
 Proof.
-  intros l t H1 H2. induction l as [| x xs IH].
-  - simpl in *. unfold valid_stop_state in H2. destruct H2 as [H2 _]. apply length_zero_iff_nil in H2. rewrite H2. simpl. lia.
-    rewrite H3 in H6. rewrite H4 in H7. rewrite H5 in H6. rewrite H6 in H7. rewrite H7. simpl. lia.
+
 Admitted.
 
-Lemma solve_hanoi_exists_min_len : forall (t : towers),
-  valid_start_state t -> exists l, valid_stop_state (apply_moves l t) /\ length l = 2 ^ (length (tower1 t) - 1).
+Lemma hanoi_solvable : forall (t : towers),
+  valid_start_state t -> exists l1 l2, (apply_moves l1 t = ([], [], tower1 t) /\ apply_moves l2 t = ([], tower1 t, [])).
 Proof.
-  
+  intros t H1. destruct t as [[l1 l2] l3]. destruct H1 as [H1 [H2 H3]]. remember (length l1) as n eqn: H4.
+  generalize dependent l1. induction n as [| k IH].
+  - intros l1 H1 H2 H3 H4. exists [],[]. split; (apply eq_sym in H4; apply length_zero_iff_nil in H4; simpl in *; subst; reflexivity).
+  - intros l1 H1 H2 H3 H4. simpl in *. subst. destruct l1 as [| h1 t1]; try (simpl in *; lia). 
+    specialize (IH (firstn k (h1 :: t1))). assert (H5 : length (firstn k (h1 :: t1)) = k). { rewrite firstn_length. lia. }
+    assert (H6 : Sorted lt (firstn k (h1 :: t1))). { apply Sorted_firstn_nat; auto. }
+    specialize (IH H6). specialize (IH eq_refl eq_refl (eq_sym H5)). destruct IH as [l1 [l2 [IH1 IH2]]]. 
+    exists ()
 Admitted.
