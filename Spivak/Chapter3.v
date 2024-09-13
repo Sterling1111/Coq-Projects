@@ -2,6 +2,24 @@ Require Import Reals Lra Lia ZArith FunctionalExtensionality List Classical Arit
 Import ListNotations.
 From Spivak Require Export Chapter2.
 
+Lemma sum_n_nat_int : forall n : nat,
+  (n >= 1)%nat -> integer (sum_f 1 n (fun i => INR i)).
+Proof.
+  intros n H1. induction n as [| k IH]; try lia. assert (S k = 1 \/ k >= 1)%nat as [H2 | H2] by lia.
+  - rewrite H2. rewrite sum_f_n_n. simpl. exists 1%Z. reflexivity.
+  - specialize (IH H2) as [p IH]. rewrite sum_f_i_Sn_f; try lia. rewrite IH. exists (p + Z.of_nat (S k))%Z.
+    rewrite plus_IZR. rewrite <- INR_IZR_INZ. reflexivity.
+Qed.
+
+Lemma sum_n_nat_divides : forall n : nat,
+  (n >= 1)%nat -> (2 | (INR n * (INR n + 1))).
+Proof.
+  intros n H1. pose proof (sum_n_nat_int n H1) as [p H2]. rewrite sum_n_nat in H2; auto.
+  unfold R_divides. exists (2)%Z, (2 * p)%Z. repeat split; try lra.
+  - rewrite mult_IZR. rewrite <- H2. nra.
+  - exists p; lia.
+Qed.
+
 Section section_3_2.
   Variable h : R -> R.
 

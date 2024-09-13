@@ -5731,12 +5731,10 @@ Qed.
 Lemma lemma_2_22_a'' : forall l,
   pos_list l -> geometric_mean l <= arithmetic_mean l.
 Proof.
-  intros l H1. assert (Forall (fun x => x = nth 0 l 0) l \/ ~Forall (fun x => x = nth 0 l 0) l) as [H2 | H2] by apply classic.
-  - assert (length l = 0 \/ length l > 0)%nat as [H3 | H3] by lia.
-    -- rewrite length_zero_iff_nil in H3. rewrite H3. rewrite arithmetic_mean_nil, geometric_mean_nil. lra.
-    -- rewrite arithmetic_mean_all_equal with (r := nth 0 l 0); auto. rewrite geometric_mean_all_equal with (r := nth 0 l 0); auto; try lra.
-  - assert (length l = 0 \/ length l > 0)%nat as [H3 | H3] by lia.
-    -- rewrite length_zero_iff_nil in H3. rewrite H3. rewrite arithmetic_mean_nil, geometric_mean_nil. lra.
+  intros l H1. assert (length l = 0 \/ length l > 0)%nat as [H2 | H2] by lia.
+  - apply length_zero_iff_nil in H2. rewrite H2. rewrite arithmetic_mean_nil, geometric_mean_nil. lra.
+  - assert (Forall (fun x => x = nth 0 l 0) l \/ ~Forall (fun x => x = nth 0 l 0) l) as [H3 | H3] by apply classic.
+    -- rewrite arithmetic_mean_all_equal with (r := nth 0 l 0); auto. rewrite geometric_mean_all_equal with (r := nth 0 l 0); auto. lra.
     -- pose proof (geometric_mean_f_repeat_build_list_for_lemma_2_22_a l (length l) H1) as H4.
        rewrite f_repeat_build_list_for_lemma_2_22_a_repeat_arithmetic_mean in H4. rewrite geometric_mean_repeat in H4; auto; try lia; try nra.
        apply arithmetic_mean_pos_list; auto.
