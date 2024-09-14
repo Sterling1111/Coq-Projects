@@ -6036,5 +6036,4 @@ Proof.
     specialize (IH (firstn k (h1 :: t1))). assert (H5 : length (firstn k (h1 :: t1)) = k). { rewrite firstn_length. lia. }
     assert (H6 : Sorted lt (firstn k (h1 :: t1))). { apply Sorted_firstn_nat; auto. }
     specialize (IH H6). specialize (IH eq_refl eq_refl (eq_sym H5)). destruct IH as [l1 [l2 [IH1 IH2]]]. 
-    exists ()
 Admitted.
