@@ -562,6 +562,9 @@ Definition strong_induction_nat := forall P : nat -> Prop,
 Definition well_ordering_nat := forall E : nat -> Prop,
   (exists x, E x) -> (exists n, E n /\ forall m, E m -> (n <= m)).
 
+Definition well_ordering_principle_contrapositive_nat := forall E : nat -> Prop,
+  (~(exists m, E m /\ forall k, E k -> m <= k)) -> (~(exists n, E n)).
+
 Lemma induction_imp_induction_nat : induction_nat.
 Proof.
   unfold induction_nat. intros P [H_base H_ind] n.
@@ -594,6 +597,43 @@ Proof.
     -- intros k Hk. intros k' Hk'. apply H1. intros k'' Hk''. apply Hk. lia.
   - apply H2. lia.
 Qed.
+
+Lemma strong_induction_nat_imp_well_ordering_contrapositive_nat : strong_induction_nat -> well_ordering_principle_contrapositive_nat.
+Proof.
+  intros H1 E H2. set (E' := fun n => ~ E n). assert (~ E 0) as H3.
+  { intros H3. apply H2. exists 0. split; auto; lia. }
+  assert (H4 : forall n, E' n).
+  {
+    intros n. apply H1. intros m H4. destruct m.
+    - unfold E'. intros H5. apply H3. apply H5.
+    - assert (E (S m) -> False) as H5.
+      { 
+        intros H5. apply H2. exists (S m). split; auto. intros k H6.
+        specialize (H4 k). assert (E' k -> False) as H7; auto. assert (k < S m -> False) as H8 by auto. lia.
+      }
+      auto.
+  }
+  intros [n H5]. apply (H4 n). auto.
+Qed.
+
+Lemma strong_induction_nat_imp_well_ordering_nat : strong_induction_nat -> well_ordering_nat.
+Proof.
+  intros H1. specialize (strong_induction_nat_imp_well_ordering_contrapositive_nat H1) as H2.
+  clear H1. rename H2 into H1. intros E H2. 
+  assert (H3 : ~(exists m, E m /\ forall k, E k -> m <= k) -> ~(exists n, E n)) by apply H1.
+  destruct (classic (exists m, E m /\ forall k, E k -> m <= k)) as [H4 | H4]; auto.
+  exfalso. apply H3 in H4. apply H4. apply H2.
+Qed.
+
+Lemma WI_SO_WO_equiv : (well_ordering_nat <-> strong_induction_nat) /\ (strong_induction_nat <-> induction_nat) /\ (induction_nat <-> well_ordering_nat).
+Proof.
+  pose proof lemma_2_10 as H1. pose proof lemma_2_11 as H2. pose proof (strong_induction_nat_imp_well_ordering_nat) as H3. tauto.
+Qed.
+
+Lemma WI_SO_WO : well_ordering_nat /\ strong_induction_nat /\ induction_nat.
+Proof.
+  pose proof WI_SO_WO_equiv as H1. pose proof (induction_imp_induction_nat) as H2. tauto.
+Qed. 
 
 Lemma strong_induction_N : strong_induction_nat.
 Proof.
@@ -1231,45 +1271,6 @@ Proof.
 Qed.
 
 Close Scope R_scope.
-
-Lemma well_ordering_nat_contrapositive : forall E : nat -> Prop,
-  (~(exists m, E m /\ forall k, E k -> m <= k)) ->
-    (~(exists n, E n)).
-Proof.
-  intros E H.
-  set (E' := fun n => ~ E n).
-  assert (E 0 -> False).
-  { intros H2. apply H. exists 0. split. apply H2. intros k H3. lia. }
-  assert (H2: forall n, E' n).
-  {
-    strong_induction n. destruct n.
-    - unfold E'. unfold not. apply H0.
-    - assert (E (S n) -> False).
-      { intros H3. apply H. exists (S n). split. apply H3. intros k H4.
-        specialize (IH k). assert (E' k -> False). unfold E'.
-        unfold not. intros H5. apply H5. apply H4. assert (k < S n -> False) by auto.
-        lia.
-      }
-      unfold E'. unfold not. apply H1.
-  }
-  unfold E' in H2. unfold not in H2. unfold not. intros H3. destruct H3 as [n H3].
-  specialize (H2 n). apply H2. apply H3.
-Qed.
-
-Theorem well_ordering_N : well_ordering_nat.
-Proof.
-  intros E.
-  assert (H :
-    ~(exists m, E m /\ forall k, E k -> m <= k) ->
-      ~(exists n, E n)) by apply well_ordering_nat_contrapositive.
-
-  intros [x Ex].
-  destruct (classic (exists m, E m /\ forall k, E k -> m <= k)) as [C1|C2].
-  - apply C1.
-  - exfalso. apply H in C2. apply C2. exists x. apply Ex.
-Qed.
-
-Close Scope nat_scope.
 
 Open Scope Z_scope.
 
@@ -5968,72 +5969,85 @@ Qed.
 Open Scope nat_scope.
 
 Definition towers := (list nat * list nat * list nat)%type.
+
 Definition tower1 (t : towers) : list nat := match t with (l, _, _) => l end.
 Definition tower2 (t : towers) : list nat := match t with (_, l, _) => l end.
 Definition tower3 (t : towers) : list nat := match t with (_, _, l) => l end.
 
-Definition valid_start_state (t : towers) : Prop :=
-  Sorted lt (tower1 t) /\ tower2 t = [] /\ tower3 t = [].
+Definition tower_idx := nat.
+
+Definition get_tower (t : towers) (idx : tower_idx) : list nat :=
+  match idx with
+  | 1 => tower1 t
+  | 2 => tower2 t
+  | 3 => tower3 t
+  | _ => []
+  end.
+
+Definition set_tower (t : towers) (idx : tower_idx) (new_tower : list nat) : towers :=
+  match idx with
+  | 1 => (new_tower, tower2 t, tower3 t)
+  | 2 => (tower1 t, new_tower, tower3 t)
+  | 3 => (tower1 t, tower2 t, new_tower)
+  | _ => t
+  end.
+
+Definition valid_start_state (t : towers) (start_pole : tower_idx) : Prop :=
+  Sorted lt (get_tower t start_pole) /\
+  (forall p, p <> start_pole -> get_tower t p = []).
 
 Definition valid_state (t : towers) : Prop :=
   Sorted lt (tower1 t) /\ Sorted lt (tower2 t) /\ Sorted lt (tower3 t).
 
-Definition valid_stop_state (t : towers) : Prop :=
-  (tower1 t = [] /\ tower2 t = [] /\ Sorted lt (tower3 t)) \/ 
-  (tower1 t = [] /\ tower3 t = [] /\ Sorted lt (tower2 t)).
+Definition valid_stop_state (t : towers) (end_pole : tower_idx) : Prop :=
+  (forall p, p <> end_pole -> get_tower t p = []) /\
+  Sorted lt (get_tower t end_pole).
 
-Inductive moves : Type :=
-  | Move12 | Move13 | Move21 | Move23 | Move31 | Move32.
+Inductive move : Type :=
+  | Move (from_pole to_pole : tower_idx).
 
-Definition get_src_dst (m : moves) (t : towers) : (list nat * list nat) :=
+Definition valid_move (m : move) (t : towers) : bool :=
   match m with
-  | Move12 => (tower1 t, tower2 t)
-  | Move13 => (tower1 t, tower3 t)
-  | Move21 => (tower2 t, tower1 t)
-  | Move23 => (tower2 t, tower3 t)
-  | Move31 => (tower3 t, tower1 t)
-  | Move32 => (tower3 t, tower2 t)
+  | Move from_pole to_pole =>
+      let src := get_tower t from_pole in
+      let dst := get_tower t to_pole in
+      match src with
+      | [] => false
+      | h1 :: _ =>
+          match dst with
+          | [] => true
+          | h2 :: _ => h1 <? h2
+          end
+      end
   end.
 
-Definition valid_move (m : moves) (t : towers) : bool :=
-  let (src, dst) := get_src_dst m t in
-  match src, dst with
-  | _, [] => true
-  | h1 :: t1, h2 :: t2 => h1 <? h2
-  | _, _ => false
+Definition apply_move (m : move) (t : towers) : towers :=
+  match m with
+  | Move from_pole to_pole =>
+      if valid_move m t then
+        let src := get_tower t from_pole in
+        let dst := get_tower t to_pole in
+        let h := hd 0 src in
+        let src' := tl src in
+        let dst' := h :: dst in
+        let t' := set_tower t from_pole src' in
+        set_tower t' to_pole dst'
+      else t
   end.
 
-Definition apply_move (m : moves) (t : towers) : towers :=
-  if (valid_move m t) then 
-    match m with
-    | Move12 => match t with (t1, t2, t3) => (tl t1, hd 0 t1 :: t2, t3) end
-    | Move13 => match t with (t1, t2, t3) => (tl t1, t2, hd 0 t1 :: t3) end
-    | Move21 => match t with (t1, t2, t3) => (hd 0 t2 :: t1, tl t2, t3) end
-    | Move23 => match t with (t1, t2, t3) => (t1, tl t2, hd 0 t2 :: t3) end
-    | Move31 => match t with (t1, t2, t3) => (hd 0 t3 :: t1, t2, tl t3) end
-    | Move32 => match t with (t1, t2, t3) => (t1, hd 0 t3 :: t2, tl t3) end
-    end else t.
-
-Fixpoint apply_moves (l : list moves) (t : towers) : towers := 
+Fixpoint apply_moves (l : list move) (t : towers) : towers := 
   match l with
   | [] => t
   | x :: xs => apply_moves xs (apply_move x t)
   end.
 
-Lemma Sorted_firstn_nat : forall (l : list nat) n,
-  Sorted lt l -> Sorted lt (firstn n l).
+Lemma hanoi_solvable (n : nat) (start_pole end_pole : tower_idx) :
+  start_pole <> end_pole /\
+  exists moves_list : list move,
+    let initial_state := set_tower ([], [], []) start_pole (seq 1 n) in
+    let final_state := apply_moves moves_list initial_state in
+    valid_start_state initial_state start_pole /\
+    valid_stop_state final_state end_pole.
 Proof.
 
-Admitted.
-
-Lemma hanoi_solvable : forall (t : towers),
-  valid_start_state t -> exists l1 l2, (apply_moves l1 t = ([], [], tower1 t) /\ apply_moves l2 t = ([], tower1 t, [])).
-Proof.
-  intros t H1. destruct t as [[l1 l2] l3]. destruct H1 as [H1 [H2 H3]]. remember (length l1) as n eqn: H4.
-  generalize dependent l1. induction n as [| k IH].
-  - intros l1 H1 H2 H3 H4. exists [],[]. split; (apply eq_sym in H4; apply length_zero_iff_nil in H4; simpl in *; subst; reflexivity).
-  - intros l1 H1 H2 H3 H4. simpl in *. subst. destruct l1 as [| h1 t1]; try (simpl in *; lia). 
-    specialize (IH (firstn k (h1 :: t1))). assert (H5 : length (firstn k (h1 :: t1)) = k). { rewrite firstn_length. lia. }
-    assert (H6 : Sorted lt (firstn k (h1 :: t1))). { apply Sorted_firstn_nat; auto. }
-    specialize (IH H6). specialize (IH eq_refl eq_refl (eq_sym H5)). destruct IH as [l1 [l2 [IH1 IH2]]]. 
 Admitted.

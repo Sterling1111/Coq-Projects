@@ -2,6 +2,8 @@ Require Import Reals Lra Lia ZArith FunctionalExtensionality List Classical Arit
 Import ListNotations.
 From Spivak Require Export Chapter2.
 
+Open Scope R_scope.
+
 Lemma sum_n_nat_int : forall n : nat,
   (n >= 1)%nat -> integer (sum_f 1 n (fun i => INR i)).
 Proof.
@@ -20,17 +22,6 @@ Proof.
   - exists p; lia.
 Qed.
 
-Lemma strong_induction_nat_imp_well_ordering_nat : strong_induction_nat -> well_ordering_nat.
-Proof.
-  unfold strong_induction_nat, well_ordering_nat. intros H1 E H2.
-  set (P := (fun n => E n /\ (forall m, E m -> n <= m))).
-  pose proof (classic (exists y, P y)) as [H3 | H3]; auto.
-  pose proof (not_ex_all_not nat P H3) as H4. clear H3. rename H4 into H3. unfold P in *.
-  assert (H4 : forall n, ~ E n \/ ~ forall m, E m -> n <= m). { intros n. specialize (H3 n). tauto. }
-  clear H3. rename H4 into H3. assert (forall n, ~E n \/ exists m, E m -> n > m).
-  { intros n. specialize (H3 n). destruct H3 as [H3 | H3]. tauto. right. apply not_all_ex_not in H3 as [x H3]. exists x. lia. }
-  what right do you have to judge what ytou 
-  
 Section section_3_2.
   Variable h : R -> R.
 
