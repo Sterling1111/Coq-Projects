@@ -165,14 +165,14 @@ Proof.
     assert ((x = 0 \/ y = 0 \/ x <> 0 /\ y <> 0)%R) as [H4 | [H4 | H4]] by lra.
     - exists z3, z4. nra.
     - exists 0, 0. nra.
-    - exists (z1 * z4 + z2 * z3), (z2 * z4).
-      assert (H5 : forall a b c, (a <> 0 /\ a = IZR b / IZR c)%R -> c <> 0).
-      { intros a b c [H5 H6]. assert (c <> 0 \/ c = 0) as [H7 | H7] by lia. auto. rewrite H7 in H6. rewrite Rdiv_0_r in H6. nra. }
-      assert (H6 : z2 <> 0 /\ z4 <> 0). { split. apply H5 with (a := x) (b := z1); tauto. apply H5 with (a := y) (b := z3).
-
-    
-    apply H2. exists (z2 * z3 - z1 * z4), (z2 * z4). 
-    rewrite 
+    - assert (x + y = 0 \/ x + y <> 0)%R as [H5 | H5] by lra.
+      -- exists (-z1), z2. assert (y = -x)%R as H6 by nra. rewrite H1 in H6. rewrite H6. rewrite opp_IZR. nra.
+      -- exists (z3 * z2 - z1 * z4), (z2 * z4).
+         assert (H6 : forall a b c, (a <> 0 /\ a = IZR b / IZR c)%R -> c <> 0).
+        { intros a b c [H6 H7]. assert (c <> 0 \/ c = 0) as [H8 | H8] by lia. auto. rewrite H8 in H7. rewrite Rdiv_0_r in H7. nra. }
+        assert (H7 : z2 <> 0 /\ z4 <> 0). { split. apply H6 with (a := x) (b := z1); tauto. apply H6 with (a := (x + y)%R) (b := z3). tauto.  }
+      rewrite minus_IZR. repeat rewrite mult_IZR. assert (y = IZR z3 / IZR z4 - x)%R as H8. { nra. } rewrite H1 in H8. rewrite H8. field.
+      split; (apply not_0_IZR; lia).
 Qed.
 
 Lemma x_neq_0_IZR_den_neq_0 : forall x y z,
