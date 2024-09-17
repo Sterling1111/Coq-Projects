@@ -27,6 +27,7 @@
 % Start a new section numbered as 6
 \setcounter{section}{6}
 
+\setcounter{lemmax}{1}
 \begin{sublemma}
 $\forall x \in \mathbb{R}$, $x \neq 3 \implies x^2 - 2x + 3 \neq 0$.
 \begin{proof}
@@ -62,17 +63,66 @@ Next we verify that $x^2 - 2x + 3 = 0$.
 \end{sublemma}
 
 \begin{lemmax}
-This is Lemma 6.2.
+$\forall n \in \mathbb{N}$, $2 < n < 3 \implies 7n + 3$ is odd.
 \begin{proof}
-% Proof goes here
+The premise is false since there are not natural numbers between 2 and 3 and $n$ is a natural number. 
+Therefore the conclusion follows vacuously. 
 \end{proof}
 \end{lemmax}
 
 \begin{lemmax}
-This is Lemma 6.3.
+$\forall x \in \mathbb{Z}$, if $x$ is odd then $x^2$ is odd.
 \begin{proof}
-% Proof goes here
+Let $x$ be some odd integer. Then $x = 2k + 1$ for some integer $k$. It follows that
+\[ x^2 = (2k + 1)^2 = (4k^2 + 4k + 1) = 2 \cdot (2k^2 + 2k) + 1 \qedhere \]
 \end{proof}
 \end{lemmax}
+
+\begin{lemmax}
+$\forall x \in \mathbb{Z}$, if $x$ is even, then $7x - 5$ is odd.
+\begin{proof}
+Let $x$ be an even integer, so $x = 2k$ for some integer $k$. It follows that
+\[
+7x - 5 = 7(2k) - 5 = 14k - 5 = 2 \cdot (7k - 3) + 1 \qedhere
+\]
+\end{proof}
+\end{lemmax}
+
+\begin{lemmax}
+$\forall a, b, c \in \mathbb{Z}$, if $a$ and $c$ are odd, then $a \cdot b + b \cdot c$ is even.
+\begin{proof}
+Since all integers are either even or odd $b$ must be either even or odd. If $b$ is even, then both $a \cdot b$ and $b \cdot c$ are even because the product of an even number with any integer is even. The sum of two even numbers is even, so $a \cdot b + b \cdot c$ is even.
+If $b$ is odd, then both $a \cdot b$ and $b \cdot c$ are odd because the product of two odd numbers is odd. The sum of two odd numbers is even, so $a \cdot b + b \cdot c$ is even.
+Thus, in both cases, $a \cdot b + b \cdot c$ is even.
+\end{proof}
+\end{lemmax}
+
+\begin{lemmax}
+$\forall n \in \mathbb{Z}$, $|n| < 1 \implies 3n - 2$ is even.
+\begin{proof}
+Given $|n| < 1$, the only integer that satisfies this inequality is $n = 0$. Substituting $n = 0$ into the expression, we have
+\[
+3 \cdot 0 - 2 = -2.
+\]
+Since $-2$ can be written as $2 \cdot (-1)$, it is an even number.
+\end{proof}
+\end{lemmax}
+
+\begin{lemmax}
+$\forall a \in \mathbb{Z}$, if $a$ is odd, then there exist integers $b$ and $c$ such that $a = b^2 - c^2$.
+\begin{proof}
+Since $a$ is odd, we can write $a = 2k + 1$ for some integer $k$. Let $b = k + 1$ and $c = k$. Then,
+\[
+b^2 - c^2 = (k + 1)^2 - k^2.
+\]
+Expanding this, we get
+\[
+(k + 1)^2 - k^2 = (k^2 + 2k + 1) - k^2 = 2k + 1,
+\]
+which is exactly $a$. Therefore, there exist integers $b$ and $c$ such that $a = b^2 - c^2$.
+\end{proof}
+\end{lemmax}
+
+
 
 \end{document}

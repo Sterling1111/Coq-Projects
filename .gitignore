@@ -9,6 +9,9 @@
 
 # Other miscellaneous files to ignore
 *.log
+*.fdb_latexmk
+*.fls
+*.synctex.gz
 *.cache/
 __coqdoc__/
 Makefile

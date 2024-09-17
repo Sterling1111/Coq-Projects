@@ -12,48 +12,17 @@ Qed.
 
 Open Scope C_scope.
 
-Lemma sqrt2i_square : (sqrt 2 * Ci) ^ 2 = -2.
-Proof.
-  unfold Cpow; simpl.
-  unfold Cmult; simpl.
-  rewrite Rmult_0_r, Rmult_0_l.
-  rewrite Rminus_0_r. repeat rewrite Rmult_0_r, Rmult_0_l. repeat rewrite Rplus_0_r. repeat rewrite Rplus_0_l. repeat rewrite Rmult_1_r. rewrite Rminus_0_r. rewrite Rmult_0_r.
-  replace (0 - sqrt 2 * sqrt 2)%R with (-2)%R.
-  - lca.
-  - replace (0 - sqrt 2 * sqrt 2)%R with (- 1 * (sqrt 2 * sqrt 2))%R by lra. rewrite sqrt_sqrt; lra.
-Qed.
-
-Lemma one_plus_sqrt_neg2_neq_3 : 1 + (sqrt 2 * Ci) <> 3.
-Proof.
-  intro H1.
-  apply c_proj_eq_inv in H1 as [H1 H2].
-  simpl in H1, H2.
-  replace (1 + (sqrt 2 * 0 - 0 * 1))%R with 1 in H1 by lra. lra.
-Qed.
-
 Lemma lemma_6_1_b : (forall x : C, x <> 3 -> x^2 - 2 * x + 3 <> 0) -> False.
 Proof.
-  intros H.
-  set (x := 1 + sqrt 2 * Ci).
-  assert (Hx_neq_3 : x <> 3).
+  intros H1. set (x := 1 + sqrt 2 * Ci). assert (H2 : x <> 3).
+  { intro H2. apply c_proj_eq_inv in H2 as [H2 H3]. simpl in H2. lra. }
+  assert (H3 : x^2 - 2 * x + 3 = 0).
   {
-    unfold x.
-    intro H_eq.
-    (* Show that x <> 3 by comparing real and imaginary parts *)
-    apply c_proj_eq_inv in H_eq.
-    destruct H_eq as [H_re H_im].
-    simpl in H_re, H_im.
-    lra.
-  }
-  (* Show that x^2 - 2x + 3 = 0 *)
-  assert (H_eq_zero : x^2 - 2 * x + 3 = 0).
-  {
-    unfold x.
-    simpl. rewrite Cmult_1_r. apply c_proj_eq. replace (fst ((1 + sqrt 2 * Ci) * (1 + sqrt 2 * Ci) - 2 * (1 + sqrt 2 * Ci) + 3)) with ((- (sqrt 2 * sqrt 2) + 2)%R).
+    unfold x. simpl. rewrite Cmult_1_r. apply c_proj_eq.
+    replace (fst ((1 + sqrt 2 * Ci) * (1 + sqrt 2 * Ci) - 2 * (1 + sqrt 2 * Ci) + 3)) with ((- (sqrt 2 * sqrt 2) + 2)%R).
     2 : { simpl. lra. } simpl. rewrite sqrt_sqrt. lra. lra. simpl. lra.
   }
-  specialize (H x Hx_neq_3).
-  contradiction.
+  specialize (H1 x H2 H3); auto.
 Qed.
 
 Open Scope nat_scope.
