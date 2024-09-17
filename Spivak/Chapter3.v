@@ -1,4 +1,5 @@
 Require Import Reals Lra Lia ZArith FunctionalExtensionality List Classical Arith QArith.
+
 Import ListNotations.
 From Spivak Require Export Chapter2.
 

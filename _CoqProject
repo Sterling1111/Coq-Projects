@@ -2,6 +2,7 @@
 -Q Fibonacci Fibonacci
 -Q Foundations2 Foundations2
 -Q Spivak Spivak
+-Q Seth Seth
 
 Foundations/Basics.v
 Foundations/Induction.v
@@ -28,3 +29,6 @@ Fibonacci/QRT.v
 
 Spivak/Chapter1.v
 Spivak/Chapter2.v
+
+Seth/Complex.v
+Seth/Chapter6.v
