@@ -2,8 +2,6 @@ Require Import Reals Psatz.
 
 Open Scope R_scope.
 
-Notation "√ n" := (sqrt n) (at level 20) : R_scope.
-
 Definition C : Type := R * R.
 Definition C0 : C := (0,0).
 Definition C1 : C := (1,0).
@@ -21,12 +19,13 @@ Definition Cinv (c : C) : C :=
   (fst c / (fst c ^ 2 + snd c ^ 2), - snd c / (fst c ^ 2 + snd c ^ 2)).
 Definition Cdiv (c1 c2 : C) : C := Cmult c1 (Cinv c2).
 Definition Cnorm2 (c : C) : R := fst c ^ 2 + snd c ^ 2.
-Definition Cnorm (c : C) : R := √ (Cnorm2 c).
+Definition Cnorm (c : C) : R := sqrt (Cnorm2 c).
 
 Arguments Cnorm2 c /.
 Arguments Cnorm c /.
 
 Declare Scope C_scope.
+Delimit Scope C_scope with C.
 
 Infix "+" := Cplus : C_scope.
 Notation "- x" := (Copp x) : C_scope.
@@ -39,6 +38,10 @@ Infix "/" := Cdiv : C_scope.
 Lemma c_proj_eq : forall (c1 c2 : C),
   fst c1 = fst c2 -> snd c1 = snd c2 -> c1 = c2.
 Proof. intros. destruct c1, c2. simpl in *. subst. reflexivity. Qed.
+
+Lemma c_proj_eq_inv : forall (c1 c2 : C),
+  c1 = c2 -> fst c1 = fst c2 /\ snd c1 = snd c2.
+Proof. intros. inversion H. split; reflexivity. Qed.
 
 Ltac lca := eapply c_proj_eq; simpl; lra.
 
@@ -114,7 +117,7 @@ Lemma Copp_mult_distr_l : forall c1 c2 : C, - (c1 * c2) = - c1 * c2.
 Proof. intros; lca. Qed.
 Lemma Copp_involutive: forall c : C, - - c = c. Proof. intros; lca. Qed.
 
-Lemma Csqrt2_square : √2 * √2 = 2.
+Lemma Csqrt2_square : sqrt 2 * sqrt 2 = 2.
 Proof.
   eapply c_proj_eq; simpl; try lra.
   rewrite Rmult_0_r, Rminus_0_r.
@@ -130,7 +133,26 @@ Notation "a ^*" := (Cconj a) (at level 10) : C_scope.
 Lemma Cconj_R : forall r : R, r^* = r. Proof. intros; lca. Qed.
 Lemma Cconj_0 : 0^* = 0. Proof. lca. Qed.
 Lemma Cconj_opp : forall C, (- C)^* = - (C^*). Proof. reflexivity. Qed.
-Lemma Cconj_rad2 : (/ √2)^* = / √2. Proof. lca. Qed.
+Lemma Cconj_rad2 : (/ (sqrt 2))^* = / (sqrt 2). Proof. lca. Qed.
 Lemma Cconj_involutive : forall c, (c^*)^* = c. Proof. intros; lca. Qed.
 Lemma Cconj_plus_distr : forall (x y : C), (x + y)^* = x^* + y^*. Proof. intros; lca. Qed.
 Lemma Cconj_mult_distr : forall (x y : C), (x * y)^* = x^* * y^*. Proof. intros; lca. Qed.
+
+Definition Csqr c : C := c * c.
+Notation "c ²" := (Csqr c) (at level 1, format "c ²") : C_scope.
+
+Fixpoint Cpow (c : C) (n : nat) : C :=
+  match n with
+  | 0%nat => 1
+  | S n' => c * Cpow c n'
+  end.
+
+Infix "^" := Cpow : C_scope.
+
+Lemma Csqr_pow2 : forall x, Csqr x = x ^ 2.
+  Proof. intros. unfold Cpow. unfold Csqr. rewrite Cmult_1_r. reflexivity.
+Qed.
+
+
+Close Scope C_scope.
+Close Scope R_scope.

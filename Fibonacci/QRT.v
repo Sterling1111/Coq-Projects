@@ -101,3 +101,15 @@ Proof.
     -- right. unfold ZEven. exists q. lia.
     -- left. unfold ZOdd. exists q. lia.
 Qed.
+
+Lemma neq_Z : forall a b : Z,
+  2 * a = 2 * b + 1 -> False.
+Proof.
+  intros a b H1. set (a1 := 2 * a + 0). set (a2 := 2 * b + 1).
+  pose proof (quotient_remainder_theorem_uniqueness a1 2 a b 0 1) as [H2 H3]. repeat split.
+  - lia.
+  - rewrite <- H1. unfold a1. rewrite Z.add_0_r. reflexivity.
+  - lia.
+  - lia.
+  - inversion H3.
+Qed.
