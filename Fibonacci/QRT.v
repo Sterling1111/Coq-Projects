@@ -75,19 +75,19 @@ Proof.
     destruct H3 as [H3a H3b]. rewrite H3a. rewrite H3b. reflexivity.
 Qed.
 
+Ltac zforms :=
+  match goal with
+  | [ |- exists _, ?n = ?num * _ \/ _ ] =>
+      destruct (quotient_remainder_theorem_existence n num) as [q [r Hqr]];
+      try exists q;
+      lia
+  | _ => fail "Goal does not match expected pattern"
+  end.
+
 Lemma poopyPants : forall n : Z,
   exists k : Z, n = 3 * k \/ n = 3 * k + 1 \/ n = 3 * k + 2.
 Proof.
-  intros n.
-  destruct (quotient_remainder_theorem_existence n 3) as [q [r [H1 H2]]].
-  - lia.
-  - exists q. destruct H2 as [H2 H3].
-    destruct (Z.eq_dec r 0) as [H5 | H5].
-    -- rewrite H5 in H1. left. lia.
-    -- destruct (Z.eq_dec r 1) as [H6 | H6].
-       --- right. left. lia.
-       --- right. right. lia.
-Qed.
+  intros n. zforms. Qed.
 
 Definition ZEven (n : Z) : Prop := exists k : Z, n = 2 * k.
 Definition ZOdd (n : Z) : Prop   := exists k : Z, n = 2 * k + 1.
