@@ -4,6 +4,64 @@ From Fibonacci Require Import QRT.
 
 Open Scope Z_scope.
 
+Lemma lemma_9_2_a : forall x : Z,
+  Z.Even (3*x + 1) -> Z.Odd (5*x + 2).
+Proof.
+  intros x H1. apply odd_plus_Z. right. split.
+  - apply odd_mult_Z.
+    -- exists 2. lia.
+    -- apply even_plus_Z in H1 as [[H1 [k H2]] | [[k H1] H2]]; try lia. pose proof Z.Even_or_Odd x as [[j H3] | H3]; auto; lia.
+  - exists 1. lia.
+Qed.
+
+Lemma lemma_9_2_b : forall x : Z,
+  Z.Even (3*x + 1) -> Z.Odd (5*x + 2).
+Proof.
+  intros x. apply contra_2_reverse. intros H1. apply not_odd_iff_even_Z in H1. apply not_even_iff_odd_Z.
+  apply even_plus_Z in H1 as [[H1 _] | [_ [k H2]]]; try lia. apply even_mult_Z in H1 as [[k H1] | H1]; try lia.
+  apply odd_plus_Z; left. split; try (exists 0; lia). apply even_mult_Z; auto.
+Qed.
+
+Lemma lemma_9_2_c : forall x : Z,
+  Z.Even (3*x + 1) -> Z.Odd (5*x + 2).
+Proof.
+  intros x. apply or_to_imply. apply NNPP. intros H1.
+  apply not_or_and in H1 as [H1 H2]. apply NNPP in H1. apply not_odd_iff_even_Z in H2 as H2.
+  apply even_plus_Z in H1 as [[_ [k H3]] | [H1 H3]]; try lia. apply odd_mult_Z with (x := 3) in H1.
+  2 : { exists 1. lia. } apply even_plus_Z in H2 as [[H2 _]| [_ [k H2]]]; try lia. 
+  apply even_mult_Z in H2 as [[k H2] | H2]; try lia. apply Z.Even_Odd_False with (x := x); auto.
+Qed.
+
+Lemma lemma_9_3_helper_1 : forall a : Z,
+  Z.Even (a^2) -> Z.Even a.
+Proof.
+  intros a. apply contra_2_reverse. intros H1. apply not_even_iff_odd_Z in H1.
+  apply not_even_iff_odd_Z. replace (a^2) with (a * a) by lia. apply odd_mult_Z; auto.
+Qed.
+
+Lemma lemma_9_3_helper_2 : forall a b : Z,
+  Z.Odd a -> Z.Odd b -> ~(4 | a^2 + b^2).
+Proof.
+  intros a b [i H1] [j H2] [k H4]; lia.
+Qed.
+
+Lemma lemma_9_3 : forall a b c : Z,
+  a^2 + b^2 = c^2 -> Z.Even a \/ Z.Even b.
+Proof.
+  intros a b c. apply or_to_imply. apply NNPP. intros H1.
+  apply not_or_and in H1 as [H1 H2]. apply not_or_and in H2 as [H2 H3]. apply NNPP in H1.
+  apply not_even_iff_odd_Z in H2. apply not_even_iff_odd_Z in H3. 
+  assert (Z.Even (a^2 + b^2)) as H4. 
+  {
+    apply even_plus_Z. right. replace (a^2) with (a * a) by lia.
+    replace (b^2) with (b * b) by lia. split; apply odd_mult_Z; auto. 
+  }
+  assert (Z.Even (c^2)) as H5. { rewrite <- H1; auto. }
+  assert (Z.Even c) as [k H6]. { apply lemma_9_3_helper_1 in H5; auto. }
+  replace (c^2) with (4 * k^2) in H1 by lia. pose proof (lemma_9_3_helper_2 a b H2 H3) as H7.
+  apply H7. exists (k^2). lia.
+Qed.
+
 Definition rational (r : R) : Prop :=
   exists z1 z2 : Z, (r = (IZR z1) / (IZR z2))%R.
 
@@ -213,4 +271,19 @@ Proof.
   assert (H10 : rational b).
   { replace b with (a * b / a)%R by (field; auto). apply mult_rational; auto. }
   unfold irrational in H3. tauto.
+Qed.
+
+Lemma lemma_9_8 : forall a : R,
+  (a > 0)%R -> irrational a -> exists b, (b > 0)%R /\ irrational b /\ (b < a)%R.
+Proof.
+  intros a H1 H2. exists ((1 / 2) * a)%R. repeat split; try lra.
+  apply lemma_9_7; auto; try lra. exists 1, 2. nra.
+Qed.
+
+Lemma lemma_9_9 : forall x y : Z,
+  33 * x + 132 * y <> 57.
+Proof.
+  intros x y H1. replace (33 * x + 132 * y) with (33 * (x + 4 * y)) in H1 by lia.
+  (*just go through some possibilities. let z = x + 4 * y. if z = 0, 1 too small. forall the rest too big. FAIL*)
+  lia. (* thanks lia! *)
 Qed.

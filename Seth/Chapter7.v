@@ -18,23 +18,6 @@ Qed.
 Lemma contra_2_reverse' : forall P Q : Prop, (~Q -> ~P) -> (P -> Q).
 Proof. intros; tauto. Qed.
 
-Lemma not_odd_iff_even_Z : forall z : Z, ~Z.Odd z <-> Z.Even z.
-Proof.
-    intros z. split.
-    - intros H1. pose proof Z.Even_or_Odd z as [H2 | H2]; tauto.
-    - intros H1 H2. pose proof Z.Even_Odd_False z as H3. tauto.
-Qed.
-
-Lemma NNPP_inverse : forall P : Prop, P -> ~~P.
-Proof. intros P H1 H2. apply H2. apply H1. Qed. 
-
-Lemma not_even_iff_odd_Z : forall z : Z, ~Z.Even z <-> Z.Odd z.
-Proof.
-    intros z. split.
-    - rewrite <- not_odd_iff_even_Z. apply NNPP.
-    - rewrite <- not_odd_iff_even_Z. apply NNPP_inverse.
-Qed.
-
 Lemma lemma_7_1 : forall a : Z, Z.Odd (a^2 + 3) -> Z.Even a.
 Proof.
     intros a. apply contra_2_reverse. intros H1. rewrite not_even_iff_odd_Z in H1.
@@ -45,15 +28,15 @@ Lemma lemma_7_2 : forall x y : Z, Z.Even (x * y + y^2) -> (Z.Odd x \/ Z.Even y).
 Proof.
     intros x y. apply contra_2_reverse. intros H1. apply not_or_and in H1 as [H1 H2]. 
     rewrite not_even_iff_odd_Z in H2. rewrite not_odd_iff_even_Z in H1.
-    rewrite not_even_iff_odd_Z. apply even_plus_odd_Z.
-    - apply even_mult_Z_l; auto.
+    rewrite not_even_iff_odd_Z. apply odd_plus_Z. left. split.
+    - apply even_mult_Z; auto.
     - apply lemma_6_3; auto.
 Qed.
 
 Lemma lemma_7_3 : forall s : Z, Z.Odd s <-> Z.Odd (s^3).
 Proof.
     intros s. split.
-    - intros H1. replace (s^3) with (s * s * s) by lia. repeat apply odd_mult_odd_Z; auto.
+    - intros H1. replace (s^3) with (s * s * s) by lia. repeat apply odd_mult_Z; auto.
     - apply contra_2_reverse. intros H1. rewrite not_odd_iff_even_Z in H1. rewrite not_odd_iff_even_Z.
       destruct H1 as [k H1]. exists (4 * k^3). lia.
 Qed.
