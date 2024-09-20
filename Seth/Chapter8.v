@@ -34,7 +34,7 @@ Qed.
 
 Definition Zmod_equiv (a b n : Z) : Prop := Z.divide n (a - b).
 
-Notation "a ≡ b (mod  n )" := (Zmod_equiv a b n) (at level 70, no associativity).
+Notation "a ≡ b (mod  n )" := (Zmod_equiv a b n) (at level 70).
 
 Proposition prop_8_13 : forall a b c n : Z,
     a ≡ b (mod n) -> a * c ≡ b * c (mod n).
