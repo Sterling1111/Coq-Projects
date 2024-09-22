@@ -271,27 +271,26 @@ Ltac break_union_intersection_2 :=
   end.
 
 Ltac solve_in_Intersection_Union_helper_2 :=
-  intros; break_union_intersection_2; simpl; auto; (try contradiction);
-  solve
-  [ match goal with
-    | [ |- ?G ] => idtac G
-    end | 
-    match goal with
-    | [ |- ?x ∉ _ ⋃ _ ] => apply not_in_Union; split; solve_in_Intersection_Union_helper_2
-    | [ |- ?x ∉ _ ⋂ _ ] => apply not_in_Intersection; (try tauto); solve [ left; solve_in_Intersection_Union_helper_2 | right; solve_in_Intersection_Union_helper_2 ]
-    | [ |- ?x ∉ _ − _ ] => rewrite not_in_Setminus; solve_in_Intersection_Union_helper_2
-    | [ |- ?x ∉ _ ] => rewrite not_in_Complement; solve_in_Intersection_Union_helper_2 
-    | [ |- ?x ∈ Full_set _ ] => apply Full_intro
-    | [ |- ?x ∈ Singleton _ _ ] => apply Singleton_intro; (try reflexivity; try nia; try nra)
-    | [ |- ?x ∈ _ − _] => try (apply In_Setminus_def); split; solve_in_Intersection_Union_helper_2
-    | [ |- ?x ∈ (_ ⋂ _)′ ] => rewrite De_Morgan_Intersection; solve_in_Intersection_Union_helper_2
-    | [ |- ?x ∈ (_ ⋃ _)′ ] => rewrite De_Morgan_Union; solve_in_Intersection_Union_helper_2
-    | [ |- ?x ∈ (_ − _)′ ] => rewrite Setminus_Complement; solve_in_Intersection_Union_helper_2
-    | [ |- ?x ∈ (_)′′ ] => rewrite Complement_Complement; solve_in_Intersection_Union_helper_2
-    | [ |- ?x ∈ _ ⋂ _ ] => apply In_Intersection_def; split; solve_in_Intersection_Union_helper_2
-    | [ |- ?x ∈ _ ⋃ _ ] => apply In_Union_def; (try tauto); solve [ left; solve_in_Intersection_Union_helper_2 | right; solve_in_Intersection_Union_helper_2 ]
-    | [ |- ?G ] => fail "Goal not solvable"
-    end ].
+  match goal with
+  | [ |- ?G ] => idtac G; intros; break_union_intersection_2; simpl; auto; (try contradiction)
+  end;
+  
+  match goal with
+  | [ |- ?x ∉ _ ⋃ _ ] => apply not_in_Union; split; solve_in_Intersection_Union_helper_2
+  | [ |- ?x ∉ _ ⋂ _ ] => apply not_in_Intersection; (try tauto); solve [ left; solve_in_Intersection_Union_helper_2 | right; solve_in_Intersection_Union_helper_2 ]
+  | [ |- ?x ∉ _ − _ ] => rewrite not_in_Setminus; solve_in_Intersection_Union_helper_2
+  | [ |- ?x ∉ _ ] => rewrite not_in_Complement; solve_in_Intersection_Union_helper_2 
+  | [ |- ?x ∈ Full_set _ ] => apply Full_intro
+  | [ |- ?x ∈ Singleton _ _ ] => apply Singleton_intro; (try reflexivity; try nia; try nra)
+  | [ |- ?x ∈ _ − _] => try (apply In_Setminus_def); split; solve_in_Intersection_Union_helper_2
+  | [ |- ?x ∈ (_ ⋂ _)′ ] => rewrite De_Morgan_Intersection; solve_in_Intersection_Union_helper_2
+  | [ |- ?x ∈ (_ ⋃ _)′ ] => rewrite De_Morgan_Union; solve_in_Intersection_Union_helper_2
+  | [ |- ?x ∈ (_ − _)′ ] => rewrite Setminus_Complement; solve_in_Intersection_Union_helper_2
+  | [ |- ?x ∈ (_)′′ ] => rewrite Complement_Complement; solve_in_Intersection_Union_helper_2
+  | [ |- ?x ∈ _ ⋂ _ ] => apply In_Intersection_def; split; solve_in_Intersection_Union_helper_2
+  | [ |- ?x ∈ _ ⋃ _ ] => apply In_Union_def; (try tauto); solve [ left; solve_in_Intersection_Union_helper_2 | right; solve_in_Intersection_Union_helper_2 ]
+  | [ |- ?G ] => fail "Goal not solvable"
+  end.
 
 Ltac in_list x l :=
   match l with
@@ -333,7 +332,7 @@ Ltac pose_in_or_not_for_sets U x :=
   let sets := find_sets_in_goal U in
   let rec process_sets s :=
     match s with
-    | nil => idtac "All sets found:"; idtac sets
+    | nil => idtac
     | cons ?A ?xs =>
         pose proof (In_or_not U A x);
         process_sets xs
