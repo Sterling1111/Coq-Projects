@@ -526,3 +526,56 @@ Lemma lemma_10_8_c : forall (U : Type) (A B C : Ensemble U),
 Proof.
   intros U A B C. apply subset_subset_eq_iff. split; [apply lemma_10_8_a | apply lemma_10_8_b].
 Qed.
+
+Open Scope nat_scope.
+
+Fixpoint Union_f_n {A : Type} (f : nat -> Ensemble A) (n : nat) : Ensemble A :=
+  match n with
+  | 0 => f 0
+  | S n' =>  Union_f_n f n' ⋃ f n
+  end.
+
+Lemma Union_f_n_S : forall (A : Type) (f : nat -> Ensemble A) (n : nat),
+  Union_f_n f (S n) = Union_f_n f n ⋃ f (S n).
+Proof.
+  intros A f n. simpl. apply set_equal_def. intros x. split; intros H1.
+  - apply In_Union_def in H1. destruct H1 as [H1 | H1].
+    -- apply In_Union_def. left. auto.
+    -- apply In_Union_def. right. auto.
+  - apply In_Union_def in H1. destruct H1 as [H1 | H1].
+    -- apply In_Union_def. left. auto.
+    -- apply In_Union_def. right. auto.
+Qed.
+
+Close Scope nat_scope.
+
+Section section_10_9.
+  Let Sn (n : nat) : Ensemble Z :=
+    fun m : Z => m <= Z.of_nat n.
+
+  Let Union_Sn_a (i : nat) : Ensemble Z :=
+    Union_f_n Sn i.
+
+  Lemma lemma_10_9_a : forall n : nat,
+    Union_Sn_a n = Sn n.
+  Proof.
+    intros n. induction n as [| k IH]; try reflexivity.
+    unfold Union_Sn_a in *. rewrite Union_f_n_S. rewrite IH. apply set_equal_def. intros x. split; intros H1.
+    - apply In_Union_def in H1 as [H1 | H1].
+      -- unfold In, Sn in *. lia.
+      -- apply H1.
+    - apply In_Union_def. right. apply H1.
+  Qed.
+
+  Let Union_Sn_b : Ensemble Z :=
+    fun x : Z => exists n : nat, x ∈ Sn n.
+
+  Lemma lemma_10_9_b : Union_Sn_b = Full_set Z.
+  Proof.
+    apply set_equal_def. intros x. split.
+    - intros H1. apply Full_intro.
+    - intros H1. repeat unfold In, Union_Sn_b, Sn.
+      exists (Z.to_nat x). lia.
+Qed.
+
+End section_10_9.
