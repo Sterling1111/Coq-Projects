@@ -233,6 +233,30 @@ Proof.
       split; (apply not_0_IZR; lia).
 Qed.
 
+Lemma irrational_neg : forall x,
+  irrational x -> irrational (-x).
+Proof.
+  intros x H1 [z1 [z2 H2]]. apply H1. exists (-z1), z2. rewrite opp_IZR. nra.
+Qed.
+
+Lemma irrational_sub : forall x y,
+  ((irrational x /\ rational y) \/ (rational x /\ irrational y)) -> irrational (x - y).
+Proof.
+  intros x y. intros [[H1 [z1 [ z2 H2]]] | [[z1 [ z2 H1]] H2]] [z3 [z4 H3]].
+  - assert (z2 = 0 \/ z2 <> 0) as [H4 | H4]; assert (z4 = 0 \/ z4 <> 0) as [H5 | H5]; try lia.
+    -- subst. unfold Rdiv in H3. rewrite Rinv_0 in H3. assert (x = 0)%R by nra. assert (rational x) by (exists 0, 1; nra). apply H1. auto.
+    -- subst. unfold Rdiv in H3. rewrite Rinv_0 in H3. assert (x = IZR z3 / IZR z4)%R by nra. apply H1. exists z3, z4. auto.
+    -- subst. unfold Rdiv in H3. rewrite Rinv_0 in H3. assert (x = IZR z1 / IZR z2)%R by nra. apply H1. exists z1, z2. auto.
+    -- apply H1. exists (z1 * z4 + z2 * z3), (z2 * z4). rewrite plus_IZR. repeat rewrite mult_IZR. apply Rplus_eq_compat_r with (r := y) in H3.
+       replace (x - y + y)%R with x in H3 by lra. rewrite H2 in H3. rewrite H3. field; split. apply not_0_IZR. lia. apply not_0_IZR. lia.
+  - assert (z2 = 0 \/ z2 <> 0) as [H4 | H4]; assert (z4 = 0 \/ z4 <> 0) as [H5 | H5]; try lia.
+    -- subst. unfold Rdiv in H3. rewrite Rinv_0 in H3. assert (y = 0)%R by nra. assert (rational y) by (exists 0, 1; nra). apply H2. auto.
+    -- subst. unfold Rdiv in H3. rewrite Rinv_0 in H3. assert (y = - IZR z3 / IZR z4)%R by nra. apply H2. exists (-z3), z4. rewrite opp_IZR. auto.
+    -- subst. unfold Rdiv in H3. rewrite Rinv_0 in H3. assert (y = IZR z1 / IZR z2)%R by nra. apply H2. exists z1, z2. auto.
+    -- apply H2. exists (z1 * z4 - z2 * z3), (z2 * z4). rewrite minus_IZR. repeat rewrite mult_IZR. assert (y = x - (IZR z3 / IZR z4))%R as H6 by nra.
+       rewrite H6. rewrite H1. field. split. apply not_0_IZR. lia. apply not_0_IZR. lia.
+Qed.
+
 Lemma x_neq_0_IZR_den_neq_0 : forall x y z,
   (x <> 0 /\ x = IZR y / IZR z)%R -> z <> 0. 
 Proof.
@@ -271,6 +295,33 @@ Proof.
   assert (H10 : rational b).
   { replace b with (a * b / a)%R by (field; auto). apply mult_rational; auto. }
   unfold irrational in H3. tauto.
+Qed.
+
+Lemma Rdiv_eq_0 : forall a b,
+  (a / b = 0)%R -> (a = 0 \/ b = 0)%R.
+Proof.
+  intros a b H1. assert (a = 0 \/ a <> 0)%R as [H2 | H2] by lra; assert (b = 0 \/ b <> 0)%R as [H3 | H3] by lra; try nra.
+  apply Rmult_eq_compat_r with (r := b) in H1. field_simplify in H1; nra.
+Qed.
+
+Lemma irrational_div : forall a b,
+  (a <> 0)%R -> (b <> 0)%R -> ((irrational a /\ rational b) \/ (rational a /\ irrational b)) -> irrational (a / b).
+Proof.
+  intros a b H1 H2 [[H3 [z1 [z2 H4]]] | [[z1 [z2 H3]] H4]] [z3 [z4 H5]].
+  - assert (z1 = 0 \/ z1 <> 0) as [H6 | H6]; assert (z2 = 0 \/ z2 <> 0) as [H7 | H7];
+    assert (z3 = 0 \/ z3 <> 0) as [H8 | H8]; assert (z4 = 0 \/ z4 <> 0) as [H9 | H9]; try lia; subst; try lra; try (unfold Rdiv in H2; rewrite Rinv_0 in H2; lra).
+    -- replace (0 / 0)%R with 0%R in H5 by lra. apply Rdiv_eq_0 in H5. tauto.
+    -- replace (0 / IZR z4)%R with 0%R in H5 by lra. apply Rdiv_eq_0 in H5. tauto.
+    -- replace (IZR z3 / 0)%R with 0%R in H5. 2 : { unfold Rdiv; rewrite Rinv_0; lra. } apply Rdiv_eq_0 in H5. tauto.
+    -- apply H3. exists (z1 * z3), (z2 * z4). repeat rewrite mult_IZR. assert (IZR z1 <> 0 /\ IZR z2 <> 0 /\ IZR z3 <> 0 /\ IZR z4 <> 0)%R as [H10 [H11 [ H12 H13]]] by (repeat split; apply not_0_IZR; lia).
+       apply Rmult_eq_compat_r with (r := (IZR z1 / IZR z2)%R) in H5. field_simplify in H5; try nra.
+  - assert (z1 = 0 \/ z1 <> 0) as [H6 | H6]; assert (z2 = 0 \/ z2 <> 0) as [H7 | H7];
+    assert (z3 = 0 \/ z3 <> 0) as [H8 | H8]; assert (z4 = 0 \/ z4 <> 0) as [H9 | H9]; try lia; subst; try lra; try (unfold Rdiv in H1; rewrite Rinv_0 in H1; lra).
+    -- replace (0 / 0)%R with 0%R in H5 by lra. apply Rdiv_eq_0 in H5. tauto.
+    -- replace (0 / IZR z4)%R with 0%R in H5 by lra. apply Rdiv_eq_0 in H5. tauto.
+    -- replace (IZR z3 / 0)%R with 0%R in H5. 2 : { unfold Rdiv; rewrite Rinv_0; lra. } apply Rdiv_eq_0 in H5. tauto.
+    -- apply H4. exists (z1 * z4), (z2 * z3). repeat rewrite mult_IZR. assert (IZR z1 <> 0 /\ IZR z2 <> 0 /\ IZR z3 <> 0 /\ IZR z4 <> 0)%R as [H10 [H11 [ H12 H13]]] by (repeat split; apply not_0_IZR; lia).
+       apply Rmult_eq_compat_r with (r := b) in H5. field_simplify in H5; try nra. apply Rmult_eq_compat_r with (r := (IZR z4 / IZR z3)%R) in H5. field_simplify in H5; try nra.
 Qed.
 
 Lemma lemma_9_8 : forall a : R,

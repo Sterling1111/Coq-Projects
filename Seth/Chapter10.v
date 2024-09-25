@@ -5,8 +5,15 @@ From Seth Require Export Chapter9.
 Declare Scope set_scope.
 Delimit Scope set_scope with set.
 
-(* Define notations within the custom scope with improved precedence *)
+Open Scope set_scope.
+
 Notation "x ∈ A" := (In _ A x) (at level 40) : set_scope.
+
+Definition set_prod {U V : Type} (A : Ensemble U) (B : Ensemble V) : Ensemble (U * V) :=
+  fun p => exists a b, a ∈ A /\ b ∈ B /\ p = (a, b).
+
+(* Define notations within the custom scope with improved precedence *)
+Notation "A ≠ B" := (A <> B) (at level 40) : set_scope.
 Notation "x ∉ A" := (~ In _ A x) (at level 40) : set_scope.
 Notation "A ⊆ B" := (Included _ A B) (at level 40) : set_scope.
 Notation "A ⊈ B" := (~ Included _ A B) (at level 40) : set_scope.
@@ -14,10 +21,9 @@ Notation "A ⊊ B" := (Strict_Included _ A B) (at level 40) : set_scope.
 Notation "A ⋃ B" := (Union _ A B) (at level 30) : set_scope.
 Notation "A ⋂ B" := (Intersection _ A B) (at level 30) : set_scope.
 Notation "A − B" := (Setminus _ A B) (at level 30) : set_scope.
+Notation "A × B" := (set_prod A B) (at level 30) : set_scope.
 Notation "A ′" := (Complement _ A) (at level 20, format "A ′") : set_scope.
 Notation "∅" := (Empty_set _) : set_scope.
-
-Open Scope set_scope.
 
 Fixpoint list_to_ensemble {U : Type} (l : list U) : Ensemble U :=
   match l with
@@ -28,6 +34,40 @@ Fixpoint list_to_ensemble {U : Type} (l : list U) : Ensemble U :=
 Notation "{ x1 , .. , xn }" :=
   (@list_to_ensemble _ (cons x1 .. (cons xn nil) ..)).
 
+Lemma not_In_Empty : forall (U : Type) (x : U),
+  x ∉ ∅.
+Proof.
+  intros U x. intros H1. inversion H1.
+Qed.
+
+Lemma not_Empty_In : forall (U : Type) (A : Ensemble U),
+  A ≠ ∅ <-> exists x, x ∈ A.
+Proof.
+  intros U A. split.
+  - intro H1. apply not_empty_Inhabited in H1 as [x H1]. exists x. auto.
+  - intros [x H1] H2. rewrite H2 in H1. inversion H1.
+Qed.
+
+Lemma Subset_refl : forall (U : Type) (A : Ensemble U),
+  A ⊆ A.
+Proof.
+  intros U A x H1. auto.
+Qed.
+
+Lemma Empty_Subset : forall (U : Type) (A : Ensemble U),
+  ∅ ⊆ A.
+Proof.
+  intros U A x H1. inversion H1.
+Qed.
+
+Lemma In_prod_def : forall (U V : Type) (A : Ensemble U) (B : Ensemble V) (x : U) (y : V),
+  (x, y) ∈ (A × B) <-> x ∈ A /\ y ∈ B.
+Proof.
+  intros U V A B x y. split.
+  - intros [a [b [H1 [H2 H3]]]]. inversion H3 as [[H4 H5]]. split; auto.
+  - intros [H1 H2]. unfold In. exists x, y. auto.
+Qed.
+ 
 Lemma In_or_not : forall (U : Type) (A : Ensemble U) (x : U),
   x ∈ A \/ x ∉ A.
 Proof.
@@ -82,6 +122,20 @@ Proof.
   intros U A B. apply set_equal_def. intros x. split; intros H1.
   - apply In_Intersection_def. apply In_Setminus_def in H1. auto.
   - apply In_Intersection_def in H1. apply In_Setminus_def. auto.
+Qed.
+
+Lemma Subset_def : forall (U : Type) (A B : Ensemble U),
+  A ⊆ B <-> forall x, x ∈ A -> x ∈ B.
+Proof.
+  intros U A B. split; intros H1 x H2; apply H1; auto.
+Qed.
+
+Lemma not_Subset_def : forall (U : Type) (A B : Ensemble U),
+  A ⊈ B <-> exists x, x ∈ A /\ x ∉ B.
+Proof.
+  intros U A B. split; intros H1.
+  - apply not_all_ex_not in H1. destruct H1 as [x H1]. exists x. apply imply_to_and in H1. auto.
+  - intros H2. destruct H1 as [x H1]. rewrite Subset_def in H2. apply H1. apply (H2 x). apply H1.
 Qed.
 
 Ltac break_union_intersection :=
@@ -271,6 +325,7 @@ Ltac break_union_intersection_2 :=
   end.
 
 Ltac solve_in_Intersection_Union_helper_2 :=
+  unfold list_to_ensemble in *;
   match goal with
   | [ |- ?G ] => idtac G; intros; break_union_intersection_2; simpl; auto; (try contradiction)
   end;
@@ -380,13 +435,14 @@ Ltac solve_not_in_ensemble :=
   | [ |- ?x ∉ ∅ ] => intros H_69420; inversion H_69420
   | [ |- ?x ∉ Singleton _ _ ] => intros H_69420; apply Singleton_inv in H_69420; (try inversion H_69420; try nia; try nra)
   | [ |- ?x ∉ _ ⋃ _ ] => apply not_in_Union; split; solve_not_in_ensemble
+  | [ |- ?x ∉ _ ⋂ _ ] => apply not_in_Intersection; (try tauto); solve [ left; solve_not_in_ensemble | right; solve_not_in_ensemble ]
   | [ |- ?G ] => idtac G; fail "Goal not solvable"
   end.
 
 Lemma lemma_10_1_a : 3 ∈ {1, 2, 3, 4, 5, 6, 7}.
 Proof. solve_in_Union. Qed.
 
-Lemma asdlfasdf : 3 ∉ {1, 2, 4, 5, 6, 7}.
+Lemma asdlfasdf : 1 ∉ {1, 3} ⋂ {2}.
 Proof.
   solve_not_in_ensemble.
 Qed.
