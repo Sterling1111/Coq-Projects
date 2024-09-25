@@ -34,6 +34,12 @@ Fixpoint list_to_ensemble {U : Type} (l : list U) : Ensemble U :=
 Notation "{ x1 , .. , xn }" :=
   (@list_to_ensemble _ (cons x1 .. (cons xn nil) ..)).
 
+Lemma list_to_ensemble_cons : forall (U : Type) (x : U) (xs : list U),
+  list_to_ensemble (x :: xs) = Union U (Singleton U x) (list_to_ensemble xs).
+Proof.
+  intros U x xs. auto.
+Qed.
+
 Lemma not_In_Empty : forall (U : Type) (x : U),
   x ∉ ∅.
 Proof.
@@ -634,3 +640,61 @@ Section section_10_9.
 Qed.
 
 End section_10_9.
+
+Lemma list_to_ensemble_not_empty : forall (U : Type) (l : list U),
+  l ≠ nil <-> list_to_ensemble l ≠ ∅.
+Proof.
+  intros U l. split.
+  - intros H1. destruct l as [| h t] eqn : El; try contradiction. intros H2. rewrite list_to_ensemble_cons in H2.
+    rewrite set_equal_def in H2. specialize (H2 h) as [H2 _]. assert (h ∈ Singleton U h) as H3.
+    { apply In_singleton. } rewrite In_Union_def in H2. assert (h ∈ ∅) as H4. { apply H2. auto. } contradiction.
+  - intros H1. destruct l as [| h t] eqn : El; try contradiction. intros H2. inversion H2.
+Qed.
+
+Lemma list_to_ensemble_map_not_empty : forall (U V : Type) (l : list U) (f : U -> V),
+  l ≠ nil -> list_to_ensemble (map f l) ≠ ∅.
+Proof.
+  intros U V l f H1. apply list_to_ensemble_not_empty. intros H2. apply H1. apply map_eq_nil in H2. auto.
+Qed.
+
+Lemma In_list_to_ensemble : forall (U : Type) (l : list U) (x : U),
+  List.In x l <-> x ∈ list_to_ensemble l.
+Proof.
+  intros U l x. split.
+  - intros H1. induction l as [| h t IH].
+    -- inversion H1.
+    -- simpl. destruct H1 as [H1 | H1].
+      ++ rewrite H1. apply In_Union_def. left. apply In_singleton.
+      ++ specialize (IH H1). apply In_Union_def. right. auto.
+  - intros H1. induction l as [| h t IH].
+    -- inversion H1.
+    -- simpl in H1. apply In_Union_def in H1. destruct H1 as [H1 | H1].
+      ++ simpl. left. apply Singleton_inv in H1. auto.
+      ++ right. apply IH. auto.
+Qed.
+
+Lemma list_eq_In : forall (U : Type) (l1 l2 : list U),
+  l1 = l2 -> (forall x, List.In x l1 -> List.In x l2).
+Proof.
+  intros U l1 l2 H1 x H2. generalize dependent l2. induction l1 as [| h t IH].
+  - inversion H2.
+  - intros l2 H3. simpl in H2. destruct H2 as [H2 | H2].
+    -- rewrite H2 in H3. destruct l2 as [| h' t'] eqn : El2.
+      ++ inversion H3.
+      ++ inversion H3. left. auto.
+    -- assert (x = h \/ x <> h) as [H4 | H4] by apply classic.
+       ++ inversion H3. left. auto.
+       ++ inversion H3. right. auto.
+Qed.
+
+Lemma list_to_ensemble_eq_iff : forall (U : Type) (l1 l2 : list U),
+  list_to_ensemble l1 = list_to_ensemble l2 <-> forall x, List.In x l1 <-> List.In x l2.
+Proof.
+  intros U l1 l2. split.
+  - intros H1. rewrite set_equal_def in H1. intros x. specialize (H1 x) as [H1 H2]. split.
+    -- intros H3. apply In_list_to_ensemble. apply H1. apply In_list_to_ensemble in H3. auto.
+    -- intros H3. apply In_list_to_ensemble. apply In_list_to_ensemble in H3. auto.
+  - intros H1. apply set_equal_def. intros x. split; intros H2.
+    -- apply In_list_to_ensemble in H2. apply In_list_to_ensemble. apply H1; auto.
+    -- apply In_list_to_ensemble in H2. apply In_list_to_ensemble. apply H1; auto.
+Qed.
