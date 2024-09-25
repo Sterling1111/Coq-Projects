@@ -7,12 +7,10 @@ Open Scope Z_scope.
 Lemma lemma_8_1 : forall x y : Z, (Z.Even x <-> Z.Even y) -> Z.Even (x^2 + x * y).
 Proof.
     intros x y [H1 H2]. pose proof Z.Even_or_Odd x as [H3 | H3].
-    - specialize (H1 H3). apply even_plus_even_Z; auto.
-      -- apply even_mult_Z_l; auto.
-      -- apply even_mult_Z_r; auto.
-    - apply contra_2 in H2. 2 : { apply not_even_iff_odd_Z; auto. } apply odd_plus_odd_Z.
+    - specialize (H1 H3). apply even_plus_Z. left. split; apply even_mult_Z; auto.
+    - apply contra_2 in H2. 2 : { apply not_even_iff_odd_Z; auto. } apply even_plus_Z. right. split.
       -- apply lemma_6_3; auto.
-      -- apply odd_mult_odd_Z; auto. apply not_even_iff_odd_Z; auto.
+      -- apply odd_mult_Z; auto. apply not_even_iff_odd_Z; auto.
 Qed.
 
 Lemma lemma_8_2_a : forall a b c : Z, ~(a | b * c) -> ~(a | b) \/ ~(a | c).
@@ -36,7 +34,7 @@ Qed.
 
 Definition Zmod_equiv (a b n : Z) : Prop := Z.divide n (a - b).
 
-Notation "a ≡ b (mod  n )" := (Zmod_equiv a b n) (at level 70, no associativity).
+Notation "a ≡ b (mod  n )" := (Zmod_equiv a b n) (at level 70).
 
 Proposition prop_8_13 : forall a b c n : Z,
     a ≡ b (mod n) -> a * c ≡ b * c (mod n).
@@ -167,5 +165,3 @@ Proof.
       -- assert (H6 : -a * -a < 1 * -a). { apply H1. lra. lra. } lra.
       -- assert (H6 : a * a < 1 * a). { apply H1. lra. lra. } lra.
 Qed.
-
-
