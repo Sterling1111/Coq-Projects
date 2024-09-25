@@ -21,7 +21,7 @@ Proof. intros; tauto. Qed.
 Lemma lemma_7_1 : forall a : Z, Z.Odd (a^2 + 3) -> Z.Even a.
 Proof.
     intros a. apply contra_2_reverse. intros H1. rewrite not_even_iff_odd_Z in H1.
-    rewrite not_odd_iff_even_Z. destruct H1 as [k H1]. exists (2 * k^2 + 2 * k + 2). lia.
+    rewrite not_odd_iff_even_Z. destruct H1 as [k H1]. rewrite H1. exists (2 * k^2 + 2 * k + 2). lia.
 Qed.
 
 Lemma lemma_7_2 : forall x y : Z, Z.Even (x * y + y^2) -> (Z.Odd x \/ Z.Even y).
@@ -44,16 +44,17 @@ Qed.
 (* the students mistake is that the contrapositive would mean assuming that x is not even *)
 Lemma lemma_7_4 : forall x : Z, (2 | x) -> Z.Even x.
 Proof.
-    intro x. apply contra_2_reverse. intros H1 [k H2]. apply not_even_iff_odd_Z in H1 as [j H1]. lia.
+    intro x. apply contra_2_reverse. intros H1. apply not_even_iff_odd_Z in H1. unfold not. intros H2. 
+    destruct H1 as [k H1]. destruct H2 as [j H2]. lia.
 Qed.
 
 Lemma lemma_7_5 : forall a b c d : Z, (a | c) -> (b | d) -> (a * b | c * d).
 Proof.
-    intros a b c d [k H1] [l H2]. rewrite H1, H2. exists (k * l). lia.
+    intros a b c d [k H1] [j H2]. rewrite H1, H2. exists (k * j). lia.
 Qed.
 
 Lemma lemma_7_6 : forall a b c d : Z,
-    (((a | c) /\ (b | d)) -> (a + b | c + d)) -> (~(a + b | c + d) -> (~(a | c) \/ ~(b | d))).
+    (((a | c) /\ (b | d)) -> (a * b | c * d)) -> (~(a * b | c * d) -> (~(a | c) \/ ~(b | d))).
 Proof.
     intros a b c d H1. apply contra_2_reverse. intro H2. apply NNPP_inverse. apply H1.
     apply not_or_and in H2 as [H2 H3]. apply NNPP in H2, H3. auto.
@@ -73,8 +74,8 @@ Qed.
 
 Lemma lemma_7_8' : forall x : Z, Z.Even (5 * x - 1) -> Z.Odd x.
 Proof.
-    intros x [j H1]. pose proof (Z.Even_or_Odd x) as [[k H2] | H2]; auto.
-    rewrite H2 in H1. assert (H3 : 2 * (5 * k) = 2 * j + 1) by lia. (* lia. would finish it now *)
+    intros x [k H1]. pose proof (Z.Even_or_Odd x) as [[j H2] | H2]; auto.
+    rewrite H2 in H1. assert (H3 : 2 * (5 * j) = 2 * k + 1) by lia. (* lia. would finish it now *)
     assert (H4 : Z.Even (2 * (5 * k))) by (exists (5 * k); lia).
     assert (H5 : Z.Odd (2 * j + 1)) by (exists k; lia). pose proof (Z.Even_Odd_False (2 * j + 1)) as H6.
     exfalso. apply H6.

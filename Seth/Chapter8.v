@@ -13,12 +13,14 @@ Proof.
       -- apply odd_mult_Z; auto. apply not_even_iff_odd_Z; auto.
 Qed.
 
-Lemma lemma_8_2_a : forall a b c : Z, ~(a | b * c) -> ~(a | b) \/ ~(a | c).
+Lemma lemma_8_2_a : forall a b c : Z, ~(a | b * c) -> ~(a | b) /\  ~(a | c).
 Proof.
-    intros a b c H1. apply not_and_or. intros [[i H2] [j H3]]. apply H1. exists (i * j * a). lia.
+    intros a b c H1. apply not_or_and. intros [[k H2]| [k H2]].
+    - apply H1. exists (c * k). lia.
+    - apply H1. exists (b * k). lia.
 Qed.
 
-Lemma  ex_not_all_not_3 : forall (U : Type) (P : U -> U -> U -> Prop),
+Lemma ex_not_all_not_3 : forall (U : Type) (P : U -> U -> U -> Prop),
     (exists x y z : U, ~P x y z) -> ~(forall x y z : U, P x y z).
 Proof.
     intros U P [x [y [z H1]]] H2. apply H1. apply H2.
@@ -45,29 +47,27 @@ Qed.
 Lemma lemma_8_3_a : forall x : Z, x^2 ≡ 0 (mod 4) \/ x^2 ≡ 1 (mod 4).
 Proof.
     intros x.
-    assert (exists i, x = 2*i \/ x = 2*i + 1 \/ x = 2*i + 2 \/ x = 2*i + 3) as [i H1] by zforms. repeat destruct H1 as [H1 | H1].
-    - left. exists (i^2). lia.
-    - right. exists (i^2 + i). lia.
-    - left. exists (i^2 + 2*i + 1). lia.
-    - right. exists (i^2 + 3*i + 2). lia.
+    assert (exists i, x = 2*i \/ x = 2*i + 1) as [i H1] by zforms. repeat destruct H1 as [H1 | H1].
+    - rewrite H1. left. unfold Zmod_equiv. unfold Z.divide. exists (i^2). lia.
+    - right. exists (i^2 + i). rewrite H1. lia.
 Qed.
 
 Lemma lemma_8_3_b : forall x : Z, (4 | x^4 - x^2).
 Proof.
     intros x. 
     assert (exists k, x = 2 * k \/ x = 2 * k + 1) as [k [H1 | H1]] by zforms.
-    - exists (4 * k^4 - k^2). lia.
+    - exists (4 * k^4 - k^2). rewrite H1. lia.
     - exists (4 * k^4 + 8 * k^3 + 5 * k^2 + k). lia.
 Qed.
 
 Lemma lemma_8_4_a : forall a b c n : Z, a ≡ b (mod n) -> b ≡ c (mod n) -> a ≡ c (mod n).
 Proof.
-    intros a b c n [i H1] [j H2]. exists (i + j). lia.
+    intros a b c n [k H1] [j H2]. exists (k + j). lia.
 Qed.
 
 Lemma lemma_8_4_b : 11 ≡ -3 (mod 7) -> -3 ≡ 4 (mod 7) -> 11 ≡ 4 (mod 7).
 Proof.
-    intros H1 H2. apply lemma_8_4_a with (b := -3) (n := 7); auto.
+    intros H1 H2. apply lemma_8_4_a with (a := 11) (b := -3) (n := 7) (c := 4); auto.
 Qed.
 
 Lemma lemma_8_5 : forall n : Z, (3 | n) <-> (3 | n^2).
@@ -76,8 +76,8 @@ Proof.
     - intros [k H1]. exists (3 * k^2). lia.
     - intros [j H1]. assert (exists k, n = 3 * k \/ n = 3 * k + 1 \/ n = 3 * k + 2) as [k [H2 | [H2 | H2]]] by zforms.
         + exists (k). lia.
-        + exists (3 * k + 1). lia.
-        + exists (3 * k + 2). lia.
+        + lia.
+        + lia.
 Qed.
 
 Lemma lemma_8_6 : forall n : Z, (3 | 2 * n^2 + 1) <-> ~ (3 | n).
@@ -132,8 +132,15 @@ Proof.
     - destruct (Rcase_abs x) as [H2 | H2]; destruct (Rcase_abs y) as [H3 | H3]. nra. nra. nra. nra. 
 Qed.
 
+Lemma lemma_8_8' : forall x y : R, Rabs (x * y) = Rabs x * Rabs y.
+Proof.
+    intros x y. unfold Rabs. destruct (Rcase_abs (x * y)) as [H1 | H1].
+    - destruct (Rcase_abs x) as [H2 | H2]; destruct (Rcase_abs y) as [H3 | H3]. nra. nra. nra. nra.
+    - destruct (Rcase_abs x) as [H2 | H2]; destruct (Rcase_abs y) as [H3 | H3]. nra. nra. nra. nra.
+Qed.
+
 (* showing the power and use of coq *)
-Lemma lemma_8_8' : forall x y : R, Rabs (x - y) <= Rabs x + Rabs y.
+Lemma lemma_8_8'' : forall x y : R, Rabs (x - y) <= Rabs x + Rabs y.
 Proof. solve_abs. Qed.     
 
 Lemma lemma_8_9_helper : forall a : R, a^2 = 1 -> a = 1 \/ a = -1.
@@ -151,14 +158,14 @@ Proof.
     assert (H2 : forall a b c, a < b -> c < 0 -> a * c > b * c) by (intros; nra).
     split; intros H3; try split. 
     - destruct H3 as [H3 | H3]. 2 : { apply lemma_8_9_helper in H3. lra. }
-      pose proof (Rtotal_order a 0) as [H4 | [H4 | H4]]; try lra. pose proof (Rtotal_order a (-1)) as [H5 | [H5 | H5]]; try lra.
-      assert (H6 : a * a > -1 * a). { apply H2. apply H5. apply H4. } (* lra can finish now but just to show what we have done *)
+      pose proof (Rtotal_order a (-1)) as [H5 | [H5 | H5]]; try lra.
+      assert (H6 : a * a > -1 * a). { apply H2. apply H5. lra. } (* lra can finish now but just to show what we have done *)
       assert (H7 : -a < a^2 < 1). { split. lra. apply H3. } assert (H8 : -a < 1) by lra. assert (H9 : -a * -1 > 1 * -1). { apply H2. apply H8. lra. }
       replace (-a * -1) with a in H9 by lra. rewrite Rmult_1_l in H9. apply Rlt_le. apply Rgt_lt. apply H9.
     - destruct H3 as [H3 | H3]. 2 : { apply lemma_8_9_helper in H3. lra. }
       pose proof (Rtotal_order a 0) as [H4 | [H4 | H4]]; try lra. pose proof (Rtotal_order a (1)) as [H5 | [H5 | H5]]; try lra.
       assert (H6 : a * a > 1 * a). { apply H1. apply H5. apply H4. } (* lra can finish now but just to show what we have done *)
-      assert (H7 : a < a^2 < 1). { split. lra. apply H3. } assert (H8 : a < 1) by lra. assert (H9 : -a * -1 > 1 * -1). lra. 
+      assert (H7 : a < a^2 < 1). { split. lra. apply H3. } assert (H8 : a < 1) by lra.  assert (H9 : -a * -1 > 1 * -1). lra. 
       replace (-a * -1) with a in H9 by lra. rewrite Rmult_1_l in H9. apply Rlt_le. apply Rgt_lt. apply H8.
     - destruct H3 as [H3 H4]. destruct H3 as [H3 | H3]. 2 : { rewrite <- H3. lra. } destruct H4 as [H4 | H4]. 2 : { rewrite H4. lra. }
       pose proof (Rtotal_order a 0) as [H5 | [H5 | H5]]. 2 : { rewrite H5. lra. }
