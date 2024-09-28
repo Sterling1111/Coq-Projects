@@ -75,11 +75,5 @@ Qed.
 Lemma lemma_7_8' : forall x : Z, Z.Even (5 * x - 1) -> Z.Odd x.
 Proof.
     intros x [k H1]. pose proof (Z.Even_or_Odd x) as [[j H2] | H2]; auto.
-    rewrite H2 in H1. assert (H3 : 2 * (5 * j) = 2 * k + 1) by lia. (* lia. would finish it now *)
-    assert (H4 : Z.Even (2 * (5 * k))) by (exists (5 * k); lia).
-    assert (H5 : Z.Odd (2 * j + 1)) by (exists k; lia). pose proof (Z.Even_Odd_False (2 * j + 1)) as H6.
-    exfalso. apply H6.
-    - rewrite <- H3. apply H4.
-    - apply H5.
-     (* we have even = odd impossible by QRT*) 
+    rewrite H2 in H1. assert (H3 : 2 * (5 * j) = 2 * k + 1) by lia. lia.
 Qed.

@@ -152,7 +152,7 @@ Lemma ksqr_div_3_k_div_3 : forall k,
 Proof.
   intros k [a H1]. unfold Z.divide.
   assert (exists p, k = 3*p \/ k = 3*p+1 \/ k = 3*p+2) as [p H2] by zforms.
-  exists p. lia.
+  exists p.  destruct H2. lia. destruct H. lia. lia.
 Qed.
 
 Lemma lemma_9_4 : irrational (sqrt 3).

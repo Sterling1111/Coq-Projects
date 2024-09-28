@@ -25,14 +25,45 @@ Notation "A × B" := (set_prod A B) (at level 30) : set_scope.
 Notation "A ′" := (Complement _ A) (at level 20, format "A ′") : set_scope.
 Notation "∅" := (Empty_set _) : set_scope.
 
+Lemma set_equal_def : forall (U : Type) (A B : Ensemble U),
+  A = B <-> (forall x : U, x ∈ A <-> x ∈ B).
+Proof.
+  intros U A B; split; intros H1.
+  - intros x; rewrite H1; reflexivity.
+  - apply Extensionality_Ensembles; split; intros x H2; apply H1; auto.
+Qed.
+
+Definition FromList {U : Type} (l : list U) : Ensemble U :=
+  fun x => List.In x l.
+
 Fixpoint list_to_ensemble {U : Type} (l : list U) : Ensemble U :=
   match l with
-  | nil => Empty_set U
-  | cons x xs => Union U (Singleton U x) (list_to_ensemble xs)
+  | [] => ∅
+  | x :: xs => Union U (Singleton U x) (list_to_ensemble xs)
   end.
 
 Notation "{ x1 , .. , xn }" :=
   (@list_to_ensemble _ (cons x1 .. (cons xn nil) ..)).
+
+Lemma FromList_cons : forall (U : Type) (x : U) (xs : list U),
+  FromList (x :: xs) = Union U (Singleton U x) (FromList xs).
+Proof.
+  intros U x xs. apply set_equal_def. intros y. unfold FromList. split; intros H1.
+  - destruct H1 as [H1 | H1].
+    + apply Union_introl. apply Singleton_intro. auto.
+    + apply Union_intror. auto.
+  - apply Union_inv in H1 as [H1 | H1].
+    + apply Singleton_inv in H1. left. auto.
+    + right. auto.
+Qed.
+
+Lemma FromList_list_to_ensemble : forall (U : Type) (l : list U),
+  FromList l = list_to_ensemble l.
+Proof.
+  intros U l. induction l as [| x xs IH].
+  - apply set_equal_def. intros x. split; intros H1; inversion H1.
+  - simpl. rewrite FromList_cons. rewrite IH. reflexivity.
+Qed.
 
 Lemma list_to_ensemble_cons : forall (U : Type) (x : U) (xs : list U),
   list_to_ensemble (x :: xs) = Union U (Singleton U x) (list_to_ensemble xs).
@@ -78,14 +109,6 @@ Lemma In_or_not : forall (U : Type) (A : Ensemble U) (x : U),
   x ∈ A \/ x ∉ A.
 Proof.
   intros U A x. apply classic.
-Qed.
-
-Lemma set_equal_def : forall (U : Type) (A B : Ensemble U),
-  A = B <-> (forall x : U, x ∈ A <-> x ∈ B).
-Proof.
-  intros U A B; split; intros H1.
-  - intros x; rewrite H1; reflexivity.
-  - apply Extensionality_Ensembles; split; intros x H2; apply H1; auto.
 Qed.
 
 Lemma subset_subset_eq_iff : forall (U : Type) (A B : Ensemble U),
