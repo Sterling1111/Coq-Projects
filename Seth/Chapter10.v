@@ -2,8 +2,6 @@ Require Import ZArith Lia Classical Reals Lra Classical_sets List Ensembles.
 Import ListNotations.
 From Seth Require Export Chapter9.
 
-Module Set_Notations.
-
 Declare Scope set_scope.
 Delimit Scope set_scope with set.
 
@@ -36,10 +34,6 @@ Fixpoint list_to_ensemble {U : Type} (l : list U) : Ensemble U :=
 
 Notation "{ x1 , .. , xn }" := 
   (@list_to_ensemble _ (cons x1 .. (cons xn nil) ..)) : set_scope.
-
-End Set_Notations.
-
-Import Set_Notations.
 
 Open Scope set_scope.
 
@@ -727,5 +721,3 @@ Proof.
     -- apply In_list_to_ensemble in H2. apply In_list_to_ensemble. apply H1; auto.
     -- apply In_list_to_ensemble in H2. apply In_list_to_ensemble. apply H1; auto.
 Qed.
-
-Close Scope type_scope.
