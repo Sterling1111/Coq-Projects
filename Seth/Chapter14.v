@@ -9,10 +9,17 @@ Definition Power_Set {U : Type} (A : Ensemble U) : Ensemble (Ensemble U) :=
 Definition Finite_Set {U : Type} (A : Ensemble U) : Prop :=
   exists n : ℕ, exists l : list U, FromList l = A.
 
+Lemma Power_set_Empty_set : forall (U : Type),
+  Power_Set 
+Proof.
+Qed.
+
 Proposition prop_14_6 : forall (U : Type) (A : Ensemble U) (n : ℕ),
   Finite_Set A -> cardinal U A n -> cardinal (Ensemble U) (Power_Set A) (2^n).
 Proof.
-  intros U A n [m [l H1]] H2. 
+  intros U A n [m [l H1]] H2. induction l as [| h t IH].
+  - rewrite FromList_list_to_ensemble in H1. simpl in H1. rewrite <- H1. unfold Power_Set.
+
 Admitted.
 
 Lemma lemma_14_4 : forall (l : list Prop),

@@ -674,6 +674,12 @@ Proof.
   - intros H1. destruct l as [| h t] eqn : El; try contradiction. intros H2. inversion H2.
 Qed.
 
+Lemma list_to_ensemble_nil : forall (U : Type),
+  list_to_ensemble (@nil U) = ∅.
+Proof.
+  intros U. simpl. reflexivity.
+Qed.
+
 Lemma list_to_ensemble_map_not_empty : forall (U V : Type) (l : list U) (f : U -> V),
   l ≠ nil -> list_to_ensemble (map f l) ≠ ∅.
 Proof.
