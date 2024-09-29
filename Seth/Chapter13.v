@@ -221,8 +221,157 @@ Proof.
       rewrite <- H3 in H8. specialize (H8 H6) as [x [H8 _]]. exists x. auto.
     }
     exists n. split.
-    -- rewrite <- H2. apply In_list_to_ensemble. apply In_list_to_ensemble in H6. pose proof (in_map_iff) as H9. specialize (H9 ℕ R).
-       specialize (H9 INR l r). rewrite list_to_ensemble_eq_iff in H3. specialize (H3 r) as [H3 _]. specialize (H3 H6).
+    -- rewrite <- H2. apply In_list_to_ensemble. apply In_list_to_ensemble in H6. pose proof (in_map_iff) as H9. 
+       specialize (H9 ℕ R INR l r). rewrite list_to_ensemble_eq_iff in H3. specialize (H3 r) as [H3 _]. specialize (H3 H6).
        destruct H9 as [H9 _]. specialize (H9 H3) as [x [H9 H10]]. replace n%nat with x%nat. auto. apply INR_eq. lra.
-    -- intros n' H9. 
-Admitted.
+    -- intros n' H9. rewrite <- H2 in H9. apply In_list_to_ensemble in H9. apply INR_le. rewrite H8. apply H7. rewrite H3.
+       apply In_list_to_ensemble. apply in_map_iff. exists n'; split; auto.
+Qed.
+
+Lemma count_occ_remove_neq : 
+  forall (A : Type) (eq_dec : forall x y : A, sumbool (x = y) (x <> y)) (l : list A) (x y : A),
+    x <> y -> count_occ eq_dec (remove eq_dec y l) x = count_occ eq_dec l x.
+Proof.
+  intros A A_eq_dec l x y H1. induction l as [| h t IH].
+  - simpl. reflexivity.
+  - simpl. destruct (A_eq_dec y h) as [H2 | H2]; destruct (A_eq_dec h x) as [H3 | H3]; auto.
+    -- exfalso. apply H1. rewrite <- H3. auto.
+    -- simpl. destruct (A_eq_dec h x) as [H4 | H4]; auto; contradiction.
+    -- simpl. destruct (A_eq_dec h x) as [H4 | H4]; auto; contradiction.
+Qed.
+
+Fixpoint remove_one {A : Type} (eq_dec : forall (x y : A), sumbool (x = y) (x <> y))
+                        (a : A) (l : list A) : list A :=
+  match l with
+  | [] => []
+  | x :: xs => if eq_dec x a then xs else x :: remove_one eq_dec a xs
+  end.                    
+
+Lemma remove_one_In : forall {A : Type} eq_dec (a : A) l,
+  List.In a l -> count_occ eq_dec (remove_one eq_dec a l) a = pred (count_occ eq_dec l a).
+Proof.
+  intros A eq_dec a l H1. induction l as [| h t IH].
+  - inversion H1.
+  - simpl. destruct (eq_dec h a) as [H2 | H2].
+    + simpl. reflexivity.
+    + simpl. destruct H1 as [H1 | H1].
+      * rewrite H1 in H2. contradiction.
+      * rewrite IH; auto. destruct (eq_dec h a) as [H3 | H3]; try contradiction. reflexivity.
+Qed.
+
+Lemma remove_one_In_length : forall {A : Type} eq_dec (a : A) l,
+  List.In a l -> length (remove_one eq_dec a l) = pred (length l).
+Proof.
+  intros A eq_dec a l H1. induction l as [| h t IH].
+  - inversion H1.
+  - simpl. destruct (eq_dec h a) as [H2 | H2].
+    + simpl. reflexivity.
+    + simpl. destruct H1 as [H1 | H1].
+      * rewrite H1 in H2. contradiction.
+      * rewrite IH; auto. destruct t.
+        -- inversion H1.
+        -- simpl. reflexivity.
+Qed.
+
+Lemma remove_one_not_In : forall {A : Type} eq_dec (a : A) l,
+  ~List.In a l -> remove_one eq_dec a l = l.
+Proof.
+  intros A eq_dec a l H1. induction l as [| h t IH].
+  - simpl. reflexivity.
+  - simpl. destruct (eq_dec h a) as [H2 | H2].
+    + rewrite H2 in H1. rewrite not_in_cons in H1. tauto.
+    + simpl. rewrite IH; auto. rewrite not_in_cons in H1. tauto.
+Qed.
+
+Lemma count_occ_remove_one_not_eq : forall {A : Type} eq_dec (a b : A) l,
+  a <> b -> count_occ eq_dec (remove_one eq_dec a l) b = count_occ eq_dec l b.
+Proof.
+  intros A eq_dec a b l H1. induction l as [| h t IH].
+  - simpl. reflexivity.
+  - simpl. destruct (eq_dec h a) as [H2 | H2].
+    + destruct (eq_dec h b) as [H3 | H3].
+      * rewrite H3 in H2. rewrite H2 in H1. contradiction.
+      * reflexivity.
+    + destruct (eq_dec h b) as [H3 | H3].
+      * rewrite H3. simpl. destruct (eq_dec b b) as [H4 | H4]; try contradiction. rewrite IH. reflexivity.
+      * simpl. destruct (eq_dec h b) as [H4 | H4]; try contradiction. rewrite IH. reflexivity.
+Qed.
+
+Lemma In_remove_one : forall {A : Type} eq_dec (a b : A) l,
+  List.In a l -> a <> b -> List.In a (remove_one eq_dec b l).
+Proof.
+  intros A eq_dec a b l H1 H2. induction l as [| h t IH].
+  - inversion H1.
+  - simpl. destruct (eq_dec h b) as [H3 | H3].
+    + destruct H1 as [H1 | H1].
+      * rewrite H1 in H3. contradiction.
+      * auto.
+    + destruct H1 as [H1 | H1].
+      * rewrite H1. left. reflexivity.
+      * right. apply IH; auto.
+Qed.
+
+Lemma In_remove_one_In_l : forall {A : Type} eq_dec (a b : A) l,
+  List.In a (remove_one eq_dec b l) -> List.In a l.
+Proof.
+  intros A eq_dec a b l H1. induction l as [| h t IH].
+  - simpl in H1. contradiction.
+  - simpl in H1. destruct (eq_dec h b) as [H2 | H2].
+    + right; auto.
+    + destruct H1 as [H1 | H1].
+      * left. auto.
+      * right. apply IH; auto.
+Qed.
+
+Lemma count_occ_eq_len : forall (A : Type) (eq_dec : forall x y : A, sumbool (x = y) (x <> y)) (l1 l2 : list A),
+  (forall x, count_occ eq_dec l1 x = count_occ eq_dec l2 x) -> length l1 = length l2.
+Proof.
+  intros A eq_dec l1 l2. revert l2. induction l1 as [| h1 t1 IH].
+  - intros l2 H1. simpl. destruct l2; auto. specialize (H1 a). simpl in H1. destruct (eq_dec a a); auto. lia. contradiction.
+  - intros l2 H1. destruct l2 as [| h2 t2].
+    + specialize (H1 h1). simpl in H1. destruct (eq_dec h1 h1); auto. lia. contradiction.
+    + simpl. f_equal. destruct (eq_dec h1 h2) as [H2 | H2].
+      * apply IH. intros x. specialize (H1 x). assert (h1 = x \/ h1 <> x) as [H3 | H3] by apply classic.
+        -- subst. rewrite count_occ_cons_eq in H1; rewrite count_occ_cons_eq in H1; auto.
+        -- rewrite count_occ_cons_neq in H1; rewrite count_occ_cons_neq in H1; auto. rewrite <- H2. auto.
+      * assert (length t2 = 0 \/ length t2 > 0) as [H3 | H3] by lia. 
+        -- rewrite length_zero_iff_nil in H3. subst. specialize (H1 h1). simpl in H1. destruct (eq_dec h1 h1); 
+            destruct (eq_dec h2 h1); try contradiction; try lia. exfalso. apply H2. auto.
+        -- specialize (IH (h2 :: (remove_one eq_dec h1 t2))). replace (length (h2 :: remove_one eq_dec h1 t2))
+           with (length t2) in IH. apply IH. intros x. destruct (eq_dec h2 x) as [H4 | H4].
+           ++ rewrite count_occ_cons_eq; auto. rewrite count_occ_remove_one_not_eq. specialize (H1 x).
+              rewrite <- H4 in H1. rewrite count_occ_cons_neq in H1; auto. rewrite count_occ_cons_eq in H1; auto.
+              rewrite <- H4. auto. intros H5. apply H2. rewrite H4, H5. auto.
+           ++ destruct (eq_dec h1 x) as [H5 | H5].
+              ** rewrite count_occ_cons_neq; auto. specialize (H1 x). rewrite <- H5 in H1. rewrite count_occ_cons_eq in H1; auto.
+                 rewrite count_occ_cons_neq in H1; auto. rewrite H5. rewrite remove_one_In. rewrite <- H5. lia.
+                 rewrite <- H5. rewrite (count_occ_In eq_dec). lia.
+              ** rewrite count_occ_cons_neq; auto. rewrite count_occ_remove_one_not_eq; auto. specialize (H1 x).
+                 rewrite count_occ_cons_neq in H1; auto. rewrite count_occ_cons_neq in H1; auto.
+           ++ simpl. rewrite remove_one_In_length. lia. specialize (H1 h1). rewrite count_occ_cons_eq in H1; auto.
+              rewrite count_occ_cons_neq in H1; auto. rewrite (count_occ_In eq_dec). lia.
+Qed.
+
+Section section_13_8.
+  Variable A : Type.
+  Hypothesis A_eq_dec : forall x y : option A, sumbool (x = y) (x <> y).
+
+  Lemma lemma_13_8 : forall (l1 l2 : list (option A)),
+    (length l1 < length l2)%nat -> (forall x : option A, x <> None -> count_occ A_eq_dec l1 x = count_occ A_eq_dec l2 x) -> List.In None l2.
+  Proof.
+    intros l1 l2 H1 H2. destruct l2 as [| h2 t2].
+    - simpl in H1. lia.
+    - pose proof (classic (h2 = None)) as [H3 | H3]. left. auto.
+      right. pose proof (classic (List.In None t2)) as [H4 | H4]; auto. exfalso. pose proof (remove_In A_eq_dec l1 None) as H5.
+      assert (~List.In None (h2 :: t2)) as H6. { intros [H6 | H6]; auto. }
+      assert (forall x : option A, count_occ A_eq_dec (remove A_eq_dec None l1) x = count_occ A_eq_dec (h2 :: t2) x) as H7.
+      {
+        intros x. destruct (A_eq_dec x None) as [H8 | H8]; subst.
+        - replace (count_occ A_eq_dec (remove A_eq_dec None l1) None) with 0. 2 : { apply eq_sym. apply count_occ_not_In; auto. }
+          replace (count_occ A_eq_dec (h2 :: t2) None) with 0. 2 : { apply eq_sym. apply count_occ_not_In; auto. } lia.
+        - specialize (H2 x H8). rewrite count_occ_remove_neq; auto.
+      }
+      assert (H8 : length (remove A_eq_dec None l1) = length (h2 :: t2)). { apply count_occ_eq_len with (eq_dec := A_eq_dec); auto. }
+      pose proof (remove_length_le A_eq_dec l1 None) as H9. lia.
+Qed.
+End section_13_8.

@@ -2,15 +2,15 @@ Require Import ZArith Lia Classical Reals Lra Classical_sets List Ensembles.
 Import ListNotations.
 From Seth Require Export Chapter9.
 
+Module Set_Notations.
+
 Declare Scope set_scope.
 Delimit Scope set_scope with set.
-
-Open Scope set_scope.
 
 Notation "x ∈ A" := (In _ A x) (at level 40) : set_scope.
 
 Definition set_prod {U V : Type} (A : Ensemble U) (B : Ensemble V) : Ensemble (U * V) :=
-  fun p => exists a b, a ∈ A /\ b ∈ B /\ p = (a, b).
+  fun p => exists a b, (a ∈ A)%set /\ (b ∈ B)%set /\ p = (a, b).
 
 (* Define notations within the custom scope with improved precedence *)
 Notation "A ≠ B" := (A <> B) (at level 40) : set_scope.
@@ -25,6 +25,24 @@ Notation "A × B" := (set_prod A B) (at level 30) : set_scope.
 Notation "A ′" := (Complement _ A) (at level 20, format "A ′") : set_scope.
 Notation "∅" := (Empty_set _) : set_scope.
 
+Definition FromList {U : Type} (l : list U) : Ensemble U :=
+  fun x => List.In x l.
+
+Fixpoint list_to_ensemble {U : Type} (l : list U) : Ensemble U :=
+  match l with
+  | [] => ∅%set
+  | x :: xs => Union U (Singleton U x) (list_to_ensemble xs)
+  end.
+
+Notation "{ x1 , .. , xn }" := 
+  (@list_to_ensemble _ (cons x1 .. (cons xn nil) ..)) : set_scope.
+
+End Set_Notations.
+
+Import Set_Notations.
+
+Open Scope set_scope.
+
 Lemma set_equal_def : forall (U : Type) (A B : Ensemble U),
   A = B <-> (forall x : U, x ∈ A <-> x ∈ B).
 Proof.
@@ -32,18 +50,6 @@ Proof.
   - intros x; rewrite H1; reflexivity.
   - apply Extensionality_Ensembles; split; intros x H2; apply H1; auto.
 Qed.
-
-Definition FromList {U : Type} (l : list U) : Ensemble U :=
-  fun x => List.In x l.
-
-Fixpoint list_to_ensemble {U : Type} (l : list U) : Ensemble U :=
-  match l with
-  | [] => ∅
-  | x :: xs => Union U (Singleton U x) (list_to_ensemble xs)
-  end.
-
-Notation "{ x1 , .. , xn }" :=
-  (@list_to_ensemble _ (cons x1 .. (cons xn nil) ..)).
 
 Lemma FromList_cons : forall (U : Type) (x : U) (xs : list U),
   FromList (x :: xs) = Union U (Singleton U x) (FromList xs).
@@ -468,7 +474,7 @@ Ltac solve_not_in_ensemble :=
   | [ |- ?G ] => idtac G; fail "Goal not solvable"
   end.
 
-Lemma lemma_10_1_a : 3 ∈ {1, 2, 3, 4, 5, 6, 7}.
+Lemma lemma_10_1_a : 3 ∈ { 1, 2, 3, 4, 5, 6, 7 }.
 Proof. solve_in_Union. Qed.
 
 Lemma asdlfasdf : 1 ∉ {1, 3} ⋂ {2}.
@@ -721,3 +727,5 @@ Proof.
     -- apply In_list_to_ensemble in H2. apply In_list_to_ensemble. apply H1; auto.
     -- apply In_list_to_ensemble in H2. apply In_list_to_ensemble. apply H1; auto.
 Qed.
+
+Close Scope type_scope.
