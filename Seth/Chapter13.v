@@ -1,6 +1,6 @@
 Require Import ZArith Lia Classical Reals Lra Classical_sets List Ensembles QArith ClassicalFacts Finite_sets.
-Import ListNotations.
 From Seth Require Export Chapter12 Sums.
+Import ListNotations SetNotations.
 
 Open Scope nat_scope.
 
@@ -374,4 +374,5 @@ Section section_13_8.
       assert (H8 : length (remove A_eq_dec None l1) = length (h2 :: t2)). { apply count_occ_eq_len with (eq_dec := A_eq_dec); auto. }
       pose proof (remove_length_le A_eq_dec l1 None) as H9. lia.
 Qed.
+
 End section_13_8.

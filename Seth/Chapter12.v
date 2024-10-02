@@ -1,6 +1,6 @@
 Require Import ZArith Lia Classical Reals Lra Classical_sets List Ensembles QArith.
-Import ListNotations.
 From Seth Require Export Chapter11.
+Import ListNotations SetNotations.
 
 Notation ℕ := nat.
 Notation ℤ := Z.
@@ -23,9 +23,9 @@ Qed.
 Lemma lemma_12_1_a_converse : 
   (forall (U : Type) (A B C : Ensemble U), A ⊆ B ⇒ A ⊆ B ⋂ C) ⇒ False.
 Proof.
-  intros H1. specialize (H1 Z {1} {1, 3} {2}).
-  assert ({1} ⊆ {1, 3}) as H2. { intros x H2. solve_in_Intersection_Union_helper_2. }
-  specialize (H1 H2). assert ({1} ⊈ {1, 3} ⋂ {2}) as H3. 
+  intros H1. specialize (H1 Z ⦃1⦄ ⦃1,3⦄ ⦃2⦄).
+  assert (⦃1⦄ ⊆ ⦃1, 3⦄) as H2. { intros x H2. solve_in_Intersection_Union_helper_2. }
+  specialize (H1 H2). assert (⦃1⦄ ⊈ ⦃1,3⦄ ⋂ ⦃2⦄) as H3. 
   { apply not_Subset_def. exists 1. split. solve_in_Intersection_Union_helper_2. solve_not_in_ensemble. }
   auto.
 Qed.
@@ -84,12 +84,12 @@ Qed.
 Lemma lemma_12_6 : 
   (forall (U : Type) (S T : Ensemble U), S = T <-> S − T ⊆ T) -> False.
 Proof.
-  intros H1. specialize (H1 Z {1} {1, 2}). destruct H1 as [_ H1].
-  replace ({1} − {1, 2}) with (∅ : Ensemble Z) in H1.
+  intros H1. specialize (H1 Z ⦃1⦄ ⦃1,2⦄). destruct H1 as [_ H1].
+  replace (⦃1⦄ − ⦃1,2⦄) with (∅ : Ensemble Z) in H1.
   2 : { apply set_equal_def. intros x. split. intros H2. contradiction. intros H2. solve_in_Intersection_Union_helper_2. }
-  assert (H2 : (∅ : Ensemble Z) ⊆ {1, 2}) by (intros x H2; contradiction). specialize (H1 H2).
-  rewrite set_equal_def in H1. specialize (H1 2) as [_ H1]. assert (2 ∈ {1, 2}) as H3 by solve_in_Intersection_Union_helper_2.
-  specialize (H1 H3). assert (H4 : 2 ∉ {1}) by solve_not_in_ensemble. contradiction.
+  assert (H2 : (∅ : Ensemble Z) ⊆ ⦃1,2⦄) by (intros x H2; contradiction). specialize (H1 H2).
+  rewrite set_equal_def in H1. specialize (H1 2) as [_ H1]. assert (2 ∈ ⦃1,2⦄) as H3 by solve_in_Intersection_Union_helper_2.
+  specialize (H1 H3). assert (H4 : 2 ∉ ⦃1⦄) by solve_not_in_ensemble. contradiction.
 Qed.
 
 Lemma lemma_12_7_a : forall (U : Type) (S : Ensemble U),
@@ -130,17 +130,17 @@ Qed.
 Lemma lemma_12_9_b : 
   (forall (U : Type) (A B C : Ensemble U), A × B ⊆ B × C -> A ⊆ C) -> False.
 Proof.
-  intros H1. specialize (H1 Z {1, 2} ∅ {1}). rewrite lemma_12_7_b, lemma_12_7_a in H1.
+  intros H1. specialize (H1 Z ⦃1,2⦄ ∅ ⦃1⦄). rewrite lemma_12_7_b, lemma_12_7_a in H1.
   assert (H2 : (∅ : Ensemble (Z * Z)) ⊆ ∅) by (apply Subset_refl). specialize (H1 H2).
-  rewrite Subset_def in H1. specialize (H1 2). assert (2 ∈ {1, 2}) as H3 by solve_in_Intersection_Union_helper_2.
-  specialize (H1 H3). assert (2 ∉ {1}) as H4 by solve_not_in_ensemble. contradiction.
+  rewrite Subset_def in H1. specialize (H1 2). assert (2 ∈ ⦃1,2⦄) as H3 by solve_in_Intersection_Union_helper_2.
+  specialize (H1 H3). assert (2 ∉ ⦃1⦄) as H4 by solve_not_in_ensemble. contradiction.
 Qed.
 
 Lemma lemma_12_10 : 
   (forall (U : Type) (A B C D : Ensemble U), A × B ⊆ C × D -> A ⊆ C /\ B ⊆ D) -> False.
 Proof.
-  intros H1. specialize (H1 Z {1, 2} ∅ {1} {1}). rewrite lemma_12_7_b in H1.
-  assert (H2 : ∅ ⊆ {1} × {1}) by apply Empty_Subset. specialize (H1 H2). destruct H1 as [H1 _].
-  assert ({1, 2} ⊈ {1}) as H3. { apply not_Subset_def. exists 2. split. solve_in_Intersection_Union_helper_2. solve_not_in_ensemble. }
+  intros H1. specialize (H1 Z ⦃1,2⦄ ∅ ⦃1⦄⦃1⦄). rewrite lemma_12_7_b in H1.
+  assert (H2 : ∅ ⊆ ⦃1⦄ × ⦃1⦄ ) by apply Empty_Subset. specialize (H1 H2). destruct H1 as [H1 _].
+  assert (⦃1,2⦄ ⊈ ⦃1⦄) as H3. { apply not_Subset_def. exists 2. split. solve_in_Intersection_Union_helper_2. solve_not_in_ensemble. }
   contradiction.
 Qed.

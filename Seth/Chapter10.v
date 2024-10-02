@@ -1,9 +1,11 @@
-Require Import ZArith Lia Classical Reals Lra Classical_sets List Ensembles.
+Require Import ZArith Lia Classical Reals Lra Classical_sets List Ensembles Finite_sets.
 Import ListNotations.
 From Seth Require Export Chapter9.
 
 Declare Scope set_scope.
 Delimit Scope set_scope with set.
+
+Module SetNotations.
 
 Notation "x ∈ A" := (In _ A x) (at level 40) : set_scope.
 
@@ -22,6 +24,7 @@ Notation "A − B" := (Setminus _ A B) (at level 30) : set_scope.
 Notation "A × B" := (set_prod A B) (at level 30) : set_scope.
 Notation "A ′" := (Complement _ A) (at level 20, format "A ′") : set_scope.
 Notation "∅" := (Empty_set _) : set_scope.
+Notation "| A | = n" := (@cardinal _ A n) (at level 70, format "| A |  =  n").
 
 Definition FromList {U : Type} (l : list U) : Ensemble U :=
   fun x => List.In x l.
@@ -32,10 +35,42 @@ Fixpoint list_to_ensemble {U : Type} (l : list U) : Ensemble U :=
   | x :: xs => Union U (Singleton U x) (list_to_ensemble xs)
   end.
 
-Notation "{ x1 , .. , xn }" := 
-  (@list_to_ensemble _ (cons x1 .. (cons xn nil) ..)) : set_scope.
+Notation "⦃⦄" := (∅%set) : set_scope.
+Notation "⦃ x ⦄" := (Singleton _ x)(format "⦃ x ⦄"): set_scope.
+
+Notation "⦃ x , y , .. , z ⦄" :=
+  (@list_to_ensemble _ (cons x (cons y .. (cons z nil) ..)))
+  (format "⦃ x , y , .. , z ⦄") : set_scope.
+
+Definition Power_set {U : Type} (A : Ensemble U) : Ensemble (Ensemble U) :=
+  fun B => (B ⊆ A)%set.
+
+Notation "ℙ( A )" := (Power_set A) (at level 20, format "ℙ( A )") : set_scope.
+
+Definition Finite_set {U : Type} (A : Ensemble U) : Prop :=
+  exists (l : list U), list_to_ensemble l = A.
+
+End SetNotations.
+
+Import SetNotations.
 
 Open Scope set_scope.
+
+Check (⦃1, 2⦄)%set.
+Check (|⦃1, 2⦄| = 2)%set.
+Check (ℙ(⦃1, 2⦄))%set.
+
+Lemma lemma_14_4 : forall (l : list Prop),
+  ~ (fold_right and True l) -> fold_right or False (map (fun P => ~ P) l).
+Proof.
+  intros l H1. induction l as [| h t IH].
+  - simpl in H1. exfalso. apply H1. apply I.
+  - rewrite map_cons. replace ((~ h) :: map (fun P : Prop => ~ P) t) with ([~ h] ++ map (fun P : Prop => ~ P) t) by reflexivity.
+    rewrite fold_right_app. simpl. replace (h :: t) with ([h] ++ t) in H1 by reflexivity. rewrite fold_right_app in H1. simpl in H1.
+    apply not_and_or in H1 as [H2 | H2].
+    -- left. auto.
+    -- right. apply (IH H2).
+Qed.
 
 Lemma set_equal_def : forall (U : Type) (A B : Ensemble U),
   A = B <-> (forall x : U, x ∈ A <-> x ∈ B).
@@ -221,6 +256,14 @@ Proof.
   solve_set_equality.
 Qed.
 
+Lemma In_singleton_def : forall (U : Type) (x y : U),
+  x ∈ Singleton U y <-> x = y.
+Proof.
+  intros U x y. split; intros H1.
+  - apply Singleton_inv in H1. auto.
+  - apply Singleton_intro. auto.
+Qed.
+
 Lemma Union_assoc : forall (U : Type) (A B C : Ensemble U),
   A ⋃ (B ⋃ C) = (A ⋃ B) ⋃ C.
 Proof.
@@ -403,6 +446,11 @@ Ltac find_sets_in_expr E acc :=
       end
   end.
 
+Ltac get_U_from_expr E :=
+  match type of E with
+  | Ensemble ?U => constr:(U)
+  | _ => fail "Cannot find U in" E
+  end.
 
 Ltac find_sets_in_goal U :=
   match goal with
@@ -412,7 +460,8 @@ Ltac find_sets_in_goal U :=
       find_sets_in_expr RHS L
   end.
 
-Ltac pose_in_or_not_for_sets U x :=
+Ltac pose_in_or_not_for_sets x :=
+  let U := type of x in
   let sets := find_sets_in_goal U in
   let rec process_sets s :=
     match s with
@@ -425,7 +474,7 @@ Ltac pose_in_or_not_for_sets U x :=
   process_sets sets.
 
 Ltac solve_set_equality_auto :=
-  intros U; intros; apply set_equal_def; intros x; pose_in_or_not_for_sets U x; split; solve_in_Intersection_Union_helper_2.
+  intros; apply set_equal_def; let x := fresh "x" in intros x; pose_in_or_not_for_sets x; split; solve_in_Intersection_Union_helper_2.
 
 Lemma De_Morgan_Intersection_2 : forall (U : Type) (A B : Ensemble U),
   A = A.
@@ -468,21 +517,20 @@ Ltac solve_not_in_ensemble :=
   | [ |- ?G ] => idtac G; fail "Goal not solvable"
   end.
 
-Lemma lemma_10_1_a : 3 ∈ { 1, 2, 3, 4, 5, 6, 7 }.
-Proof. solve_in_Union. Qed.
+Ltac autoset :=
+  subst;
+  try (solve_set_equality_auto); try (solve_in_Union); try (solve_not_in_ensemble); try (solve_in_Intersection_Union_helper_2).
 
-Lemma asdlfasdf : 1 ∉ {1, 3} ⋂ {2}.
-Proof.
-  solve_not_in_ensemble.
-Qed.
+Lemma lemma_10_1_a : 3 ∈ ⦃ 1, 2, 3, 4, 5, 6, 7 ⦄.
+Proof. autoset. Qed.
 
 Open Scope R_scope.
 
 Axiom PI_int_bound : 3 < PI < 4.
 
-Lemma lemma_10_1_b : PI ∉ {1, 2, 3, 4, 5, 6, 7}.
+Lemma lemma_10_1_b : PI ∉ ⦃ 1, 2, 3, 4, 5, 6, 7 ⦄.
 Proof.
-  pose proof PI_int_bound as H1. solve_not_in_ensemble.
+  pose proof PI_int_bound as H1. autoset.
 Qed.
 
 Lemma lemma_10_1_c : PI ∈ Full_set R.
