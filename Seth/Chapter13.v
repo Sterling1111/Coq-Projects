@@ -1,21 +1,8 @@
 Require Import ZArith Lia Classical Reals Lra Classical_sets List Ensembles QArith ClassicalFacts Finite_sets.
-From Seth Require Export Chapter12 Sums.
+From Seth Require Export Chapter12.
+From Seth Require Import Sums Sets WI_SI_WO.
 Import ListNotations SetNotations.
 
-Open Scope nat_scope.
-
-Definition induction_nat := forall P : ℕ-> Prop,
-  ((P 0 /\ (forall k : ℕ, P k -> P (S k))) -> forall n : ℕ, P n).
-
-Lemma induction_N : induction_nat.
-Proof.
-  unfold induction_nat.
-  intros P [H1 H2] n. induction n as [| k IH].
-  - apply H1.
-  - apply H2. apply IH.
-Qed.
-
-Close Scope nat_scope.
 Open Scope R_scope.
 
 Ltac break_INR :=
@@ -57,7 +44,7 @@ Lemma lemma_13_1' : forall (n : ℕ),
 Proof.
   intro n. set (P := fun n => (n > 0)%nat -> sum_f 1 n (fun i => INR (2 * i - 1)) = INR (n^2)).
   assert (((P 0%nat /\ (forall k : ℕ, P k -> P (S k))) -> forall n : ℕ, P n)) as H1.
-  { apply induction_N. } assert (forall n, P n) as H2.
+  { apply induction_imp_induction_nat. } assert (forall n, P n) as H2.
   {
     apply H1. split.
     - unfold P. intros H2. lia.

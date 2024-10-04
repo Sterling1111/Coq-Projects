@@ -1,6 +1,6 @@
 Require Import ZArith Lia Classical Reals Lra.
 From Seth Require Export Chapter8.
-From Fibonacci Require Import QRT.
+From Seth Require Import QRT.
 
 Open Scope Z_scope.
 

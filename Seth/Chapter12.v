@@ -1,5 +1,7 @@
 Require Import ZArith Lia Classical Reals Lra Classical_sets List Ensembles QArith.
 From Seth Require Export Chapter11.
+From Seth Require Import Sets.
+
 Import ListNotations SetNotations.
 
 Notation ℕ := nat.
@@ -51,7 +53,7 @@ Qed.
 Lemma lemma_12_4_a : forall (U : Type) (S T : Ensemble U),
   S ⋂ T = T ⋃ S -> S = T.
 Proof.
-  intros U S T H1. apply set_equal_def. intros x. rewrite set_equal_def in H1. specialize (H1 x) as [H1 H2]; split; 
+  intros U S T H1. apply set_equal_def. intros x. rewrite set_equal_def in H1. specialize (H1 x) as [H1 H2]. split; 
   intros H3; rewrite In_Union_def in H2; assert (x ∈ T \/ x ∈ S) as H4 by auto; specialize (H2 H4); solve_in_Intersection_Union_helper_2.
 Qed.
 
@@ -95,7 +97,7 @@ Qed.
 Lemma lemma_12_7_a : forall (U : Type) (S : Ensemble U),
   (∅ : Ensemble U) × S = ∅.
 Proof.
-  intros U S. apply set_equal_def. intros x. split; intros H1.
+  intros U S. apply set_equal_def. intros x. split. intros H1.
   - inversion H1 as [y1 [y2 [H2 [H3 H4]]]]. contradiction.
   - contradiction.  
 Qed.

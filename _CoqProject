@@ -32,6 +32,11 @@ Spivak/Chapter2.v
 
 Seth/Sums.v
 Seth/Complex.v
+Seth/WI_SI_WO.v
+Seth/QRT.v
+Seth/Fibonacci.v
+Seth/Sets.v
+Seth/Binomial.v
 Seth/Chapter6.v
 Seth/Chapter7.v
 Seth/Chapter8.v
@@ -40,3 +45,4 @@ Seth/Chapter10.v
 Seth/Chapter11.v
 Seth/Chapter12.v
 Seth/Chapter13.v
+Seth/Chapter14.v
