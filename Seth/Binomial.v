@@ -309,13 +309,20 @@ Proof.
   intro n. pose proof Binomial_R.n_choose_1 n as H1. rewrite <- Choose_N_eq_Choose_R in H1. apply INR_eq. auto.
 Qed.
 
-Lemma binomial_recursion : forall n k : nat,
+Lemma binomial_recursion_1 : forall n k : nat,
   (n + 1) ∁ (k + 1) = n ∁ k + n ∁ (k + 1).
 Proof.
   intros n k. assert (k = 0 \/ k >= 1)%nat as [H1 | H1] by lia; subst; simpl.
   - rewrite n_choose_0. repeat rewrite n_choose_1. lia.
   - pose proof Binomial_R.binomial_recursion_R_2 n k H1 as H2. repeat rewrite <- Choose_N_eq_Choose_R in H2. apply INR_eq.
     rewrite plus_INR. replace (S k) with (k + 1)%nat in H2 by lia. replace (S n) with (n + 1)%nat in H2 by lia. lra.
+Qed.
+
+Lemma binomial_recursion_2 : forall n k : nat,
+  (k >= 1) -> (n + 1) ∁ k = n ∁ k + n ∁ (k - 1).
+Proof.
+  intros n k H1. pose proof Binomial_R.binomial_recursion_R_1 n k H1 as H2. repeat rewrite <- Choose_N_eq_Choose_R in H2. apply INR_eq.
+  rewrite plus_INR. replace (S n) with (n + 1)%nat in H2 by lia. lra.
 Qed.
 
 Open Scope R_scope.

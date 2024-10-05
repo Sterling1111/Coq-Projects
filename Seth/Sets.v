@@ -876,14 +876,33 @@ Qed.
 *)
 
 Section num_subsets.
-  Definition Subsets_of_Cardinality {U : Type} (A : Ensemble U) (k : nat) : Ensemble (Ensemble U) :=
+  Variable U : Type.
+
+  Definition Subsets_of_Cardinality (A : Ensemble U) (k : nat) : Ensemble (Ensemble U) :=
     fun B => (B ⊆ A)%set /\ |B| = k.
 
-  Theorem theorem_16_6 : forall (U : Type) (A : Ensemble U) (n k : nat),
+  Definition Subsets_without_x (A : Ensemble U) (x : U) (k : nat) : Ensemble (Ensemble U) :=
+    fun B => (B ⊆ A)%set /\ ~ In _ B x /\ |B| = k.
+
+  Definition Subsets_with_x (A : Ensemble U) (x : U) (k : nat) : Ensemble (Ensemble U) :=
+    fun B => (B ⊆ A)%set /\ In _ B x /\ |B| = k.
+
+  Lemma Union_of_Subsets : forall (A : Ensemble U) (k : nat) (x : U),
+    x ∈ A -> Subsets_of_Cardinality A k = Subsets_without_x A x k ⋃ Subsets_with_x A x k.
+  Proof.
+    intros A k x H1. apply set_equal_def. intros y. split; intros H2.
+    - unfold Subsets_of_Cardinality, In in H2. destruct H2 as [H2 H3]. apply In_Union_def. unfold Subsets_without_x, Subsets_with_x, In.
+      pose proof In_or_not U y x as [H4 | H4]; autoset.
+    - apply In_Union_def in H2 as [H2 | H2].
+      -- unfold Subsets_without_x, In in H2. destruct H2 as [H2 H3]. unfold Subsets_of_Cardinality, In. autoset.
+      -- unfold Subsets_with_x, In in H2. destruct H2 as [H2 H3]. unfold Subsets_of_Cardinality, In. autoset.
+  Qed.
+
+  Theorem theorem_16_6 : forall (A : Ensemble U) (n k : nat),
     |A| = n -> |Subsets_of_Cardinality A k| = choose n k.
   Proof.
-    intros U A n k H1. generalize dependent A. induction n as [| m IH].
-    - intros A H1. rewrite cardinal_Empty_1 in H1. rewrite H1. destruct (classic (k = 0)) as [H2 | H2].
+    intros A n k H1. generalize dependent k. generalize dependent A. induction n as [| m IH].
+    - intros A H1 k. rewrite cardinal_Empty_1 in H1. rewrite H1. destruct (classic (k = 0)) as [H2 | H2].
       -- rewrite H2. replace (Subsets_of_Cardinality ⦃⦄ 0) with (⦃⦃⦄⦄ : Ensemble (Ensemble U)).
          2 : { apply set_equal_def. intros x. split; intro H3. apply In_singleton_def in H3. rewrite H3. constructor. apply Subset_refl. apply card_empty.
                inversion H3. apply cardinal_Empty_1 in H0. autoset. }
@@ -891,14 +910,41 @@ Section num_subsets.
       -- rewrite O_choose_n; auto. apply cardinal_Empty_1. apply set_equal_def. intros x. split; intro H3.
          inversion H3. rewrite Subset_def in H. pose proof (Empty_or_exists_In U x) as [H4 | H4]; auto. rewrite H4 in H0. 
          apply cardinal_Empty_2 in H0. lia. destruct H4 as [y H4]. specialize (H y H4). contradiction. contradiction.
-    - intros A H1. pose proof (Empty_or_exists_In U A) as [H2 | [x H2]].
+    - intros A H1 k. pose proof (Empty_or_exists_In U A) as [H2 | [x H2]].
       -- apply cardinal_Empty_1 in H2. assert (S m = 0) as H3. { apply cardinal_unicity with (X := A); auto. } lia.
       -- assert (k = 0 \/ k > 0) as [H3 | H3] by lia; subst.
          * rewrite n_choose_0. replace (Subsets_of_Cardinality A 0) with (⦃⦃⦄⦄ : Ensemble (Ensemble U)). apply cardinal_Singleton.
            apply set_equal_def. intros y. split; intro H4. apply In_singleton_def in H4. rewrite H4. unfold Subsets_of_Cardinality. split.
            apply Empty_Subset. apply card_empty. unfold Subsets_of_Cardinality in H4. destruct H4 as [H4 H5]. apply cardinal_Empty_1 in H5. autoset.
-         * pose proof (In_or_not U A x) as [H4 | H4].
-           + 
-  Admitted.
-  
+         * rewrite Union_of_Subsets with (x := x); auto. replace (S m) with (m + 1) by lia. rewrite binomial_recursion_2; try lia. apply cardinal_Union.
+           + specialize (IH (A − ⦃x⦄)). replace (Subsets_without_x A x k) with (Subsets_of_Cardinality (A − ⦃x⦄) k).
+             2 : { unfold Subsets_of_Cardinality, Subsets_without_x. apply set_equal_def. intros y; split; intros H4.
+                   - unfold In in H4. destruct H4 as [H4 H5]. split; auto. rewrite Subset_def in H4.
+                     rewrite Subset_def. intros z H6. specialize (H4 z H6). autoset. split; autoset. intros H6. rewrite Subset_def in H4.
+                     specialize (H4 x H6). apply In_Setminus_def in H4 as [_ H4]. apply H4. autoset.
+                   - unfold In. destruct H4 as [H4 [H5 H6]]. split; auto. rewrite Subset_def in H4. rewrite Subset_def. intros z H7.
+                     specialize (H4 z H7). apply In_Setminus_def. split. autoset. intros H8. apply In_singleton_def in H8. subst. contradiction.
+             }
+             apply IH. apply cardinal_minus; auto.
+           + replace (Subsets_with_x A x k) with (Im (Ensemble U) (Ensemble U) (Subsets_of_Cardinality (A − ⦃x⦄) (k - 1)) (fun S : Ensemble U => Add U S x)).
+             2 : { apply set_equal_def. intros y. split; intros H4.
+                   - apply In_Im_def in H4 as [S [H4 H5]]. unfold Subsets_with_x. unfold Subsets_of_Cardinality in H4. destruct H4 as [H4 H6].
+                     split; auto. unfold Add in H5. rewrite Subset_def. intros z H7. rewrite <- H5 in H7. apply In_Union_def in H7 as [H7 | H7].
+                     rewrite Subset_def in H4. specialize (H4 z H7). autoset. apply In_singleton_def in H7. autoset. split.
+                     unfold Add in H5. autoset. rewrite <- H5. replace k with (Datatypes.S (k - 1)) by lia. apply card_add; auto. intros H7.
+                     rewrite Subset_def in H4. specialize (H4 x H7). apply In_Setminus_def in H4 as [_ H4]. apply H4. autoset.
+                   - unfold Subsets_with_x in H4. destruct H4 as [H4 [H5 H6]]. apply In_Im_def. exists (y − ⦃x⦄). split.
+                     -- unfold Subsets_of_Cardinality. split; auto. rewrite Subset_def. intros z H7. rewrite Subset_def in H4. specialize (H4 z).
+                        assert (z ∈ y) as H8 by autoset. specialize (H4 H8). apply In_Setminus_def. split. autoset. intros H9. apply In_singleton_def in H9.
+                        rewrite H9 in H7. apply In_Setminus_def in H7 as [_ H7]. apply H7. autoset. apply cardinal_minus; autoset. replace (Datatypes.S (k - 1)) with k by lia. autoset.
+                     -- unfold Add. apply set_equal_def. intros z. split; intros H7. apply In_Union_def in H7 as [H7 | H7]; autoset. apply In_singleton_def in H7. autoset.
+                        apply In_Union_def. pose proof classic (z = x) as [H8 | H8]. right. autoset. left. apply In_Setminus_def. split; autoset.
+                 }
+              apply Add_not_in_preserves_cardinality. intros y H4. unfold Subsets_of_Cardinality in H4. destruct H4 as [H4 H5]. rewrite Subset_def in H4. intros H6. specialize (H4 x).
+              specialize (H4 H6). apply In_Setminus_def in H4 as [_ H4]. apply H4. autoset. apply IH. apply cardinal_minus; autoset.
+           + unfold Subsets_without_x, Subsets_with_x. apply set_equal_def. intros y. split; intros H4.
+             ** apply In_Intersection_def in H4 as [H4 H5]. unfold In in H4, H5. autoset.
+             ** apply In_Intersection_def. unfold In. autoset. Show Proof.
+Qed.
+
 End num_subsets.
