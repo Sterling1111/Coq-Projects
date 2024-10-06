@@ -87,7 +87,7 @@ Module Binomial_R.
   Qed.
 
   Lemma n_choose_k_def : forall n k : nat,
-    n >= k -> n ∁ k = fact n / (fact k * fact (n - k)).
+    (n >= k)%nat -> n ∁ k = INR (fact n) / (INR (fact k) * INR (fact (n - k))).
   Proof.
     intros n k H1. unfold choose. apply nltb_ge in H1. rewrite H1. reflexivity.
   Qed.

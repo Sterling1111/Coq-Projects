@@ -112,37 +112,39 @@ Proof.
   intros x y. simplify_binomial_expansion. reflexivity.
 Qed.
 
-Open Scope nat_scope.
-
-Lemma mul_div_cancel_l  : forall a b c,
-  c <> 0 -> Nat.divide c b -> a * (b / c) = (a * b) / c.
-Proof.
-  intros a b c H1 [k H2]. rewrite H2. rewrite Nat.div_mul; auto. rewrite Nat.Lcm0.divide_div_mul_exact. 2 : { exists k. lia. }
-  rewrite Nat.div_mul; lia.
-Qed.
-
-Close Scope nat_scope.
-
 Section section_16_7.
   Local Definition choose := Binomial_R.choose.
 
   Lemma lemma_16_7 : forall n k,
     (n >= k)%nat -> (k > 0)%nat -> INR k * choose n k = INR n * choose (n - 1) (k - 1).
   Proof.
-    intros n k H1 H2. repeat rewrite n_choose_k_def; try lia. replace (n - 1 - (k - 1)) with (n - k) by lia.
-    apply Nat.mul_cancel_r with (p := fact (n - k)); (try apply fact_neq_0).
-    replace (k * (fact n / (fact k * fact (n - k))) * fact (n - k)) with (k * fact n / fact k).
-    2 : { replace (k * (fact n / (fact k * fact (n - k))) * fact (n - k)) with (k * fact n * fact (n - k) / (fact k * fact (n - k))).
-          rewrite Nat.Div0.div_mul_cancel_r; try lia. apply fact_neq_0. replace (k * (fact n / (fact k * fact (n - k))) * fact (n - k))
-          with (k * (fact (n -k) * (fact (n) / (fact k * fact (n - k))))) by lia. rewrite mul_div_cancel_l.
-          2 : { apply Nat.neq_mul_0; split; apply fact_neq_0. } 2 : { apply fact_div; lia. } replace (fact k * fact (n - k)) with (fact (n - k) * fact k) by lia.
-          rewrite Nat.Div0.div_mul_cancel_l. 2 : { apply fact_neq_0. } rewrite <- Nat.mul_assoc. replace (fact n * fact (n - k)) with (fact (n - k) * fact n) by lia.
-          rewrite Nat.Lcm0.divide_div_mul_exact. 2 : { unfold Nat.divide. pose proof (fact_div n k ltac : (lia)) as [p H3]. exists (p * fact (n - k)). lia. }
-          rewrite Nat.Div0.div_mul_cancel_l. 2 : { apply fact_neq_0. } lia.
-    }
-    replace (n * (fact (n - 1) / (fact (k - 1) * fact (n - k))) * fact (n - k)) with ((n * fact (n - 1)) / fact (k - 1)) by admit.
-    replace n with (S (n - 1)) at 2 by lia. rewrite <- fact_simpl. replace (S (n - 1)) with n by lia.
-    replace (n - 1) with 
+    intros n k H1 H2. repeat rewrite Binomial_R.n_choose_k_def; try lia. replace (n - 1 - (k - 1))%nat with (n - k)%nat by lia.
+    apply Rmult_eq_reg_r with (r := INR (fact (n - k))). 2 : { apply not_0_INR. apply fact_neq_0. }
+    field_simplify; try (split; apply not_0_INR; apply fact_neq_0). replace n%nat with (S (n - 1)) at 2 by lia.
+    replace (INR (S (n - 1)) * INR (fact (n - 1))) with (INR (fact n)).
+    2 : { rewrite <- mult_INR. rewrite <- fact_simpl. replace (S (n - 1)) with n by lia. reflexivity. }
+    replace (INR (fact k)) with (INR k * INR (fact (k - 1))) at 1. 
+    2 : { rewrite <- mult_INR. replace k with (S (k - 1)) at 1 by lia. rewrite <- fact_simpl. replace (S (k - 1)) with k by lia. reflexivity. }
+    field. split. apply not_0_INR. apply fact_neq_0. apply not_0_INR. lia.
+  Qed.
+
+  Open Scope nat_scope.
+
+  Lemma lemma_16_7' : forall n k,
+    n >= k -> k > 0 -> k * n ∁ k = n * (n - 1) ∁ (k - 1).
+  Proof.
+    intros n k H1 H2. pose proof (lemma_16_7 n k H1 H2) as H3. repeat rewrite <- Choose_N_eq_Choose_R in H3.
+    repeat rewrite <- mult_INR in H3. apply INR_eq in H3. lia.
   Qed.
 End section_16_7.
 
+Section section_16_8.
+
+Compute (map (fun n => (2 * n) ∁ n) (seq 0 5)).
+
+Lemma lemma_16_7_b : forall n,
+  Nat.Even ((2 * n) ∁ n).
+Proof.
+  intros n. 
+
+End section_16_8.
