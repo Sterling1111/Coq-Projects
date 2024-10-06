@@ -90,9 +90,21 @@ Proof.
 Qed.
 
 Ltac strong_induction n :=
-  apply (strong_induction_N (fun n => _));
-  let n := fresh n in
+  (* Revert all hypotheses except n *)
+  repeat match goal with
+         | [ H : _ |- _ ] =>
+           lazymatch H with
+           | n => fail (* Do not revert n *)
+           | _ => revert H
+           end
+         end;
+  (* Apply strong induction on n *)
+  apply strong_induction_N with (n := n);
+  (* Clear n from context *)
+  clear n;
+  (* Introduce n and IH *)
   intros n IH.
+
 
 Close Scope nat_scope.
 

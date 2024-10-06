@@ -86,6 +86,12 @@ Module Binomial_R.
     unfold choose. rewrite H2. reflexivity.
   Qed.
 
+  Lemma n_choose_k_def : forall n k : nat,
+    n >= k -> n ∁ k = fact n / (fact k * fact (n - k)).
+  Proof.
+    intros n k H1. unfold choose. apply nltb_ge in H1. rewrite H1. reflexivity.
+  Qed.
+
   Lemma fact_div' : forall m n k,
     (k >= 1)%nat -> (m <> 0) -> n / ((INR (fact (k - 1))) * m)  = (n * INR (k)) / (INR (fact k) * m).
   Proof.
@@ -297,7 +303,7 @@ Proof.
   intros n H1. pose proof Binomial_R.O_choose_n n H1 as H2. rewrite <- Choose_N_eq_Choose_R in H2. apply INR_eq. simpl. auto.
 Qed.
 
-Lemma k_gt_n_n_choose_k : forall n k : nat,
+Lemma n_lt_k_choose_k : forall n k : nat,
   n < k -> n ∁ k = 0.
 Proof.
   intros n k H1. pose proof Binomial_R.k_gt_n_n_choose_k n k H1 as H2. rewrite <- Choose_N_eq_Choose_R in H2. apply INR_eq. auto.
@@ -307,6 +313,12 @@ Lemma n_choose_1 : forall (n : nat),
   n ∁ 1 = n.
 Proof.
   intro n. pose proof Binomial_R.n_choose_1 n as H1. rewrite <- Choose_N_eq_Choose_R in H1. apply INR_eq. auto.
+Qed.
+
+Lemma n_choose_k_def : forall n k : nat,
+  n >= k -> n ∁ k = fact n / (fact k * fact (n - k)).
+Proof.
+  intros n k H1. unfold choose. apply nltb_ge in H1. rewrite H1. reflexivity.
 Qed.
 
 Lemma binomial_recursion_1 : forall n k : nat,

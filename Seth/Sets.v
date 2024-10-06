@@ -868,13 +868,6 @@ Qed.
 
 Check prop_14_6.
 
-(*
-Lemma Subset_correspondence : forall (U : Type) (A B : Ensemble U) (x : U),
-  x ∈ B -> B ⊆ A -> 
-Proof.
-Qed.
-*)
-
 Section num_subsets.
   Variable U : Type.
 
@@ -944,7 +937,7 @@ Section num_subsets.
               specialize (H4 H6). apply In_Setminus_def in H4 as [_ H4]. apply H4. autoset. apply IH. apply cardinal_minus; autoset.
            + unfold Subsets_without_x, Subsets_with_x. apply set_equal_def. intros y. split; intros H4.
              ** apply In_Intersection_def in H4 as [H4 H5]. unfold In in H4, H5. autoset.
-             ** apply In_Intersection_def. unfold In. autoset. Show Proof.
+             ** apply In_Intersection_def. unfold In. autoset.
 Qed.
 
 End num_subsets.
