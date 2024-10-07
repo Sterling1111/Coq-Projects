@@ -337,6 +337,36 @@ Proof.
   rewrite plus_INR. replace (S n) with (n + 1)%nat in H2 by lia. lra.
 Qed.
 
+Lemma choose_ge_0 : forall n k : nat,
+  n ∁ k >= 0.
+Proof.
+  intros n k. induction n as [| n IH].
+  - assert (k = 0 \/ k >= 1)%nat as [H1 | H1] by lia; subst; simpl. lia. rewrite O_choose_n; lia.
+  - assert (k = 0 \/ k >= 1)%nat as [H1 | H1] by lia; subst; simpl.
+    + rewrite n_choose_0. lia.
+    + pose proof binomial_recursion_2 n k H1 as H2. lia.
+Qed.
+
+Lemma binomial_recursion_3 : forall n k : nat,
+  n ∁ (k + 1) = (n + 1) ∁ (k + 1) - n ∁ k.
+Proof.
+  intros n k. assert (k = 0 \/ k >= 1)%nat as [H1 | H1] by lia; subst; simpl.
+  - rewrite n_choose_0. repeat rewrite n_choose_1. lia.
+  - pose proof Binomial_R.binomial_recursion_R_2 n k H1 as H2. repeat rewrite <- Choose_N_eq_Choose_R in H2. apply INR_eq.
+    replace (S k) with (k + 1)%nat in H2 by lia. replace (S n) with (n + 1)%nat in H2 by lia.
+    assert (H3 : (n + 1) ∁ (k + 1) >= n ∁ k).
+    { rewrite binomial_recursion_1. pose proof choose_ge_0 n k as H4. pose proof choose_ge_0 n (k + 1). lia. }
+    rewrite minus_INR; try lia. lra.
+Qed.
+
+Lemma fact_2n : forall n,
+  fact (2 * n) / fact n = fact n + n^2.
+Proof.
+  intros n. induction n as [| k IH].
+  - simpl. lia.
+  - replace (2 * S k)%nat with (S (S (2 * k)))%nat by lia. repeat rewrite fact_simpl.
+Qed.
+
 Open Scope R_scope.
 
 Theorem Binomial_Theorem : forall a b n,

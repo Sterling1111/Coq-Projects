@@ -140,11 +140,14 @@ End section_16_7.
 
 Section section_16_8.
 
+Open Scope nat_scope.
+
 Compute (map (fun n => (2 * n) ∁ n) (seq 0 5)).
 
 Lemma lemma_16_7_b : forall n,
-  Nat.Even ((2 * n) ∁ n).
+  n > 0 -> Nat.Even ((2 * n) ∁ n).
 Proof.
-  intros n. 
+  intros n H1. rewrite n_choose_k_def; try lia. replace (2 * n - n) with n by lia. rewrite Nat.mul_comm. apply Nat.even_mul. apply Nat.even_mul_l. apply Nat.even_mul_r. apply Nat.even_succ.
+
 
 End section_16_8.

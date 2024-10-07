@@ -39,9 +39,23 @@ Proof. intros n m [k H1]; exists (k * m); lia. Qed.
 Lemma odd_mult_odd_nat : forall n m : nat, Nat.Odd n -> Nat.Odd m -> Nat.Odd (n * m).
 Proof. intros n m [k H1] [l H2]; exists (2 * k * l + k + l); lia. Qed.
 
+Lemma even_minus_nat : forall n m : nat,
+  m >= n \/ (Nat.Even n /\ Nat.Even m) \/ (Nat.Odd n /\ Nat.Odd m) <-> Nat.Even (n - m).
+Proof.
+  intros n m; split.
+  - intros [H1 | [[[j H1] [k H2]] | [[j H1] [k H2]]]].
+    -- exists 0; lia.
+    -- exists (j - k); lia.
+    -- exists (j - k); lia.
+  - intros [k H1]. assert (m >= n \/ n >= m) as [H2 | H2] by lia; try lia; right.
+    -- destruct (Nat.Even_or_Odd n) as [H3 | H3].
+      --- left. split; auto. destruct H3 as [j H3]. exists (j - k); lia.
+      --- right. split; auto. destruct H3 as [j H3]. exists (j - k); lia.
+Qed.
+
 Lemma lemma_6_2 : forall n : nat, 2 < n < 3 -> Nat.Odd (7 * n + 3).
 Proof.
-    intros n [H1 H2]. exfalso. lia.
+  intros n [H1 H2]. exfalso. lia.
 Qed.
 
 Open Scope Z_scope.
