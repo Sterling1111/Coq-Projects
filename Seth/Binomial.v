@@ -359,12 +359,11 @@ Proof.
     rewrite minus_INR; try lia. lra.
 Qed.
 
-Lemma fact_2n : forall n,
-  fact (2 * n) / fact n = fact n + n^2.
+Lemma binomial_recursion_4 : forall n k : nat,
+  n >= 1 -> k >= 1 -> n ∁ k = (n - 1) ∁ (k - 1) + (n - 1) ∁ k.
 Proof.
-  intros n. induction n as [| k IH].
-  - simpl. lia.
-  - replace (2 * S k)%nat with (S (S (2 * k)))%nat by lia. repeat rewrite fact_simpl.
+  intros n k H1 H2. pose proof binomial_recursion_2 (n - 1) k H2 as H3.
+  replace (n - 1 + 1) with n in H3 by lia. lia.
 Qed.
 
 Open Scope R_scope.
@@ -375,3 +374,22 @@ Proof.
   intros a b n. pose proof Binomial_R.Binomial_Theorem_R a b n as H1. rewrite H1. apply sum_f_equiv. lia. intros i H2.
   rewrite <- Choose_N_eq_Choose_R. lra.
 Qed.
+
+Ltac simplify_nat_choose :=
+  repeat match goal with
+         | [ |- context[(?n ∁ ?k)] ] =>
+           let C := eval compute in (choose n k) in
+           change (n ∁ k) with C
+         end.
+
+Ltac simplify_power_expr :=
+  repeat match goal with
+  | |- context[?base ^ (?n - ?m)] =>
+    let result := eval compute in (n - m)%nat in
+    replace ((n - m)%nat) with (result) by (
+      simpl; lia
+    )
+  end.
+
+Ltac simplify_binomial_expansion :=
+  rewrite Binomial_Theorem; repeat rewrite sum_f_i_Sn_f; try lia; rewrite sum_f_0_0; simplify_nat_choose; unfold INR; simplify_power_expr; field_simplify.

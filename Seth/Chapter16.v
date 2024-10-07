@@ -33,41 +33,30 @@ Proof.
   replace (n - (n - k)) with k by lia. rewrite Nat.mul_comm. reflexivity.
 Qed.
 
-Lemma lemma_16_3 : forall n j k,
-  n >= j -> n >= k -> n ∁ j * (n - j) ∁ k = n ∁ k * (n - k) ∁ j.
-Proof.
-  intros n j k H1 H2. assert (n - k < j \/ n - k >= j) as [H3 | H3] by lia.
-  - rewrite n_lt_k_choose_k with (n := n - j) (k := k); try lia. rewrite Nat.mul_0_r.
-    rewrite n_lt_k_choose_k with (n := (n - k)) (k := j); try lia.
-  - repeat rewrite n_choose_k_def; try lia. pose proof fact_div (n - j) k ltac : (lia) as [p H4].
-    pose proof fact_div (n - k) j ltac : (lia) as [q H5].  pose proof fact_div n k ltac : (lia) as [r H6].
-    pose proof fact_div n j ltac : (lia) as [s H7].
+Section section_16_3.
+  Open Scope R_scope.
 
-    pose proof (fact_neq_0) as Hfact.
+  Let choose := Binomial_R.choose.
 
-    replace (fact n / (fact j * fact (n - j)) * (fact (n - j) / (fact k * fact (n - j - k)))) with 
-            (fact n / (fact j * fact (n - j - k) * fact k)).
-    2 : { rewrite H7 at 2. rewrite Nat.div_mul. rewrite H4. rewrite Nat.div_mul. rewrite H7.
-          replace (s * (fact j * fact (n - j))) with ((s * fact (n-j)) * (fact (j))) by lia.
-          replace (fact j * fact (n - j - k) * fact k) with (fact (n - j - k) * fact k * fact j) by lia.
-          rewrite Nat.Div0.div_mul_cancel_r. rewrite Nat.mul_comm with (m := fact k). 
-          rewrite H4. replace (s * (p * (fact k * fact (n - j - k)))) with (s * p * (fact k * fact (n - j - k))) by lia.
-          rewrite Nat.div_mul. lia. apply Nat.neq_mul_0. split; apply fact_neq_0. apply fact_neq_0. apply Nat.neq_mul_0; split; apply fact_neq_0.
-          apply Nat.neq_mul_0; split; apply fact_neq_0.
-    }
-    replace (fact n / (fact k * fact (n - k)) * (fact (n - k) / (fact j * fact (n - k - j)))) with
-            (fact n / (fact j * fact (n - j - k) * fact k)).
-    2 : { rewrite H6 at 2. rewrite Nat.div_mul. rewrite H5. rewrite Nat.div_mul. rewrite H6.
-          replace (r * (fact k * fact (n - k))) with ((r * fact (n-k)) * (fact (k))) by lia.
-          replace (fact j * fact (n - j - k) * fact k) with (fact (n - j - k) * fact j * fact k) by lia.
-          rewrite Nat.Div0.div_mul_cancel_r. rewrite Nat.mul_comm with (m := fact j). 
-          replace (n - j - k) with (n - k - j) by lia. rewrite H5.
-          replace (r * (q * (fact j * fact (n - k - j)))) with (r * q * (fact j * fact (n - k - j))) by lia.
-          rewrite Nat.div_mul. lia. apply Nat.neq_mul_0; split; apply fact_neq_0. apply fact_neq_0. apply Nat.neq_mul_0; split; apply fact_neq_0.
-          apply Nat.neq_mul_0; split; apply fact_neq_0.
-     }
-     lia.
-Qed.
+  Lemma lemma_16_3 : forall n j k,
+    (n >= j)%nat -> (n >= k)%nat -> choose n j * choose (n - j) k = choose n k * choose (n - k) j.
+  Proof.
+    intros n j k H1 H2. assert (n - k < j \/ n - k >= j)%nat as [H3 | H3] by lia.
+    - unfold choose. rewrite Binomial_R.k_gt_n_n_choose_k with (n := (n - k)%nat) (k := j); try lia. rewrite Rmult_0_r.
+      rewrite Binomial_R.k_gt_n_n_choose_k with (n := (n - j)%nat) (k := k); try lia. lra.
+    - repeat rewrite Binomial_R.n_choose_k_def; try lia. replace (n - j - k)%nat with (n - k - j)%nat by lia.
+      field_simplify; try (repeat split; apply not_0_INR; apply fact_neq_0). 
+  Qed.
+
+  Open Scope nat_scope.
+
+  Lemma lemma_16_3' : forall n j k,
+    n >= j -> n >= k -> n ∁ j * (n - j) ∁ k = n ∁ k * (n - k) ∁ j.
+  Proof.
+    intros n j k H1 H2. pose proof (lemma_16_3 n j k H1 H2) as H3. repeat rewrite <- Choose_N_eq_Choose_R in H3.
+    repeat rewrite <- mult_INR in H3. apply INR_eq in H3. lia.
+  Qed.
+End section_16_3.
 
 Open Scope R_scope.
 
@@ -85,25 +74,6 @@ Proof.
   rewrite pow_i in H2; try lia. rewrite H2. apply sum_f_equiv; try lia. intros k H4. repeat rewrite pow1. lra.
 Qed.
 
-Ltac simplify_nat_choose :=
-  repeat match goal with
-         | [ |- context[(?n ∁ ?k)] ] =>
-           let C := eval compute in (choose n k) in
-           change (n ∁ k) with C
-         end.
-
-Ltac simplify_power_expr :=
-  repeat match goal with
-  | |- context[?base ^ (?n - ?m)] =>
-    let result := eval compute in (n - m)%nat in
-    replace ((n - m)%nat) with (result) by (
-      simpl; lia
-    )
-  end.
-
-Ltac simplify_binomial_expansion :=
-  rewrite Binomial_Theorem; repeat rewrite sum_f_i_Sn_f; try lia; rewrite sum_f_0_0; simplify_nat_choose; unfold INR; simplify_power_expr; field_simplify.
-
 (* dont forget that our x is 2x and y is 3y*)
 Compute ((8 ∁ 3) * 2^5 * 3^3)%nat.
 
@@ -113,7 +83,7 @@ Proof.
 Qed.
 
 Section section_16_7.
-  Local Definition choose := Binomial_R.choose.
+  Let choose := Binomial_R.choose.
 
   Lemma lemma_16_7 : forall n k,
     (n >= k)%nat -> (k > 0)%nat -> INR k * choose n k = INR n * choose (n - 1) (k - 1).
@@ -147,7 +117,43 @@ Compute (map (fun n => (2 * n) ∁ n) (seq 0 5)).
 Lemma lemma_16_7_b : forall n,
   n > 0 -> Nat.Even ((2 * n) ∁ n).
 Proof.
-  intros n H1. rewrite n_choose_k_def; try lia. replace (2 * n - n) with n by lia. rewrite Nat.mul_comm. apply Nat.even_mul. apply Nat.even_mul_l. apply Nat.even_mul_r. apply Nat.even_succ.
-
+  intros n H1. rewrite binomial_recursion_4; try lia.
+  replace ((2 * n - 1) ∁ n) with ((2 * n - 1) ∁ (n - 1)).
+  2 : { rewrite lemma_16_2; try lia. replace (2 * n - 1 - (n - 1)) with n by lia. reflexivity. }
+  exists ((2 * n - 1) ∁ (n - 1)). lia.
+Qed.
 
 End section_16_8.
+
+Open Scope nat_scope.
+
+Lemma lemma_16_9_a : forall n k,
+  n >= 9 -> n ∁ k < 2 ^ (n-2).
+Proof.
+  intros n k H1. generalize dependent k. induction n as [|n IH]; try lia.
+  intros k. assert (S n = 9 \/ n >= 9) as [H2 | H2] by lia.
+  - rewrite H2. simpl. assert (k > 9 \/ k <= 9) as [H3 | H3] by lia.
+    -- rewrite n_lt_k_choose_k; lia.
+    -- repeat (destruct k; [compute; lia | try lia]).
+  - assert (k = 0 \/ k >= 1) as [H3 | H3] by lia.
+    -- specialize (IH H2). rewrite H3. rewrite n_choose_0. simpl. replace (n - 1) with (S (n - 2)) by lia. rewrite Nat.pow_succ_r'.
+       assert (n ∁ 0 < 2 ^ (n - 2)) as H4 by (apply IH). lia.
+    -- specialize (IH H2). simpl. replace (S n) with (n + 1) by lia. rewrite binomial_recursion_2; try lia.
+       replace (2 ^ (n - 1)) with (2 * 2 ^ (n - 2)). 2 : { replace (n -1) with (S (n - 2)) by lia. simpl. lia. }
+       specialize (IH k) as H4. specialize (IH (k - 1)) as H5. lia.
+Qed.
+
+Lemma lemma_16_9_b : forall n k,
+  n >= 8 -> n ∁ k < fact (n - 3).
+Proof.
+  intros n k H1. generalize dependent k. induction n as [|n IH]; try lia.
+  intros k. assert (S n = 8 \/ n >= 8) as [H2 | H2] by lia.
+  - rewrite H2. simpl. assert (k > 8 \/ k <= 8) as [H3 | H3] by lia.
+    -- rewrite n_lt_k_choose_k; lia.
+    -- repeat (destruct k; [compute; lia | try lia]).
+  - assert (k = 0 \/ k >= 1) as [H3 | H3] by lia.
+    -- rewrite H3. rewrite n_choose_0. replace (S n - 3) with (S (n - 3)) by lia. simpl. pose proof (fact_geq_1 (n - 3)) as H4. nia.
+    -- specialize (IH H2). simpl. replace (S n) with (n + 1) by lia. rewrite binomial_recursion_2; try lia.
+       replace (fact (n - 1)) with ((n - 1) * fact (n - 2)). 2 : { replace (n - 1) with (S (n - 2)) by lia. simpl. reflexivity. }
+       specialize (IH k) as H4. specialize (IH (k - 1)) as H5. replace (n - 2) with (S (n - 3)) by lia. simpl. nia.
+Qed.
