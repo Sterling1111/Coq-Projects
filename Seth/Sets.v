@@ -632,6 +632,39 @@ Proof.
     -- destruct IH as [l H2]. exists (x :: l). unfold Add. rewrite <- H2. autoset.
 Qed.
 
+Lemma not_in_minus_eq : forall (U : Type) (A : Ensemble U) (x : U),
+  x ∉ A -> A − ⦃x⦄ = A.
+Proof.
+  intros U A x H1. apply set_equal_def. intros y. split; intros H2; autoset.
+  apply In_Setminus_def. split. autoset. intros H3. apply In_singleton_def in H3. autoset.
+Qed.
+
+Lemma In_set_Union_eq : forall (U : Type) (A : Ensemble U) (x : U),
+  x ∈ A -> A = A ⋃ ⦃x⦄.
+Proof.
+  intros U A x H1. apply set_equal_def. intros y. split; intros H2; autoset.
+  apply In_Union_def in H2 as [H2 | H2]; autoset. apply In_singleton_def in H2. autoset.
+Qed.
+
+Lemma Intersection_preserves_finite_2 : forall (U : Type) (A B : Ensemble U),
+  Finite_set A -> Finite_set (A ⋂ B).
+Proof.
+  intros U A B [l H1]. unfold Finite_set. generalize dependent A. induction l as [| h t IH].
+  - intros A H1. rewrite list_to_ensemble_nil in H1. exists []; autoset.
+  - intros A H1. rewrite list_to_ensemble_cons in H1. pose proof (classic (h ∈ (list_to_ensemble t))) as [H2 | H2].
+    -- assert (list_to_ensemble t = A) as H3. { apply In_set_Union_eq in H2. rewrite H2. autoset. }
+       specialize (IH A H3). destruct IH as [l H4]. exists l. autoset.
+    -- assert (list_to_ensemble t = A − ⦃h⦄) as H3. { apply set_equal_def. intros x. split; intros H3; autoset. 
+            apply In_Setminus_def. split. autoset. intros H4. apply H2. apply In_singleton_def in H4. autoset. }
+       specialize (IH (A − ⦃h⦄) H3) as [l H4]. pose proof (In_or_not U B h) as [H5 | H5].
+       * pose proof (In_or_not U A h) as [H6 | H6].
+         ++ exists (h :: l). rewrite list_to_ensemble_cons. rewrite H4. rewrite Union_Distrib_Intersection. 
+            replace (⦃h⦄ ⋃ (A − ⦃h⦄)) with A. 2 : { autoset. } replace (⦃h⦄ ⋃ B) with (B). 2 : { rewrite Union_comm. apply In_set_Union_eq. autoset. } autoset.
+         ++ exists l. rewrite not_in_minus_eq in H4; auto.
+       * exists l. rewrite H4. apply set_equal_def. intros x. split; intros H6. autoset. apply In_Intersection_def. split. 2 : { autoset. }
+         apply In_Setminus_def. split. autoset. intros H7. apply H5. apply In_Intersection_def in H6. apply In_singleton_def in H7. autoset.
+Qed.
+
 Lemma Subset_Empty_def : forall (U : Type) (A : Ensemble U),
   A ⊆ ∅ <-> A = ∅.
 Proof.

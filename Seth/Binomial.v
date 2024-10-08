@@ -393,3 +393,88 @@ Ltac simplify_power_expr :=
 
 Ltac simplify_binomial_expansion :=
   rewrite Binomial_Theorem; repeat rewrite sum_f_i_Sn_f; try lia; rewrite sum_f_0_0; simplify_nat_choose; unfold INR; simplify_power_expr; field_simplify.
+
+
+Module ChooseMemo.
+  Import List ListNotations.
+
+  Open Scope nat_scope.
+
+  (* Define the type for the cache, where (n, k) is the key, and nat is the value *)
+  Definition cache_t := list ((nat * nat) * nat).
+
+  (* Function to look up a value from the cache, directly matching on the pair *)
+  Fixpoint lookup_cache (n k : nat) (cache : cache_t) : option nat :=
+    match cache with
+    | [] => None
+    | ((n', k'), value) :: rest =>
+      if andb (n =? n') (k =? k') then Some value
+      else lookup_cache n k rest
+    end.
+
+  (* Function to compute the binomial coefficient using memoization *)
+  Fixpoint choose_memo (n k : nat) (cache : cache_t) : (nat * cache_t) :=
+    if n <? k then (0, cache) else if n =? k then (1, cache) else if k =? 0 then (1, cache) else if (n =? 0) then (0, cache) else if k =? 1 then (n, cache) else
+    match lookup_cache n k cache with
+    | Some value => (value, cache)
+    | None =>
+      match n, k with
+      | _, 0 =>
+        let result := 1 in
+        (result, (((n, k), result) :: cache))
+      | 0, S _ =>
+        let result := 0 in
+        (result, (((n, k), result) :: cache))
+      | S n', S k' =>
+        if n =? k then
+          let result := 1 in
+          (result, (((n, k), result) :: cache))
+        else
+          let '(val1, cache1) := choose_memo n' k' cache in
+          let '(val2, cache2) := choose_memo n' k cache1 in
+          let result := val1 + val2 in
+          (result, (((n, k), result) :: cache2))
+      end
+    end.
+
+    Definition my_choose (n k : nat) : nat :=
+      fst (choose_memo n k []).
+
+    Lemma choose_memo_correct : forall n k cache,
+      fst (choose_memo n k cache) = n ∁ k.
+    Proof.
+      intros n k cache. generalize dependent k. generalize dependent cache. induction n as [| n' IH]; intros cache k.
+      - destruct k; simpl; reflexivity.
+      - assert (k = 0 \/ k >= 1) as [H1 | H1] by lia.
+        -- rewrite H1. simpl. rewrite n_choose_0. reflexivity.
+        -- rewrite binomial_recursion_4; try lia. replace (S n' - 1) with n' by lia. simpl.
+           assert (S n' < k \/ S n' >= k)%nat as [H2 | H2] by lia.
+           * assert (S n' <? k = true) as H3. { apply Nat.ltb_lt. apply H2. } rewrite H3. simpl. repeat rewrite n_lt_k_choose_k; lia.
+           * assert (S n' <? k = false) as H3. { apply Nat.ltb_ge. apply H2. } rewrite H3. destruct k; try lia. 
+             assert (n' = k \/ n' > k)%nat as [H4 | H4] by lia.
+             + assert (n' =? k = true) as H5. { apply Nat.eqb_eq. apply H4. } rewrite H5. simpl. rewrite H4. rewrite Nat.sub_0_r. 
+               rewrite n_choose_n. rewrite n_lt_k_choose_k; lia.
+             + assert (n' =? k = false) as H5. { apply Nat.eqb_neq. lia. } rewrite H5. simpl. assert (k = 0 \/ k > 0) as [H6 | H6] by lia.
+               ** assert (k =? 0 = true) as H7. { apply Nat.eqb_eq. apply H6. } rewrite H7. simpl. rewrite Nat.sub_0_r. rewrite H6. rewrite n_choose_0. 
+                  rewrite n_choose_1. lia.
+               ** assert (k =? 0 = false) as H7. { apply Nat.eqb_neq. lia. } rewrite H7. destruct (lookup_cache) as [value |] eqn:H8.
+                  --- simpl. rewrite Nat.sub_0_r. specialize (IH cache k). rewrite <- IH.
+Admitted.
+
+  Lemma my_choose_correct : forall n k,
+    my_choose n k = n ∁ k.
+  Proof.
+    intros n k. generalize dependent k. induction n as [| n' IH]; intros k.
+    - destruct k; simpl; reflexivity.
+    - destruct k.
+      -- rewrite n_choose_0. unfold my_choose, choose_memo. reflexivity.
+      -- rewrite binomial_recursion_4; try lia. simpl. repeat rewrite Nat.sub_0_r. rewrite <- (IH k).
+         rewrite <- (IH (S k)). unfold my_choose at 1. rewrite choose_memo_correct. rewrite binomial_recursion_4; try lia.
+         simpl. repeat rewrite Nat.sub_0_r. rewrite <- IH. rewrite <- IH. reflexivity.
+  Qed.
+    
+End ChooseMemo.
+
+Compute (ChooseMemo.my_choose 40 5).
+
+Open Scope nat_scope.

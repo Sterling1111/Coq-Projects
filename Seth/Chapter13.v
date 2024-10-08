@@ -1,4 +1,4 @@
-Require Import ZArith Lia Classical Reals Lra Classical_sets List Ensembles QArith ClassicalFacts Finite_sets.
+Require Import ZArith Lia Classical Reals Lra Classical_sets List Ensembles QArith ClassicalFacts Finite_sets Finite_sets_facts.
 From Seth Require Export Chapter12.
 From Seth Require Import Sums Sets WI_SI_WO.
 Import ListNotations SetNotations.
@@ -150,18 +150,15 @@ Lemma lemma_13_6 : forall n h,
 Proof.
   intros n h H1. induction n as [| k IH].
   - simpl. lra.
-  - pose proof (Rtotal_order h 0) as [H2 | [H2 | H2]].
-    -- rewrite S_INR. replace ((1+h)^S k) with ((1 + h)^k + h * (1 + h)^k) by (simpl; lra).
-       replace (1 + (INR k + 1) * h) with (1 + INR k * h + h) by lra. assert ((1 + h)^k > 0) as H3 by (apply Rpow_gt_0; nra).
-       destruct k. { compute. lra. } assert ((1 + h) ^ S k < 1) as H4 by (apply Rpow_lt_1; try nra; try lia). nra.
-    -- simpl. nra.
-    -- rewrite S_INR. replace ((1+h)^S k) with ((1 + h)^k + h * (1 + h)^k) by (simpl; lra).
-       replace (1 + (INR k + 1) * h) with (1 + INR k * h + h) by lra. assert ((1 + h)^k > 0) as H3 by (apply Rpow_gt_0; nra).
-       destruct k. { compute. lra. } assert ((1 + h) ^ S k > 1) as H4 by (apply Rpow_gt_1; try nra; try lia). nra.
+  - replace (1 + INR (S k) * h) with (1 + INR k * h + h). 2 : { rewrite S_INR. lra. }
+    apply Rge_le in IH. apply Rle_ge. apply Rmult_le_compat_r with (r := 1 + h) in IH; try lra.
+    replace ((1 + h) ^ k * (1 + h)) with ((1 + h) ^ S k) in IH by (simpl; lra).
+    replace ((1 + INR k * h) * (1 + h)) with (1 + INR k * h + h + INR k * h^2) in IH by lra.
+    assert (0 <= INR k * h^2) as H2. { apply Rmult_le_pos. apply pos_INR. apply pow2_ge_0. } nra.
 Qed.
 
 Proposition prop_13_11 : forall (A : Ensemble R),
-  A ≠ ∅ -> (exists l : list R, list_to_ensemble l = A) -> exists r, r ∈ A /\ forall r', r' ∈ A -> r <= r'.
+  A ≠ ∅ -> Finite_set A -> exists r, r ∈ A /\ forall r', r' ∈ A -> r <= r'.
 Proof.
   intros A H1 [l H2]. generalize dependent A. induction l as [| h t IH].
   - intros A H1 H2. simpl in H2. rewrite H2 in H1. exfalso. apply H1. reflexivity.
@@ -194,8 +191,8 @@ Qed.
 
 Open Scope nat_scope.
 
-Lemma lemma_13_7 : forall (A : Ensemble ℕ),
-  A ≠ ∅ -> (exists l : list ℕ, list_to_ensemble l = A) -> exists n, n ∈ A /\ forall n', n' ∈ A -> n <= n'.
+Lemma lemma_13_7_a : forall (A : Ensemble ℕ),
+  A ≠ ∅ -> Finite_set A -> exists n, n ∈ A /\ forall n', n' ∈ A -> n <= n'.
 Proof.
   intros A H1 [l H2]. destruct (exists_nat_list_exists_R_list l) as [l' H3]. specialize (prop_13_11 (list_to_ensemble l')).
   intros H4. assert (H5 : list_to_ensemble l' ≠ ∅). 
@@ -213,6 +210,30 @@ Proof.
        destruct H9 as [H9 _]. specialize (H9 H3) as [x [H9 H10]]. replace n%nat with x%nat. auto. apply INR_eq. lra.
     -- intros n' H9. rewrite <- H2 in H9. apply In_list_to_ensemble in H9. apply INR_le. rewrite H8. apply H7. rewrite H3.
        apply In_list_to_ensemble. apply in_map_iff. exists n'; split; auto.
+Qed.
+
+Lemma lemma_13_7_b : forall (A : Ensemble ℕ),
+  A ≠ ∅ -> ~Finite_set A -> exists n, n ∈ A /\ forall n', n' ∈ A -> n <= n'.
+Proof.
+  intros A H1 H2. pose proof (Empty_or_exists_In ℕ A) as [H3 | [n H3]]; try contradiction.
+  set (B := list_to_ensemble (seq 0 (S n)) ⋂ A). assert (n ∈ B) as H4.
+  { unfold B. apply In_Intersection_def. split; auto. apply In_list_to_ensemble. apply in_seq. lia. }
+  assert (B ≠ ∅) as H5. { intros H5. rewrite H5 in H4. contradiction. }
+  assert (H6 : Finite_set B). { apply Intersection_preserves_finite_2. unfold Finite_set. exists (seq 0 (S n)). reflexivity. }
+  pose proof (lemma_13_7_a B H5 H6) as [m [H7 H8]]. exists m. split.
+  - apply In_Intersection_def in H7. autoset.
+  - intros n' H9. pose proof (In_or_not ℕ B n') as [H10 | H10].
+    -- apply H8. autoset.
+    -- assert (m <= n' \/ m > n') as [H11 | H11] by lia; try lia. exfalso. apply H10.
+       apply In_Intersection_def. split; auto. apply In_list_to_ensemble. apply in_seq. specialize (H8 n H4). lia.
+Qed.
+
+Lemma lemma_13_7_c : forall (A : Ensemble ℕ),
+  A ≠ ∅ -> exists n, n ∈ A /\ forall n', n' ∈ A -> n <= n'.
+Proof.
+  intros A H1. pose proof (classic (Finite_set A)) as [H2 | H2].
+  - apply lemma_13_7_a; auto.
+  - apply lemma_13_7_b; auto.
 Qed.
 
 Lemma count_occ_remove_neq : 
