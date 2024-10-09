@@ -523,11 +523,41 @@ Ltac simplify_binomial_expansion :=
 
 Open Scope nat_scope.
 
-Compute (9 / 2).
-Compute (9 ∁ 5).
-
 Lemma choose_n_max : forall n k : nat,
   n ∁ (n / 2) >= n ∁ k.
 Proof.
   intros n k. pose proof Binomial_R.n_choose_k_max n k as H1. repeat rewrite <- Choose_N_eq_Choose_R in H1. apply INR_le. lra.
+Qed.
+
+Fixpoint Z_fact (n : nat) : Z :=
+  match n with
+  | 0%nat => 1
+  | S n' => Z.of_nat n * Z_fact n'
+  end.
+
+Open Scope Z_scope.
+
+Lemma Z_fact_simpl : forall n : nat,
+  Z_fact (S n) = Z.of_nat (S n) * Z_fact n.
+Proof.
+  intro n. simpl. reflexivity.
+Qed.
+
+Lemma Z_fact_eq_fact : forall n : nat,
+  Z_fact n = Z.of_nat (fact n).
+Proof.
+  induction n as [| n IH]; try reflexivity.
+  repeat rewrite Z_fact_simpl. rewrite IH. rewrite <- Nat2Z.inj_mul. reflexivity.
+Qed.
+
+Definition Z_choose (n k : nat) : Z :=
+  if (n <? k)%nat then 0 else
+  Z_fact n / (Z_fact k * Z_fact (n - k)).
+
+Lemma Z_choose_eq_choose : forall n k : nat,
+  Z_choose n k = Z.of_nat (choose n k).
+Proof.
+  intros n k. unfold Z_choose, choose. destruct (n <? k)%nat; try reflexivity.
+  rewrite Z_fact_eq_fact. rewrite Nat2Z.inj_div. rewrite Nat2Z.inj_mul.
+  repeat rewrite Z_fact_eq_fact. reflexivity.
 Qed.

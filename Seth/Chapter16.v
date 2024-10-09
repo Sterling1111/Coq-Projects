@@ -134,7 +134,8 @@ Proof.
   intros k. assert (S n = 9 \/ n >= 9) as [H2 | H2] by lia.
   - rewrite H2. simpl. assert (k > 9 \/ k <= 9) as [H3 | H3] by lia.
     -- rewrite n_lt_k_choose_k; lia.
-    -- pose proof ((choose_n_max 9 k)) as H4. simpl in H4. assert (9 ∁ 4 = 126) as H5 by (compute; lia). lia.
+    -- pose proof ((choose_n_max 9 k)) as H4. simpl in H4. pose proof (Z_choose_eq_choose 9 4) as H5.
+       replace (Z_choose 9 4) with 126%Z in H5 by (compute; lia). lia.
         (*repeat (destruct k; [compute; lia | try lia]). too slow while we dont have a fast way to compute choose aka proven dp*)
   - assert (k = 0 \/ k >= 1) as [H3 | H3] by lia.
     -- specialize (IH H2). rewrite H3. rewrite n_choose_0. simpl. replace (n - 1) with (S (n - 2)) by lia. rewrite Nat.pow_succ_r'.
@@ -151,7 +152,8 @@ Proof.
   intros k. assert (S n = 8 \/ n >= 8) as [H2 | H2] by lia.
   - rewrite H2. simpl. assert (k > 8 \/ k <= 8) as [H3 | H3] by lia.
     -- rewrite n_lt_k_choose_k; lia.
-    -- assert (8 ∁ k <= 8 ∁ 4) as H4 by apply choose_n_max. replace (8 ∁ 4) with 70 in H4 by (compute; lia). lia.
+    -- assert (8 ∁ k <= 8 ∁ 4) as H4 by apply choose_n_max. pose proof (Z_choose_eq_choose 8 4) as H5.
+       replace (Z_choose 8 4) with 70%Z in H5 by (compute; lia). lia.
        (* repeat (destruct k; [compute; lia | try lia]). too slow while we dont have fast choose compute *)
   - assert (k = 0 \/ k >= 1) as [H3 | H3] by lia.
     -- rewrite H3. rewrite n_choose_0. replace (S n - 3) with (S (n - 3)) by lia. simpl. pose proof (fact_geq_1 (n - 3)) as H4. nia.
