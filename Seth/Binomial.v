@@ -1,4 +1,5 @@
-Require Import Reals Lra Lia FunctionalExtensionality.
+Require Import Reals Lra Lia FunctionalExtensionality List.
+Import ListNotations.
 From Seth Require Import Sums.
 
 Definition is_natural (r : R) : Prop :=
@@ -224,7 +225,133 @@ Module Binomial_R.
             2 : { apply sum_f_equiv. lia. intros k0 H3. replace (S k - k0)%nat with (k - k0 + 1)%nat by lia. reflexivity. }
             nra.
   Qed.
+
+  Lemma fact_ge_1 : forall n : nat, (fact n >= 1)%nat.
+  Proof.
+    induction n as [| k IH]; (simpl; lia).
+  Qed.
+
+  Lemma fact_2n_gt_fact_n_pow2 : forall n : nat,
+    (n >= 1)%nat -> (fact (2 * n) > fact n * fact n)%nat.
+  Proof.
+    intros n H1. induction n as [| k IH]; try lia.
+    assert (S k = 1 \/ S k > 1)%nat as [H2 | H2] by lia.
+    - rewrite H2. simpl. lia.
+    - specialize (IH ltac : (lia)). replace (2 * S k)%nat with (S (S (2 * k)))%nat by lia. repeat rewrite fact_simpl. nia.
+  Qed.
+
+  Lemma factorial_product_inequality_le : forall n k : nat,
+    (k < n)%nat -> INR (fact n) * INR (fact n) <= INR (fact k) * INR (fact (2 * n - k)).
+  Proof.
+    intros n k H1. induction n as [| n IH]; try lia.
+    assert (H2 : (n = k \/ n > k)%nat) by lia. destruct H2 as [H2 | H2].
+    - rewrite H2. replace (2 * S k - k)%nat with (S(S k)) by lia. repeat rewrite fact_simpl. repeat rewrite mult_INR. repeat rewrite S_INR.
+      pose proof (fact_ge_1 k) as H3. assert (INR 1 <= INR (fact k)) as H4. { apply le_INR. apply H3. } simpl in H4.
+      assert (0 <= INR k). { apply pos_INR. } nra.
+    - specialize (IH ltac : (lia)). replace (2 * S n - k)%nat with (S (S (2 * n - k)))%nat by lia. repeat rewrite fact_simpl.
+      repeat rewrite mult_INR. assert (INR (S n) * INR (S n) <= (INR (S (S (2 * n - k))) * (INR (S (2 * n - k))))).
+      { repeat rewrite S_INR. repeat rewrite minus_INR; try lia. repeat rewrite mult_INR. simpl. apply lt_INR in H2. pose proof (pos_INR k) as H3. nra. }
+      nra.
+  Qed.
+
+  Lemma fact_n_gt_0 : forall n : nat,
+    (n > 0)%nat -> (0 < fact n)%nat.
+  Proof.
+    intros n H1. induction n as [| k IH]; try lia.
+    assert (k = 0 \/ k > 0)%nat as [H2 | H2] by lia.
+    - subst. simpl. lia.
+    - simpl. lia.
+  Qed.
+
+  Lemma n_choose_k_ge_0 : forall n k : nat,
+    n ∁ k >= 0.
+  Proof.
+    intros n k. unfold choose. destruct (n <? k) eqn:H1.
+    - lra.
+    - pose proof (fact_ge_1 n) as H2. pose proof (fact_ge_1 k) as H3. pose proof (fact_ge_1 (n - k)) as H4.
+      apply le_INR in H2, H3, H4. simpl in *. apply Rle_ge. apply Rmult_le_reg_r with (r := INR (fact k) * INR (fact (n - k))); try nra.
+      field_simplify; nra.
+  Qed.
+
+  Lemma n_choose_k_ge_1 : forall n k : nat,
+    (k <= n)%nat -> (n ∁ k >= 1)%R.
+  Proof.
+    intros n k H1. induction n as [| n IH].
+    - replace k with 0%nat by lia. rewrite n_choose_0. lra.
+    - assert ((k = S n \/ k < S n)%nat) as [H2 | H2] by lia.
+      -- rewrite H2. rewrite n_choose_n. lra.
+      -- assert (k = 0 \/ k >= 1)%nat as [H3 | H3] by lia.
+         * rewrite H3. rewrite n_choose_0. lra.
+         * specialize (IH ltac : (lia)). rewrite binomial_recursion_R_1; try lia. pose proof (n_choose_k_ge_0 n (k - 1)). nra.
+  Qed.
+
+Lemma n_choose_k_sym : forall n k,
+  (n >= k)%nat -> n ∁ k = n ∁ (n - k).
+Proof.
+  intros n k H1. repeat rewrite n_choose_k_def; try lia.
+  replace (n - (n - k))%nat with k by lia. field. split. apply not_0_INR. apply fact_neq_0. apply not_0_INR. apply fact_neq_0.
+Qed.
+
+Lemma n_choose_k_max_le : forall n k : nat,
+  (k <= n / 2)%nat -> n ∁ (n / 2) >= n ∁ k.
+Proof.
+  intros n k H1. pose proof (Nat.Even_or_Odd n) as [[m H2] | [m H2]].
+  - rewrite H2. replace (2 * m / 2)%nat with m. 2 : { rewrite Nat.mul_comm. rewrite Nat.div_mul; auto. }
+    rewrite H2 in H1. rewrite Nat.mul_comm in H1. rewrite Nat.div_mul in H1; auto.
+    assert (k = m \/ k < m)%nat as [H3 | H3] by lia.
+    -- subst. lra.
+    -- assert (k = 0 \/ k > 0)%nat as [H4 | H4] by lia.
+       * rewrite H4. rewrite n_choose_0. apply Rle_ge. pose proof (n_choose_k_ge_1 (2 * m) m) as H5. specialize (H5 ltac : (lia)). nra.
+       * repeat rewrite n_choose_k_def; try lia. replace (2 * m - m)%nat with m by lia.
+         pose proof (factorial_product_inequality_le m k H3) as H5. assert (0 <= INR (fact (2 * m))) as H6. { apply pos_INR. }
+         assert (0 < (INR (fact m) * INR (fact m))) as H7. { rewrite <- mult_INR. apply lt_0_INR. apply Nat.mul_pos_pos; (apply fact_n_gt_0; lia). }
+         apply Rmult_le_compat_r with (r := INR (fact (2 * m))) in H5; try nra. apply Rle_ge. apply Rmult_le_reg_r with (r := INR (fact m) * INR (fact m)); try lra.
+         apply Rmult_le_reg_r with (r := (INR (fact k) * INR (fact (2 * m - k)))).
+         rewrite <- mult_INR. apply lt_0_INR. apply Nat.mul_pos_pos. apply fact_n_gt_0. lia.
+         2 : { field_simplify. nra. apply not_0_INR. apply fact_neq_0. split. apply not_0_INR. apply fact_neq_0. apply not_0_INR. apply fact_neq_0. }
+         pose proof (fact_ge_1 (2 * m - k)) as H8. lia.
+  - rewrite H2. replace (2 * m / 2)%nat with m. 2 : { rewrite Nat.mul_comm. rewrite Nat.div_mul; auto. }
+    rewrite H2 in H1. assert ((2 * m + 1) / 2 = m)%nat as H3.
+    {  rewrite <- Nat.div2_div. replace (2 * m + 1 )%nat with (S (2 * m)) by lia. rewrite Nat.div2_succ_double. lia. }
+    rewrite H3 in *. 
+    assert (k = m \/ k < m)%nat as [H4 | H4] by lia.
+    -- subst. lra.
+    -- assert (k = 0 \/ k > 0)%nat as [H5 | H5] by lia.
+       * rewrite H5. rewrite n_choose_0. apply Rle_ge. pose proof (n_choose_k_ge_1 (2 * m + 1) m) as H6. specialize (H6 ltac : (lia)). nra.
+       * repeat rewrite n_choose_k_def; try lia. replace (2 * m + 1 - m)%nat with (S m) by lia.
+         pose proof (factorial_product_inequality_le m k H4) as H6. assert (0 <= INR (fact (2 * m + 1))) as H7. { apply pos_INR. }
+         assert (0 < (INR (fact m) * INR (fact (S m)))) as H8. { rewrite <- mult_INR. apply lt_0_INR. apply Nat.mul_pos_pos; (apply fact_n_gt_0; lia). }
+         apply Rmult_le_compat_r with (r := INR (fact (2 * m + 1))) in H6; try nra. apply Rle_ge. apply Rmult_le_reg_r with (r := INR (fact m) * INR (fact (S m))); try lra.
+         apply Rmult_le_reg_r with (r := (INR (fact k) * INR (fact (2 * m + 1 - k)))).
+         rewrite <- mult_INR. apply lt_0_INR. apply Nat.mul_pos_pos. apply fact_n_gt_0. lia. apply fact_n_gt_0. lia.
+         field_simplify. replace (2 * m + 1 - k)%nat with (S (2 * m - k))%nat by lia. repeat rewrite fact_simpl. repeat rewrite mult_INR.
+         assert (INR (S m) <= INR (S (2 * m - k))) as H9. { apply le_INR. lia. } assert (0 < INR (S m)) as H10. { apply lt_0_INR. lia. }
+         assert (0 < INR (S (2 * m - k))) as H11. { apply lt_0_INR. lia. }
+         replace (INR (fact (2 * m + 1)) * INR (fact m) * (INR (S m) * INR (fact m))) with (INR (S m) * (INR (fact (2 * m + 1)) * INR (fact m) * INR (fact m))) by nra.
+         replace (INR (fact (2 * m + 1)) * INR (fact k) * (INR (S (2 * m - k)) * INR (fact (2 * m - k)))) with ((INR (S (2 * m - k)) * (INR (fact (2 * m + 1)) * INR (fact k) * INR (fact (2 * m - k))))) by nra.
+         apply Rmult_le_compat; try nra. split; apply INR_fact_neq_0. split; apply INR_fact_neq_0.
+  Qed.
   
+  Lemma n_choose_k_max_gt : forall n k : nat,
+    (k > n / 2)%nat -> n ∁ (n / 2) >= n ∁ k.
+  Proof.
+    intros n k H1. assert (k > n \/ k <= n)%nat as [H2 | H2] by lia.
+    - rewrite k_gt_n_n_choose_k with (k := k); try lia. apply n_choose_k_ge_0.
+    - rewrite n_choose_k_sym with (k := k); try lia. apply n_choose_k_max_le. pose proof (Nat.Even_or_Odd n) as [[m H3] | [m H3]].
+      -- rewrite H3. rewrite H3 in H1. rewrite Nat.mul_comm in H1. rewrite Nat.div_mul in H1; try lia. rewrite Nat.mul_comm.
+         rewrite Nat.div_mul; try lia.
+      -- rewrite H3. rewrite H3 in H1. assert ((2 * m + 1) / 2 = m)%nat as H4.
+         {  rewrite <- Nat.div2_div. replace (2 * m + 1 )%nat with (S (2 * m)) by lia. rewrite Nat.div2_succ_double. lia. } lia.
+  Qed.
+
+  Lemma n_choose_k_max : forall n k : nat,
+    n ∁ (n / 2) >= n ∁ k.
+  Proof.
+    intros n k. assert (k <= n / 2 \/ k > n / 2)%nat as [H1 | H1] by lia.
+    - apply n_choose_k_max_le. apply H1.
+    - apply n_choose_k_max_gt. apply H1.
+  Qed.
+
 End Binomial_R.
 
 Lemma Rdiv_natdiv : forall n1 n2 : nat,
@@ -394,87 +521,13 @@ Ltac simplify_power_expr :=
 Ltac simplify_binomial_expansion :=
   rewrite Binomial_Theorem; repeat rewrite sum_f_i_Sn_f; try lia; rewrite sum_f_0_0; simplify_nat_choose; unfold INR; simplify_power_expr; field_simplify.
 
-
-Module ChooseMemo.
-  Import List ListNotations.
-
-  Open Scope nat_scope.
-
-  (* Define the type for the cache, where (n, k) is the key, and nat is the value *)
-  Definition cache_t := list ((nat * nat) * nat).
-
-  (* Function to look up a value from the cache, directly matching on the pair *)
-  Fixpoint lookup_cache (n k : nat) (cache : cache_t) : option nat :=
-    match cache with
-    | [] => None
-    | ((n', k'), value) :: rest =>
-      if andb (n =? n') (k =? k') then Some value
-      else lookup_cache n k rest
-    end.
-
-  (* Function to compute the binomial coefficient using memoization *)
-  Fixpoint choose_memo (n k : nat) (cache : cache_t) : (nat * cache_t) :=
-    if n <? k then (0, cache) else if n =? k then (1, cache) else if k =? 0 then (1, cache) else if (n =? 0) then (0, cache) else if k =? 1 then (n, cache) else
-    match lookup_cache n k cache with
-    | Some value => (value, cache)
-    | None =>
-      match n, k with
-      | _, 0 =>
-        let result := 1 in
-        (result, (((n, k), result) :: cache))
-      | 0, S _ =>
-        let result := 0 in
-        (result, (((n, k), result) :: cache))
-      | S n', S k' =>
-        if n =? k then
-          let result := 1 in
-          (result, (((n, k), result) :: cache))
-        else
-          let '(val1, cache1) := choose_memo n' k' cache in
-          let '(val2, cache2) := choose_memo n' k cache1 in
-          let result := val1 + val2 in
-          (result, (((n, k), result) :: cache2))
-      end
-    end.
-
-    Definition my_choose (n k : nat) : nat :=
-      fst (choose_memo n k []).
-
-    Lemma choose_memo_correct : forall n k cache,
-      fst (choose_memo n k cache) = n ∁ k.
-    Proof.
-      intros n k cache. generalize dependent k. generalize dependent cache. induction n as [| n' IH]; intros cache k.
-      - destruct k; simpl; reflexivity.
-      - assert (k = 0 \/ k >= 1) as [H1 | H1] by lia.
-        -- rewrite H1. simpl. rewrite n_choose_0. reflexivity.
-        -- rewrite binomial_recursion_4; try lia. replace (S n' - 1) with n' by lia. simpl.
-           assert (S n' < k \/ S n' >= k)%nat as [H2 | H2] by lia.
-           * assert (S n' <? k = true) as H3. { apply Nat.ltb_lt. apply H2. } rewrite H3. simpl. repeat rewrite n_lt_k_choose_k; lia.
-           * assert (S n' <? k = false) as H3. { apply Nat.ltb_ge. apply H2. } rewrite H3. destruct k; try lia. 
-             assert (n' = k \/ n' > k)%nat as [H4 | H4] by lia.
-             + assert (n' =? k = true) as H5. { apply Nat.eqb_eq. apply H4. } rewrite H5. simpl. rewrite H4. rewrite Nat.sub_0_r. 
-               rewrite n_choose_n. rewrite n_lt_k_choose_k; lia.
-             + assert (n' =? k = false) as H5. { apply Nat.eqb_neq. lia. } rewrite H5. simpl. assert (k = 0 \/ k > 0) as [H6 | H6] by lia.
-               ** assert (k =? 0 = true) as H7. { apply Nat.eqb_eq. apply H6. } rewrite H7. simpl. rewrite Nat.sub_0_r. rewrite H6. rewrite n_choose_0. 
-                  rewrite n_choose_1. lia.
-               ** assert (k =? 0 = false) as H7. { apply Nat.eqb_neq. lia. } rewrite H7. destruct (lookup_cache) as [value |] eqn:H8.
-                  --- simpl. rewrite Nat.sub_0_r. specialize (IH cache k). rewrite <- IH.
-Admitted.
-
-  Lemma my_choose_correct : forall n k,
-    my_choose n k = n ∁ k.
-  Proof.
-    intros n k. generalize dependent k. induction n as [| n' IH]; intros k.
-    - destruct k; simpl; reflexivity.
-    - destruct k.
-      -- rewrite n_choose_0. unfold my_choose, choose_memo. reflexivity.
-      -- rewrite binomial_recursion_4; try lia. simpl. repeat rewrite Nat.sub_0_r. rewrite <- (IH k).
-         rewrite <- (IH (S k)). unfold my_choose at 1. rewrite choose_memo_correct. rewrite binomial_recursion_4; try lia.
-         simpl. repeat rewrite Nat.sub_0_r. rewrite <- IH. rewrite <- IH. reflexivity.
-  Qed.
-    
-End ChooseMemo.
-
-Compute (ChooseMemo.my_choose 40 5).
-
 Open Scope nat_scope.
+
+Compute (9 / 2).
+Compute (9 ∁ 5).
+
+Lemma choose_n_max : forall n k : nat,
+  n ∁ (n / 2) >= n ∁ k.
+Proof.
+  intros n k. pose proof Binomial_R.n_choose_k_max n k as H1. repeat rewrite <- Choose_N_eq_Choose_R in H1. apply INR_le. lra.
+Qed.
