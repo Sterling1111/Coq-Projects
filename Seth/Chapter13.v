@@ -331,7 +331,7 @@ Proof.
       * right. apply IH; auto.
 Qed.
 
-Lemma count_occ_eq_len : forall (A : Type) (eq_dec : forall x y : A, sumbool (x = y) (x <> y)) (l1 l2 : list A),
+Lemma count_occ_eq_len : forall (A : Type) (eq_dec : forall x y : A, {x = y} + {x <> y}) (l1 l2 : list A),
   (forall x, count_occ eq_dec l1 x = count_occ eq_dec l2 x) -> length l1 = length l2.
 Proof.
   intros A eq_dec l1 l2. revert l2. induction l1 as [| h1 t1 IH].
